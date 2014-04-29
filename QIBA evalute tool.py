@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
-
+import os.path
 import wx
-import numpy
 
 import dicom
 import pylab
+
+import random
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+from matplotlib.figure import Figure
+
 
 
 class MainWindow(wx.Frame):
@@ -19,8 +23,6 @@ class MainWindow(wx.Frame):
         self.SetStatusText("Welcome to " + self.applicationName + "!")
 
         self.SetupMenubar()
-        self.SetupLayoutLeft()
-        self.SetupLayoutRight()
         self.SetupLayoutMain()
 
     def SetupMenubar(self):
@@ -47,15 +49,9 @@ class MainWindow(wx.Frame):
         self.SetMenuBar(menubar)
 
     def SetupLayoutLeft(self):
-
-        self.leftPanel = wx.Panel(self, size = (200, 600))
-        self.leftPanel.SetBackgroundColour("pink")
-        self.rightPanel = wx.Panel(self, size = (700, 600))
-        self.rightPanel.SetBackgroundColour("blue")
-
         # add the scroll bar to the left panel
         self.scrollPreview = wx.ScrolledWindow(self.leftPanel, -1)  #, style = wx.ALWAYS_SHOW_SB)
-        self.scrollSizer = wx.FlexGridSizer(cols = 1, vgap = 10)
+        #self.scrollSizer = wx.FlexGridSizer(cols = 1, vgap = 10)
         self.scrollPreview.SetScrollbars(1,1,1,1)
 
         # sizer for the left column
@@ -64,18 +60,51 @@ class MainWindow(wx.Frame):
         self.leftPanel.SetSizer(sizer)
 
     def SetupLayoutRight(self):
-        noteBookRight = wx.Notebook(self.rightPanel)
+        noteBookRight = wx.Notebook(self.rightPanel)  #, style=wx.SUNKEN_BORDER)
         page1 = wx.Panel(noteBookRight)
         page2 = wx.Panel(noteBookRight)
-        noteBookRight.AddPage(page1, "Statistic Viewer")
+        noteBookRight.AddPage(page1, "Statistics Viewer")
         noteBookRight.AddPage(page2, "Result Review")
 
+        # try to draw scatter plots on page 1
+        # the repetition of the code is just for demonstration purpose
+        # could also have other forms to show the plots
+        x = [random.random() for i in range(25)]
+        y = [random.random() for i in range(25)]
+        self.figure = Figure()
+        self.canvas = FigureCanvas(page1,-1, self.figure)
+
+        self.scatterPlot1 = self.figure.add_subplot(2,2,1)
+        self.scatterPlot1.clear()
+        self.scatterPlot1.scatter(x, y)
+
+        self.scatterPlot2 = self.figure.add_subplot(2,2,2)
+        self.scatterPlot2.clear()
+        self.scatterPlot2.scatter(x, y)
+
+        self.scatterPlot3 = self.figure.add_subplot(2,2,3)
+        self.scatterPlot3.clear()
+        self.scatterPlot3.scatter(x, y)
+
+        self.scatterPlot4 = self.figure.add_subplot(2,2,4)
+        self.scatterPlot4.clear()
+        self.scatterPlot4.scatter(x, y)
+
+        self.canvas.draw()
+
+
+        # sizer for the right column
         sizer = wx.BoxSizer()
         sizer.Add(noteBookRight, 1, wx.EXPAND)
         self.rightPanel.SetSizer(sizer)
 
     def SetupLayoutMain(self):
-        # sizer for the main frame
+        self.leftPanel = wx.Panel(self, size = (200, 600))
+        self.rightPanel = wx.Panel(self, size = (700, 600))
+
+        self.SetupLayoutLeft()
+        self.SetupLayoutRight()
+
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.leftPanel, 0, flag = wx.EXPAND)  # second argument being 0 to make sure that it wont expand
         sizer.Add(self.rightPanel, 1, flag = wx.EXPAND)  # second argument is for expansion proportion
@@ -86,18 +115,20 @@ class MainWindow(wx.Frame):
         """import a selected file."""
         dlg = wx.FileDialog(self, 'Choose a file to add', '', '', "DICM file(*.dcm) | *.dcm", wx.OPEN | wx.MULTIPLE)
         if dlg.ShowModal() == wx.ID_OK:
-            fileList = dlg.GetPaths()
-            #imageFile = dlg.GetFilename()
-            for filePath in fileList:
+            pathList = dlg.GetPaths()
+            # fileList = dlg.GetFilename()
+            for path in pathList:
                 try:
-                    filePath.endswith(".dcm")
-                    self.ImportImage(filePath)
+                    path.endswith(".dcm")
+                    CaseOne = ImportedDICOM()
+                    CaseOne.addNew(path)
+                    print ImportedDICOM.fileNames
+                    # self.ImportImage(path)
                 except ImportError:
                     print "file type not supported!"
 
 
     def ImportImage(self, filePath):
-        # TODO also add remove file function
         ds = dicom.read_file(filePath)
         #read header data
         print ds
@@ -131,8 +162,18 @@ class MainWindow(wx.Frame):
     def OnShowAbout(self):
         print "TODO: add application information here"
 
+    def plot(self, event):
+        self.testScatter.plot()
 
 
+class ImportedDICOM():
+    ''' The class that manage the imported DICOM files
+    '''
+    fileNames = []
+
+    def addNew(self, path):
+        head, tail = os.path.split(path)
+        self.fileNames.append(tail)
 
 
 if __name__ == "__main__":
@@ -140,3 +181,5 @@ if __name__ == "__main__":
     window = MainWindow(None)
     window.Show()
     Application.MainLoop()
+
+# TODO also add remove file function
