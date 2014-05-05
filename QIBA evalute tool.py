@@ -5,15 +5,19 @@ import wx
 
 import dicom
 import pylab
-
-import random
+import numpy
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 
 
 class MainWindow(wx.Frame):
+    ''' this is the main window of the QIBA evaluate tool
+    '''
     applicationName = "QIBA evaluate tool"
+    DICOMSeries = []
+    VeList = [0.01, 0.05, 0.1, 0.2,0.5]
+    KtransList = [0.01, 0.02, 0.05, 0.1, 0.2, 0.35]
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, title = self.applicationName, size = (900, 600))
         self.SetMinSize((900, 600))
@@ -49,54 +53,46 @@ class MainWindow(wx.Frame):
         self.SetMenuBar(menubar)
 
     def SetupLayoutLeft(self):
-        # add the scroll bar to the left panel
-        self.scrollPreview = wx.ScrolledWindow(self.leftPanel, -1)  #, style = wx.ALWAYS_SHOW_SB)
-        #self.scrollSizer = wx.FlexGridSizer(cols = 1, vgap = 10)
-        self.scrollPreview.SetScrollbars(1,1,1,1)
-
+        pass
+        # Manage the tree list of the parameters on the left panel.
         # sizer for the left column
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.scrollPreview, 1, flag = wx.EXPAND)
-        self.leftPanel.SetSizer(sizer)
+        #sizer = wx.BoxSizer(wx.VERTICAL)
+        #self.parameterTree.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.OnSelChanged, id=1)
+        #self.leftPanel.SetSizer(sizer)
+
 
     def SetupLayoutRight(self):
-        noteBookRight = wx.Notebook(self.rightPanel)  #, style=wx.SUNKEN_BORDER)
-        page1 = wx.Panel(noteBookRight)
-        page2 = wx.Panel(noteBookRight)
-        noteBookRight.AddPage(page1, "Statistics Viewer")
-        noteBookRight.AddPage(page2, "Result Review")
+        # set up the right panel with notebook
+        self.noteBookRight = wx.Notebook(self.rightPanel)  #, style=wx.SUNKEN_BORDER)
+        self.page1 = wx.Panel(self.noteBookRight)
+        self.page2 = wx.Panel(self.noteBookRight)
+        self.noteBookRight.AddPage(self.page1, "Statistics Viewer")
+        self.noteBookRight.AddPage(self.page2, "Result Review")
 
-        # try to draw scatter plots on page 1
-        # the repetition of the code is just for demonstration purpose
-        # could also have other forms to show the plots
-        x = [random.random() for i in range(25)]
-        y = [random.random() for i in range(25)]
+        # set a canvas on page 1
         self.figure = Figure()
-        self.canvas = FigureCanvas(page1,-1, self.figure)
+        self.canvas = FigureCanvas(self.page1,-1, self.figure)
 
-        self.scatterPlot1 = self.figure.add_subplot(2,2,1)
-        self.scatterPlot1.clear()
-        self.scatterPlot1.scatter(x, y)
+        # sizer for the right panel
+        sizer = wx.BoxSizer()
+        sizer.Add(self.noteBookRight, 1, wx.EXPAND)
+        self.rightPanel.SetSizer(sizer)
+        self.rightPanel.Layout()
 
-        self.scatterPlot2 = self.figure.add_subplot(2,2,2)
-        self.scatterPlot2.clear()
-        self.scatterPlot2.scatter(x, y)
 
-        self.scatterPlot3 = self.figure.add_subplot(2,2,3)
-        self.scatterPlot3.clear()
-        self.scatterPlot3.scatter(x, y)
+    def DrawScatterPlot(self, pixels):
+        # try to draw scatter plots on page 1
+        # the display is fixed, just to show the possibility of showing the imported data
+        # next step is to bind the treelist with display
+        y = pixels[1]
+        x = [[Ve]*100 for Ve in self.VeList]
 
-        self.scatterPlot4 = self.figure.add_subplot(2,2,4)
-        self.scatterPlot4.clear()
-        self.scatterPlot4.scatter(x, y)
+        self.scatterPlot = self.figure.add_subplot(1,1,1)
+        self.scatterPlot.clear()
+        self.scatterPlot.scatter(x, y)
 
         self.canvas.draw()
 
-
-        # sizer for the right column
-        sizer = wx.BoxSizer()
-        sizer.Add(noteBookRight, 1, wx.EXPAND)
-        self.rightPanel.SetSizer(sizer)
 
     def SetupLayoutMain(self):
         self.leftPanel = wx.Panel(self, size = (200, 600))
@@ -116,28 +112,32 @@ class MainWindow(wx.Frame):
         dlg = wx.FileDialog(self, 'Choose a file to add', '', '', "DICM file(*.dcm) | *.dcm", wx.OPEN | wx.MULTIPLE)
         if dlg.ShowModal() == wx.ID_OK:
             pathList = dlg.GetPaths()
-            # fileList = dlg.GetFilename()
+            fileList = dlg.GetFilenames()
             for path in pathList:
                 try:
                     path.endswith(".dcm")
-                    CaseOne = ImportedDICOM()
-                    CaseOne.addNew(path)
-                    print ImportedDICOM.fileNames
-                    # self.ImportImage(path)
+                    self.DICOMSeries.append(ImportedDICOM(path))
                 except ImportError:
-                    print "file type not supported!"
+                    print "File type not supported!"
+
+            # show the tree list of the imported DICOM files
+            sizer = wx.BoxSizer(wx.VERTICAL)
+            sizer.Add(ParameterTree(self.leftPanel, fileList), 1, flag = wx.EXPAND)
+            self.leftPanel.SetSizer(sizer)
+            self.leftPanel.Layout()
+
+            # show the scatter plot
+            self.DrawScatterPlot(self.DICOMSeries[0].rearrangedPixels) # simply show the first DICOM
+            self.rightPanel.Layout()
 
 
-    def ImportImage(self, filePath):
+    def ShowPreview(self, filePath):
+        # by now this function is not used.
         ds = dicom.read_file(filePath)
-        #read header data
-        print ds
-
-        # show DICOM image with matplotlib
         pylab.imshow(ds.pixel_array, cmap=pylab.cm.bone)
         pylab.show()
 
-        return
+        '''
         # test for tiff image file display and scrolled window
         self.newImage = wx.Image(filePath)
         w, h = self.newImage.GetSize()
@@ -148,6 +148,7 @@ class MainWindow(wx.Frame):
         self.scrollSizer.Add(textName, 1, wx.EXPAND)
         self.scrollPreview.SetSizerAndFit(self.scrollSizer)
         self.leftPanel.Layout()  # to refresh the scroll window
+        '''
 
 
     def OnExport(self, event):
@@ -162,18 +163,65 @@ class MainWindow(wx.Frame):
     def OnShowAbout(self):
         print "TODO: add application information here"
 
-    def plot(self, event):
-        self.testScatter.plot()
-
-
-class ImportedDICOM():
-    ''' The class that manage the imported DICOM files
+class ParameterTree(wx.TreeCtrl):
+    ''' The customized TreeCtrl class, to index the display of the scatter plot accordingly
     '''
-    fileNames = []
+    DICOMs = []
+    Ve = []
+    Ktrans = []
+    def __init__(self, parent, nodeNames):
+        wx.TreeCtrl.__init__(self, parent)
+        root = self.AddRoot('just a root name')  # a name that could distinguish the imported DICOM
+        for i, node in enumerate(nodeNames):
+            self.DICOMs.append(self.AppendItem(root, node))
+            self.Ve.append(self.AppendItem(self.DICOMs[i], 'Ve'))
+            self.Ktrans.append(self.AppendItem(self.DICOMs[i], 'Ktrans'))
 
-    def addNew(self, path):
-        head, tail = os.path.split(path)
-        self.fileNames.append(tail)
+            # the parameter should be able to be loaded from DICOM file.
+            for p1 in MainWindow.VeList:
+                self.AppendItem(self.Ve[i], str(p1))
+            for p2 in MainWindow.KtransList:
+                self.AppendItem(self.Ktrans[i], str(p2))
+
+            self.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnActivated, self)
+    def OnActivated(self, event):
+        # get the item in order to display the plot
+        print self.GetItemText(event.GetItem())
+
+class ImportedDICOM:
+    ''' This class manages the imported DICOM files.
+    The parameters like the size of a patch, the arrange of patches in an image, should be able to be read from the images.
+    '''
+    def __init__(self, path):
+        self.extraPatchNr = 2
+        self.patchPxlNr = 10
+
+        self.nrOfRows = 0
+        self.nrOfColumns = 0
+        self.rearrangedPixels = []
+
+        self.AddNew(path)
+
+    def AddNew(self, path):
+        ds = dicom.read_file(path)
+
+        self.nrOfRows = ds.Rows/self.patchPxlNr - self.extraPatchNr
+        self.nrOfColumns = ds.Columns/self.patchPxlNr
+
+        self.rearrangedPixels.extend(self.RearrangePixels(ds.pixel_array, self.nrOfRows, self.nrOfColumns))
+
+    def RearrangePixels(self, pxlArr, rows, columns):
+        patchTemp = [[[] for j in range(columns)] for i in range(rows) ]
+        patchCell = []
+        for i in range(rows):
+            for j in range(columns):
+                for k in range(self.patchPxlNr):
+                    patchCell.extend(pxlArr[(i + 1) * self.patchPxlNr + k ][j : j + self.patchPxlNr])
+                # patchTemp.extend(patchCell)
+                patchTemp[i][j] = patchCell
+                patchCell = []
+        return patchTemp
+
 
 
 if __name__ == "__main__":
