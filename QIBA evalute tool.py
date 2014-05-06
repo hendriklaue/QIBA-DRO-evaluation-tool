@@ -14,11 +14,10 @@ class MainWindow(wx.Frame):
     ''' this is the main window of the QIBA evaluate tool
     '''
     applicationName = "QIBA evaluate tool"
-    DICOMSeries = []
-    VeList = [0.01, 0.05, 0.1, 0.2,0.5]
-    KtransList = [0.01, 0.02, 0.05, 0.1, 0.2, 0.35]
-    VeStringList = [str(i) for i in VeList]
-    KtransStringList = [ str(i) for i in KtransList]
+    DICOMSeries = {}
+    refDICOMS = {}
+    rescaleIntercept = 0
+    rescaleSlope = 0
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, title = self.applicationName, size = (900, 600))
         self.SetMinSize((900, 600))
@@ -34,8 +33,10 @@ class MainWindow(wx.Frame):
         menubar = wx.MenuBar()
 
         fileMenu = wx.Menu()
-        OnImport = fileMenu.Append(wx.ID_ANY, "&Import...\tCtrl+I", "Import a new DICOM file.")
+        OnImport = fileMenu.Append(wx.ID_ANY, "&Import...\tCtrl+I", "Import DICOM files, including reference files.")
         OnExport = fileMenu.Append(wx.ID_ANY, "&Export...\tCtrl+E", "Export the result as PDF/EXCEL file.")
+        fileMenu.AppendSeparator()
+        OnClearRef = fileMenu.Append(wx.ID_ANY, "&Clear the reference DICOMs", "Clear the DICOMs which were imported for parameter mapping.")
         fileMenu.AppendSeparator()
         OnExit = fileMenu.Append(wx.ID_ANY, "&Quit\tCtrl+Q", "Quit " + self.applicationName)
 
@@ -45,9 +46,10 @@ class MainWindow(wx.Frame):
 
         menubar.Bind(wx.EVT_MENU, self.OnImport, OnImport)
         menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
+        menubar.Bind(wx.EVT_MENU, self.OnClearRef, OnClearRef)
         menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
         menubar.Bind(wx.EVT_MENU, self.OnShowThirdParty, OnThirdPartyLib)
-        menubar.Bind(wx.EVT_MENU, self.OnShowAbout, OnAboutApp)
+        menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
 
         menubar.Append(fileMenu, "&File")
         menubar.Append(aboutMenu, "&About")
@@ -77,19 +79,6 @@ class MainWindow(wx.Frame):
         self.rightPanel.Layout()
 
 
-    def DrawScatterPlot(self, pixels):
-        # try to draw scatter plots on page 1
-        # the display is fixed, just to show the possibility of showing the imported data
-        # next step is to bind the treelist with display
-        y = pixels[1]
-        x = [[Ve]*100 for Ve in self.VeList]
-
-        self.scatterPlot = self.figure.add_subplot(1,1,1)
-        self.scatterPlot.clear()
-        self.scatterPlot.scatter(x, y)
-
-        self.canvas.draw()
-
 
     def SetupLayoutMain(self):
         self.leftPanel = wx.Panel(self, size = (200, 600))
@@ -107,25 +96,49 @@ class MainWindow(wx.Frame):
         """import a selected file."""
         dlg = wx.FileDialog(self, 'Choose a file to add', '', '', "DICM file(*.dcm) | *.dcm", wx.OPEN | wx.MULTIPLE)
         if dlg.ShowModal() == wx.ID_OK:
+            self.DICOMSeries.clear()
             pathList = dlg.GetPaths()
             fileList = dlg.GetFilenames()
-            for path in pathList:
-                try:
-                    path.endswith(".dcm")
-                    self.DICOMSeries.append(ImportedDICOM(path))
-                except ImportError:
-                    print "File type not supported!"
+            filePathDict = {}
+            for (path, file) in zip(pathList, fileList):
+                filePathDict[file] = path
+
+            # if the parameter map are not available, pop out dialog. TODO: very redundant, should be improved later.
+            if not ('Ktrans.dcm' in fileList) | ('Ktrans.dcm' in self.refDICOMS) | ('Ve.dcm' in fileList) | ('Ve.dcm' in self.refDICOMS):
+                dlg = wx.MessageDialog(self,  'No reference DICOM imported! \nPlease Import reference DICOM files.', 'Reference DICOM needed', wx.OK)
+                dlg.ShowModal()
+                return
+
+            # load the reference DICOMS in advance if necessary, in order to have the rescale factors
+            for ref in ['Ve.dcm', 'Ktrans.dcm']:
+                if ref in fileList:
+                    self.refDICOMS[ref] = ImportedDICOM(filePathDict[ref], ref)
+
+            # load the rest DICOMs
+            for (path, file) in zip(pathList, fileList):
+                if file in ['Ve.dcm', 'Ktrans.dcm']:
+                    continue
+                self.DICOMSeries[file] = ImportedDICOM(path, file)
 
             # show the tree list of the imported DICOM files
+            # TODO: bug here! Loading files multiple times cannot be dispalyed correctly.
             sizer = wx.BoxSizer(wx.VERTICAL)
-            sizer.Add(ParameterTree(self.leftPanel, fileList), 1, flag = wx.EXPAND)
+            sizer.Add(ParameterTree(self.leftPanel), 1, flag = wx.EXPAND)
             self.leftPanel.SetSizer(sizer)
             self.leftPanel.Layout()
 
-            # show the scatter plot
-            self.DrawScatterPlot(self.DICOMSeries[0].rearrangedPixels) # simply show the first DICOM
-            self.rightPanel.Layout()
+    def DrawPlot(self, testPixels, refPixles):
+        # draw a plot on page 1 when an item is selected in the tree list
+        self.scatterPlot = self.figure.add_subplot(1,1,1)
+        self.scatterPlot.clear()
+        self.scatterPlot.scatter(refPixles, testPixels)
 
+        self.canvas.draw()
+        self.rightPanel.Layout()
+
+    def OnClearRef(self):
+        self.refDICOMS.clear()
+        self.SetStatusText("Reference DICOMs cleared.")
 
     def OnExport(self, event):
         print "TODO: add export function"
@@ -134,22 +147,54 @@ class MainWindow(wx.Frame):
         self.Close()
 
     def OnShowThirdParty(self):
-        print "TODO: add third party libraries information here"
+        # could be added to the about dialog?
+        pass
 
-    def OnShowAbout(self):
-        print "TODO: add application information here"
+    def OnAbout(self, envent):
+        description = """This is the description of this software."""
+
+        licence = """This is the Licence of the software."""
+
+
+        info = wx.AboutDialogInfo()
+
+        # set icon here
+        # info.SetIcon(wx.Icon('hunter.png', wx.BITMAP_TYPE_PNG))
+
+        info.SetName('QIBA evaluate tool')
+        info.SetVersion('1.0')
+        info.SetDescription(description)
+        # set copyright here
+        # info.SetCopyright('(C) 2007 - 2011 Jan Bodnar')
+
+        # set website
+        # info.SetWebSite('http://www.zetcode.com')
+        info.SetLicence(licence)
+
+        # set developer
+        # info.AddDeveloper('Jan Bodnar')
+        # set document writer
+        # info.AddDocWriter('Jan Bodnar')
+
+        wx.AboutBox(info)
 
 class ParameterTree(wx.TreeCtrl):
     ''' The customized TreeCtrl class, to index the display of the scatter plot accordingly
     '''
-    def __init__(self, parent, nodeNames):
+    def __init__(self, parent):
         wx.TreeCtrl.__init__(self, parent)
         self.root = self.AddRoot('Imported DICOM files')  # a name that could distinguish the imported DICOM
         treeListItems = []
+        parameterList = []
 
-        for i, node in enumerate(nodeNames):
-            # organize items first
-            treeListItems.append([node,[['Ve', MainWindow.VeStringList], ['Ktrans', MainWindow.KtransStringList]]])
+        # try to abstract the parameter map from the DICOM, in order to show in the tree list
+        if 'Ktrans.dcm' in MainWindow.refDICOMS:
+                parameterList.append(['Ktrans', [str(p) for p in MainWindow.refDICOMS['Ktrans.dcm'].KtransMap]])
+        if 'Ve.dcm' in MainWindow.refDICOMS:
+                parameterList.append(['Ve', [str(p) for p in MainWindow.refDICOMS['Ve.dcm'].VeMap]])
+
+        for key, DICOM in MainWindow.DICOMSeries.items():
+            treeListItems.append([key, parameterList])
 
         # add nodes to the tree
         self.AddTreeNodes(self.root, treeListItems)
@@ -171,43 +216,79 @@ class ParameterTree(wx.TreeCtrl):
 class ImportedDICOM:
     ''' This class manages the imported DICOM files.
     The parameters like the size of a patch, the arrange of patches in an image, should be able to be read from the images.
+    The reference file will be loaded as common files, but used for abstracting parameters' purpose.
     '''
-    def __init__(self, path):
+    def __init__(self, path, fileName):
         self.extraPatchNr = 2
         self.patchPxlNr = 10
 
-        self.nrOfRows = 0
-        self.nrOfColumns = 0
+        self.DICOMName = fileName
+        self.KtransMap = []
+        self.VeMap = []
+        self.pixelArray = []
         self.rearrangedPixels = []
 
-        self.AddNew(path)
-
-    def AddNew(self, path):
         ds = dicom.read_file(path)
 
+        # rescale the pixel value
+        try:
+            MainWindow.rescaleIntercept = ds.RescaleIntercept
+            MainWindow.rescaleSlope = ds.RescaleSlope
+            print MainWindow.rescaleIntercept
+        except:
+            pass
+
+        self.pixelArray.extend(self.Rescale(ds.pixel_array))
+
+        # calculate the size of the patches
         self.nrOfRows = ds.Rows/self.patchPxlNr - self.extraPatchNr
         self.nrOfColumns = ds.Columns/self.patchPxlNr
 
-        self.rearrangedPixels.extend(self.RearrangePixels(ds.pixel_array, self.nrOfRows, self.nrOfColumns))
+        # rearrange the pixels
+        self.rearrangedPixels.extend(self.RearrangePixels(self.pixelArray, self.nrOfRows, self.nrOfColumns))
 
-    def RearrangePixels(self, pxlArr, rows, columns):
-        patchTemp = [[[] for j in range(columns)] for i in range(rows) ]
+        if fileName == 'Ktrans.dcm':
+            self.AbstractKtrans()
+        elif fileName == 'Ve.dcm':
+            self.AbstractVe()
+        else:
+            pass
+
+    def Rescale(self, intPixelArray):
+        # rescale the pixel value from int to float
+        temp = []
+        floatPixelArray = []
+        for row in intPixelArray:
+            for pixel in row:
+                temp.append(pixel * MainWindow.rescaleSlope + MainWindow.rescaleIntercept)
+            floatPixelArray.append(temp)
+            temp = []
+        return floatPixelArray
+
+    def RearrangePixels(self, pxlArr, nrOfRows, nrOfColumns):
+        # rearrange the pixels so that they can be picked up in unit of patch, with index of [indexOfRow][indexOfColumn]
+        patchTemp = [[[] for j in range(nrOfColumns)] for i in range(nrOfRows) ]
         patchCell = []
-        for i in range(rows):
-            for j in range(columns):
+        for i in range(nrOfRows):
+            for j in range(nrOfColumns):
                 for k in range(self.patchPxlNr):
                     patchCell.extend(pxlArr[(i + 1) * self.patchPxlNr + k ][j : j + self.patchPxlNr])
-                # patchTemp.extend(patchCell)
                 patchTemp[i][j] = patchCell
                 patchCell = []
         return patchTemp
 
+    def AbstractKtrans(self):
+        self.KtransMap = []
+        for i in range(self.nrOfRows):
+            self.KtransMap.append(self.rearrangedPixels[i][1][1])
 
+    def AbstractVe(self):
+        self.VeMap = []
+        for i in range(self.nrOfColumns):
+            self.VeMap.append(self.rearrangedPixels[1][i][1])
 
 if __name__ == "__main__":
     Application = wx.App()
     window = MainWindow(None)
     window.Show()
     Application.MainLoop()
-
-# TODO also add remove file function
