@@ -10,7 +10,6 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 
-
 class MainWindow(wx.Frame):
     ''' this is the main window of the QIBA evaluate tool
     '''
@@ -18,6 +17,8 @@ class MainWindow(wx.Frame):
     DICOMSeries = []
     VeList = [0.01, 0.05, 0.1, 0.2,0.5]
     KtransList = [0.01, 0.02, 0.05, 0.1, 0.2, 0.35]
+    VeStringList = [str(i) for i in VeList]
+    KtransStringList = [ str(i) for i in KtransList]
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, title = self.applicationName, size = (900, 600))
         self.SetMinSize((900, 600))
@@ -52,15 +53,6 @@ class MainWindow(wx.Frame):
         menubar.Append(aboutMenu, "&About")
         self.SetMenuBar(menubar)
 
-    def SetupLayoutLeft(self):
-        pass
-        # Manage the tree list of the parameters on the left panel.
-        # sizer for the left column
-        #sizer = wx.BoxSizer(wx.VERTICAL)
-        #self.parameterTree.Bind(wx.EVT_TREE_ITEM_EXPANDED, self.OnSelChanged, id=1)
-        #self.leftPanel.SetSizer(sizer)
-
-
     def SetupLayoutRight(self):
         # set up the right panel with notebook
         self.noteBookRight = wx.Notebook(self.rightPanel)  #, style=wx.SUNKEN_BORDER)
@@ -72,6 +64,11 @@ class MainWindow(wx.Frame):
         # set a canvas on page 1
         self.figure = Figure()
         self.canvas = FigureCanvas(self.page1,-1, self.figure)
+
+        # set sizer for the canvas
+        sizer = wx.BoxSizer()
+        sizer.Add(self.canvas, 1, wx.EXPAND)
+        self.page1.SetSizer(sizer)
 
         # sizer for the right panel
         sizer = wx.BoxSizer()
@@ -98,12 +95,11 @@ class MainWindow(wx.Frame):
         self.leftPanel = wx.Panel(self, size = (200, 600))
         self.rightPanel = wx.Panel(self, size = (700, 600))
 
-        self.SetupLayoutLeft()
         self.SetupLayoutRight()
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.leftPanel, 0, flag = wx.EXPAND)  # second argument being 0 to make sure that it wont expand
-        sizer.Add(self.rightPanel, 1, flag = wx.EXPAND)  # second argument is for expansion proportion
+        sizer.Add(self.leftPanel, 2, flag = wx.EXPAND)  # second argument being 0 to make sure that it wont expand
+        sizer.Add(self.rightPanel, 7, flag = wx.EXPAND)  # second argument is for expansion proportion
         self.SetSizer(sizer)
 
 
@@ -131,26 +127,6 @@ class MainWindow(wx.Frame):
             self.rightPanel.Layout()
 
 
-    def ShowPreview(self, filePath):
-        # by now this function is not used.
-        ds = dicom.read_file(filePath)
-        pylab.imshow(ds.pixel_array, cmap=pylab.cm.bone)
-        pylab.show()
-
-        '''
-        # test for tiff image file display and scrolled window
-        self.newImage = wx.Image(filePath)
-        w, h = self.newImage.GetSize()
-        resizedImage = self.newImage.Scale(128, 128*h/w)  # restrict the width and set the height accordingly
-        showImage = wx.StaticBitmap(self.scrollPreview, -1,wx.BitmapFromImage(resizedImage))
-        textName = wx.StaticText(self.scrollPreview, -1, "lena", style=wx.ALIGN_CENTRE)
-        self.scrollSizer.Add(showImage, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.ALIGN_CENTER, border = 25)
-        self.scrollSizer.Add(textName, 1, wx.EXPAND)
-        self.scrollPreview.SetSizerAndFit(self.scrollSizer)
-        self.leftPanel.Layout()  # to refresh the scroll window
-        '''
-
-
     def OnExport(self, event):
         print "TODO: add export function"
 
@@ -166,24 +142,28 @@ class MainWindow(wx.Frame):
 class ParameterTree(wx.TreeCtrl):
     ''' The customized TreeCtrl class, to index the display of the scatter plot accordingly
     '''
-    DICOMs = []
-    Ve = []
-    Ktrans = []
     def __init__(self, parent, nodeNames):
         wx.TreeCtrl.__init__(self, parent)
-        root = self.AddRoot('just a root name')  # a name that could distinguish the imported DICOM
+        self.root = self.AddRoot('Imported DICOM files')  # a name that could distinguish the imported DICOM
+        treeListItems = []
+
         for i, node in enumerate(nodeNames):
-            self.DICOMs.append(self.AppendItem(root, node))
-            self.Ve.append(self.AppendItem(self.DICOMs[i], 'Ve'))
-            self.Ktrans.append(self.AppendItem(self.DICOMs[i], 'Ktrans'))
+            # organize items first
+            treeListItems.append([node,[['Ve', MainWindow.VeStringList], ['Ktrans', MainWindow.KtransStringList]]])
 
-            # the parameter should be able to be loaded from DICOM file.
-            for p1 in MainWindow.VeList:
-                self.AppendItem(self.Ve[i], str(p1))
-            for p2 in MainWindow.KtransList:
-                self.AppendItem(self.Ktrans[i], str(p2))
+        # add nodes to the tree
+        self.AddTreeNodes(self.root, treeListItems)
+        self.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnActivated, self)
 
-            self.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnActivated, self)
+    def AddTreeNodes(self, parentItem, items):
+        for item in items:
+            if type(item) == str:
+                self.AppendItem(parentItem, item)
+            else:
+                newParentItem = self.AppendItem(parentItem, item[0])
+                print 'add item: ' + item[0]
+                self.AddTreeNodes(newParentItem, item[1])
+
     def OnActivated(self, event):
         # get the item in order to display the plot
         print self.GetItemText(event.GetItem())
