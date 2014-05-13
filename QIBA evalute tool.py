@@ -113,7 +113,7 @@ class MainWindow(wx.Frame):
                 if os.path.isfile(path):
                     self.refDICOMS[file] = ImportedDICOM(path, file)
                     if not self.refDICOMS[file].ISREF:
-                        self.refDICOMS[file].clear()
+                        del self.refDICOMS[file]
                         wx.MessageDialog(self, file + ' is an invalid reference file.', 'Invaid reference file', wx.OK).ShowModal()
                     else:
                         newFileCount = + 1
@@ -147,7 +147,7 @@ class MainWindow(wx.Frame):
                 if os.path.isfile(path):
                     self.DICOMSeries[file] = ImportedDICOM(path, file)
                     if self.DICOMSeries[file].ISREF:
-                        del self.DICOMSeries[file]
+                        self.DICOMSeries[file].clear()
                         wx.MessageDialog(self, file + ' is a reference file.', 'Is a reference file', wx.OK).ShowModal()
                     else:
                         newFileCount = + 1
@@ -159,41 +159,46 @@ class MainWindow(wx.Frame):
 
     def ShowTreeList(self):
         # show the tree list of the imported DICOM files
-        self.CleanPanel(self.leftPanel)
+        for child in self.leftPanel.GetChildren():
+            if child:
+                child.Destroy() # delete the old tree
+            else:
+                pass
         TreeSizer = wx.BoxSizer(wx.VERTICAL)
         TreeSizer.Add(ParameterTree(self.leftPanel), 1, flag = wx.EXPAND)
         self.leftPanel.SetSizer(TreeSizer)
         self.leftPanel.Layout()
 
-    def DrawPlot(self):
+    def DrawPlot(self, parameterName):
         # draw scatter plot on page 1 when an item is selected in the tree list
         self.scatterPlot = self.figure.add_subplot(1,1,1)
         self.scatterPlot.clear()
-        self.scatterPlot.scatter(self.x, self.y)
+
+        plot1 = self.scatterPlot.scatter(self.x[0], self.y[0], color = 'g', alpha = 0.25)
+        plot2 = self.scatterPlot.scatter(self.x[1], self.y[1], color = 'r', alpha = 1)
+        self.scatterPlot.legend([plot1, (plot1, plot2)], ['calculated value', 'average of calculated value'])
+
+        if parameterName == 'Ve':
+            self.scatterPlot.set_xlabel('Reference Ktrans')
+            self.scatterPlot.set_ylabel('Calculated Ktrans')
+            self.scatterPlot.set_title('Distribution of Ktrans')
+        elif parameterName == 'Ktrans':
+            self.scatterPlot.set_xlabel('Reference Ve')
+            self.scatterPlot.set_ylabel('Calculated Ve')
+            self.scatterPlot.set_title('Distribution of Ve')
+        else:
+            pass
 
         self.canvas.draw()
         self.rightPanel.Layout()
 
-    def OnClearRef(self, event):
+    def OnClearRef(self):
         self.refDICOMS.clear()
-        self.ShowTreeList()
-        self.CleanPanel(self.rightPanel)
-        self.SetupLayoutRight()
         self.SetStatusText("Reference DICOM files cleared.")
 
-    def OnClearDICOMs(self, event):
+    def OnClearDICOMs(self):
         self.DICOMSeries.clear()
-        self.ShowTreeList()
-        self.CleanPanel(self.rightPanel)
-        self.SetupLayoutRight()
         self.SetStatusText('DICOM files evaluated on cleared.')
-
-    def CleanPanel(self, panel):
-        for child in panel.GetChildren():
-            if child:
-                child.Destroy() # delete the old tree
-            else:
-                pass
 
     def OnExport(self, event):
         print "TODO: add export function"
@@ -244,10 +249,8 @@ class ParameterTree(wx.TreeCtrl):
         # try to abstract the parameter map from the DICOM, in order to show in the tree list
         if not ('Ktrans.dcm' in window.refDICOMS):
             wx.MessageDialog(self,  'Please Import reference DICOM for Ktrans mapping.', 'Ktrans mapping DICOM needed', wx.OK)
-            return
         elif not ('Ve.dcm' in window.refDICOMS):
             wx.MessageDialog(self,  'Please Import reference DICOM for Ve mapping.', 'Ve mapping DICOM needed', wx.OK)
-            return
         else:
             parameterList.append(['Ktrans', window.refDICOMS['Ktrans.dcm'].KtransMap])
             parameterList.append(['Ve', window.refDICOMS['Ve.dcm'].VeMap])
@@ -279,31 +282,36 @@ class ParameterTree(wx.TreeCtrl):
             fileName = self.GetItemText(self.GetItemParent(self.GetItemParent(event.GetItem())))
             parameterName = self.GetItemText(self.GetItemParent(event.GetItem()))
             parameter = self.GetItemText(event.GetItem())
+            window.x = [[], []]
+            window.y = [[], []]
+            yAverageTemp = []
 
             if parameterName == 'Ktrans':
-                window.x = []
-                window.y = []
                 xTemp = [ [float(p)] * 100 for p in  window.refDICOMS['Ve.dcm'].VeMap]
                 for patch in xTemp:
-                    window.x.extend(patch)
+                    window.x[0].extend(patch)
+                window.x[1] = [float(p) for p in  window.refDICOMS['Ve.dcm'].VeMap]
 
                 yTemp = window.DICOMSeries[fileName].OnQuery(parameterName, parameter)
                 for patch in yTemp:
-                    window.y.extend(patch)
+                    yAverageTemp.append(numpy.mean(patch))
+                    window.y[0].extend(patch)
 
             if parameterName == 'Ve':
-                window.x = []
-                window.y = []
                 xTemp = [ [float(p)] * 100 for p in  window.refDICOMS['Ktrans.dcm'].KtransMap]
                 for patch in xTemp:
-                    window.x.extend(patch)
+                    window.x[0].extend(patch)
+                window.x[1] = [float(p) for p in  window.refDICOMS['Ktrans.dcm'].KtransMap]
 
                 yTemp = window.DICOMSeries[fileName].OnQuery(parameterName, parameter)
                 for patch in yTemp:
-                    window.y.extend(patch)
+                    yAverageTemp.append(numpy.mean(patch))
+                    window.y[0].extend(patch)
+            window.y[1] = yAverageTemp
         except:
             return
-        window.DrawPlot()
+
+        window.DrawPlot(parameterName)
 
 class ImportedDICOM:
     ''' This class manages the imported DICOM files.
