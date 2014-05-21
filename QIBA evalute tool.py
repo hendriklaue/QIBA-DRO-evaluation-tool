@@ -79,7 +79,7 @@ class MainWindow(wx.Frame):
         self.canvas = FigureCanvas(self.page1,-1, self.figure)
 
         # set sizer for the canvas
-        sizer = wx.BoxSizer()
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvas, 1, wx.EXPAND)
         self.page1.SetSizer(sizer)
 
@@ -112,7 +112,7 @@ class MainWindow(wx.Frame):
             for (path, file) in zip(pathList, fileList):
                 if os.path.isfile(path):
                     self.refDICOMS[file] = ImportedDICOM(path, file)
-                    if not self.refDICOMS[file].ISREF:
+                    if not self.refDICOMS[file].ISREF: # this is a error proven so that normal DICOM file cannot be loaded as reference. However the standard deserves reconsideration
                         del self.refDICOMS[file]
                         wx.MessageDialog(self, file + ' is an invalid reference file.', 'Invaid reference file', wx.OK).ShowModal()
                     else:
@@ -147,7 +147,7 @@ class MainWindow(wx.Frame):
                 if os.path.isfile(path):
                     self.DICOMSeries[file] = ImportedDICOM(path, file)
                     if self.DICOMSeries[file].ISREF:
-                        self.DICOMSeries[file].clear()
+                        del self.DICOMSeries[file]
                         wx.MessageDialog(self, file + ' is a reference file.', 'Is a reference file', wx.OK).ShowModal()
                     else:
                         newFileCount = + 1
@@ -159,11 +159,7 @@ class MainWindow(wx.Frame):
 
     def ShowTreeList(self):
         # show the tree list of the imported DICOM files
-        for child in self.leftPanel.GetChildren():
-            if child:
-                child.Destroy() # delete the old tree
-            else:
-                pass
+        self.CleanPanel(self.leftPanel)
         TreeSizer = wx.BoxSizer(wx.VERTICAL)
         TreeSizer.Add(ParameterTree(self.leftPanel), 1, flag = wx.EXPAND)
         self.leftPanel.SetSizer(TreeSizer)
@@ -176,7 +172,8 @@ class MainWindow(wx.Frame):
 
         plot1 = self.scatterPlot.scatter(self.x[0], self.y[0], color = 'g', alpha = 0.25)
         plot2 = self.scatterPlot.scatter(self.x[1], self.y[1], color = 'r', alpha = 1)
-        self.scatterPlot.legend([plot1, (plot1, plot2)], ['calculated value', 'average of calculated value'])
+        plot3 = self.scatterPlot.scatter(self.x[1], self.x[1], color = 'b', alpha = 1)
+        self.scatterPlot.legend([plot1,  plot2, plot3], ['calculated value', 'average of calculated value', 'reference value'])
 
         if parameterName == 'Ve':
             self.scatterPlot.set_xlabel('Reference Ktrans')
@@ -192,13 +189,26 @@ class MainWindow(wx.Frame):
         self.canvas.draw()
         self.rightPanel.Layout()
 
-    def OnClearRef(self):
+    def OnClearRef(self, event):
         self.refDICOMS.clear()
+        self.ShowTreeList()
+        self.CleanPanel(self.rightPanel)
+        self.SetupLayoutRight()
         self.SetStatusText("Reference DICOM files cleared.")
 
-    def OnClearDICOMs(self):
+    def OnClearDICOMs(self, event):
         self.DICOMSeries.clear()
+        self.ShowTreeList()
+        self.CleanPanel(self.rightPanel)
+        self.SetupLayoutRight()
         self.SetStatusText('DICOM files evaluated on cleared.')
+
+    def CleanPanel(self, panel):
+        for child in panel.GetChildren():
+            if child:
+                child.Destroy() # delete the old tree
+            else:
+                pass
 
     def OnExport(self, event):
         print "TODO: add export function"
@@ -249,8 +259,10 @@ class ParameterTree(wx.TreeCtrl):
         # try to abstract the parameter map from the DICOM, in order to show in the tree list
         if not ('Ktrans.dcm' in window.refDICOMS):
             wx.MessageDialog(self,  'Please Import reference DICOM for Ktrans mapping.', 'Ktrans mapping DICOM needed', wx.OK)
+            return
         elif not ('Ve.dcm' in window.refDICOMS):
             wx.MessageDialog(self,  'Please Import reference DICOM for Ve mapping.', 'Ve mapping DICOM needed', wx.OK)
+            return
         else:
             parameterList.append(['Ktrans', window.refDICOMS['Ktrans.dcm'].KtransMap])
             parameterList.append(['Ve', window.refDICOMS['Ve.dcm'].VeMap])
@@ -277,7 +289,7 @@ class ParameterTree(wx.TreeCtrl):
                 self.AddTreeNodes(newParentItem, item[1])
 
     def OnActivated(self, event):
-        # get the item in order to display the plot
+        # get the parameter entry from the treelist, in order to display the specific plot
         try:
             fileName = self.GetItemText(self.GetItemParent(self.GetItemParent(event.GetItem())))
             parameterName = self.GetItemText(self.GetItemParent(event.GetItem()))
@@ -353,7 +365,25 @@ class ImportedDICOM:
         elif fileName == 'Ve.dcm':
             self.AbstractVe()
         else:
+            # calculate the dispersion of the loaded dicom
             pass
+
+    def StatisticCalculation(self):
+        # dispersion of each patch
+        self.dispersionOfPatches = []
+        calculatedTemp = []
+        referenceTemp = []
+
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                self.dispersionOfPatches.append(numpy.std(self.rearrangedPixels[i][j]))
+                calculatedTemp.extend(self.rearrangedPixels[i][j])
+
+
+        # variance compared to the reference mapping
+
+
+
 
     def Rescale(self, intPixelArray):
         # rescale the pixel value from int to float
@@ -373,7 +403,7 @@ class ImportedDICOM:
         for i in range(nrOfRows):
             for j in range(nrOfColumns):
                 for k in range(self.patchPxlNr):
-                    patchCell.extend(pxlArr[i * self.patchPxlNr + k ][j * self.patchPxlNr : (j + 1) * self.patchPxlNr])
+                    patchCell.extend(pxlArr[(i+1) * self.patchPxlNr + k ][j * self.patchPxlNr : (j + 1) * self.patchPxlNr])
                 patchTemp[i][j].extend(patchCell)
                 patchCell = []
         return patchTemp
