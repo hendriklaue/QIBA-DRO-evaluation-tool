@@ -493,7 +493,7 @@ class ImportedDICOM:
 
     def RearrangePixels(self, pxlArr, nrOfRows, nrOfColumns):
         '''
-        earrange the pixels so that they can be picked up in unit of patch, with index of [indexOfRow][indexOfColumn]
+        rearrange the pixels so that they can be picked up in unit of patch, with index of [indexOfRow][indexOfColumn]
         '''
         patchAll = [[[] for j in range(nrOfColumns)] for i in range(nrOfRows) ]
         patchTemp = []
