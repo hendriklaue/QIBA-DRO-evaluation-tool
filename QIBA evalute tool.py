@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ #!/usr/bin/env python
 
 import os.path
 import wx
@@ -103,7 +103,7 @@ class MainWindow(wx.Frame):
     def OnImportRef(self, event):
         ''' Import the reference files for getting the parameter maps.
         '''
-        dlg = wx.FileDialog(self, 'Choose a file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN | wx.MULTIPLE)
+        dlg = wx.FileDialog(self, 'Choose a file to add', '', '', "DICOM file (*.dcm)|*.dcm", wx.OPEN | wx.MULTIPLE)
         if dlg.ShowModal() == wx.ID_OK:
             pathList = dlg.GetPaths()
             fileList = dlg.GetFilenames()
@@ -126,7 +126,7 @@ class MainWindow(wx.Frame):
     def OnImport(self, event):
         """ Import DICOM files to evaluate on.
         """
-        dlg = wx.FileDialog(self, 'Choose a file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN | wx.MULTIPLE)
+        dlg = wx.FileDialog(self, 'Choose a file to add', '', '', "DICOM file (*.dcm)|*.dcm", wx.OPEN | wx.MULTIPLE)
         newFileCount = 0
         if dlg.ShowModal() == wx.ID_OK:
             pathList = dlg.GetPaths()
