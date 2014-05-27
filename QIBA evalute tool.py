@@ -150,7 +150,6 @@ class MainWindow(wx.Frame):
 
     def OnImportRefK(self, event):
         '''
-<<<<<<< HEAD
         Import the reference Ktrans
         '''
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
@@ -162,33 +161,6 @@ class MainWindow(wx.Frame):
         Import the reference Ve
         '''
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
-=======
-        dlg = wx.FileDialog(self, 'Choose a file to add', '', '', "DICOM file (*.dcm)|*.dcm", wx.OPEN | wx.MULTIPLE)
-        if dlg.ShowModal() == wx.ID_OK:
-            pathList = dlg.GetPaths()
-            fileList = dlg.GetFilenames()
-            newFileCount = 0
-
-            for (path, file) in zip(pathList, fileList):
-                if os.path.isfile(path):
-                    self.refDICOMS[file] = ImportedDICOM(path, file)
-                    if not self.refDICOMS[file].ISREF: # this is a error proven so that normal DICOM file cannot be loaded as reference. However the standard deserves reconsideration
-                        del self.refDICOMS[file]
-                        wx.MessageDialog(self, file + ' is an invalid reference file.', 'Invaid reference file', wx.OK).ShowModal()
-                    else:
-                        newFileCount = + 1
-                else:
-                    wx.MessageDialog(self, file + ' doesn\'t exist.', 'File doesn\'t exists', wx.OK).ShowModal()
-
-            self.SetStatusText(''.join(key + ' ' for key in self.refDICOMS) + ' available.')
-            self.ShowTreeList()
-
-    def OnImport(self, event):
-        """ Import DICOM files to evaluate on.
-        """
-        dlg = wx.FileDialog(self, 'Choose a file to add', '', '', "DICOM file (*.dcm)|*.dcm", wx.OPEN | wx.MULTIPLE)
-        newFileCount = 0
->>>>>>> 6d998c85bf02c278bb3a8580b953bad8d9840d76
         if dlg.ShowModal() == wx.ID_OK:
             self.refV = ImportedDICOM(dlg.GetPath())
 
@@ -521,7 +493,7 @@ class ImportedDICOM:
 
     def RearrangePixels(self, pxlArr, nrOfRows, nrOfColumns):
         '''
-        rearrange the pixels so that they can be picked up in unit of patch, with index of [indexOfRow][indexOfColumn]
+        earrange the pixels so that they can be picked up in unit of patch, with index of [indexOfRow][indexOfColumn]
         '''
         patchAll = [[[] for j in range(nrOfColumns)] for i in range(nrOfRows) ]
         patchTemp = []
