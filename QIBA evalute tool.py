@@ -25,11 +25,11 @@ class MainWindow(wx.Frame):
 
 
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title = self.applicationName, size = (900, 600))
+        wx.Frame.__init__(self, parent, title = self.applicationName, size = wx.DisplaySize()) #size = (900, 600)
         self.x = []
         self.y = []
 
-        self.SetMinSize((900, 600))
+        #self.SetMinSize((900, 600))
         self.CenterOnScreen()
 
         self.CreateStatusBar()
@@ -84,9 +84,11 @@ class MainWindow(wx.Frame):
         self.page1 = wx.Panel(self.noteBookRight)
         self.page2 = wx.Panel(self.noteBookRight)
         self.page3 = wx.Panel(self.noteBookRight)
-        self.noteBookRight.AddPage(self.page1, "Statistics Viewer")
-        self.noteBookRight.AddPage(self.page2, "Dispersion distribution")
-        self.noteBookRight.AddPage(self.page3, "Result Review")
+        self.page4 = wx.Panel(self.noteBookRight)
+        self.noteBookRight.AddPage(self.page1, "Scatter plots Viewer")
+        self.noteBookRight.AddPage(self.page2, "Standard Deviation 3D plots")
+        self.noteBookRight.AddPage(self.page3, "Box plots")
+        self.noteBookRight.AddPage(self.page4, "Result Review")
 
         # page 1
         # buttons
@@ -95,12 +97,14 @@ class MainWindow(wx.Frame):
         button3 = wx.Button(self.page1, wx.ID_ANY, 'calculated trans')
         button4 = wx.Button(self.page1, wx.ID_ANY, 'calculated Ve')
         buttonOK = wx.Button(self.page1, wx.ID_ANY, 'Evaluate')
+        buttonSave = wx.Button(self.page1, wx.ID_ANY, 'Save')
 
         self.Bind(wx.EVT_BUTTON, self.OnImportRefK, button1)
         self.Bind(wx.EVT_BUTTON, self.OnImportRefV, button2)
         self.Bind(wx.EVT_BUTTON, self.OnImportCalK, button3)
         self.Bind(wx.EVT_BUTTON, self.OnImportCalV, button4)
         self.Bind(wx.EVT_BUTTON, self.OnEvaluate, buttonOK)
+        self.Bind(wx.EVT_BUTTON, self.OnSave, buttonSave)
 
         sizerButton = wx.GridSizer(cols=1)
         sizerButton.Add(button1)
@@ -108,14 +112,15 @@ class MainWindow(wx.Frame):
         sizerButton.Add(button3)
         sizerButton.Add(button4)
         sizerButton.Add(buttonOK)
+        sizerButton.Add(buttonSave)
 
         # set a canvas on page 1
-        self.figure = Figure()
-        self.canvas = FigureCanvas(self.page1,-1, self.figure)
+        self.figureScatter = Figure()
+        self.canvasScatter = FigureCanvas(self.page1,-1, self.figureScatter)
 
         # set sizer for the canvas
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvas, 1, wx.EXPAND)
+        sizer.Add(self.canvasScatter, 1, wx.EXPAND)
         sizer.Add(sizerButton)
         self.page1.SetSizer(sizer)
 
@@ -126,6 +131,15 @@ class MainWindow(wx.Frame):
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvas3D, 1, wx.EXPAND)
         self.page2.SetSizer(sizer)
+
+        # page 3, box plots
+        # set a canvas on page 3
+        self.figureBoxPlot = Figure()
+        self.canvasBoxPlot = FigureCanvas(self.page3,-1, self.figureBoxPlot)
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.canvasBoxPlot, 1, wx.EXPAND)
+        self.page3.SetSizer(sizer)
 
         # sizer for the right panel
         sizer = wx.BoxSizer()
@@ -185,10 +199,14 @@ class MainWindow(wx.Frame):
         process the imported DICOM,and display
         '''
         self.SetStatusText('Start to evaluate...')
-        self.dispersionOfDICOMK = []
-        self.dispersionOfDICOMV = []
-        self.dispersionK = [[]*i for i in range(self.calK.nrOfRows)]
-        self.dispersionV = [[]*i for i in range(self.calV.nrOfRows)]
+        self.deviationK = [[]*i for i in range(self.calK.nrOfRows)] # the std deviation of each patch, one list contains the values of a row
+        self.deviationV = [[]*i for i in range(self.calV.nrOfRows)]
+        self.meanValueOfPatchK = [[]*i for i in range(self.calK.nrOfRows)] # the mean value of the each patch, one list contains the values of a row
+        self.meanValueOfPatchV = [[]*i for i in range(self.calV.nrOfRows)]
+        self.medianValueOfPatchK = [[]*i for i in range(self.calK.nrOfRows)] # the median value of the each patch, one list contains the values of a row
+        self.medianValueOfPatchV = [[]*i for i in range(self.calV.nrOfRows)]
+        self.uniformedPatchK = [[[] for j in range(self.calK.nrOfColumns)] for i in range(self.calK.nrOfRows) ]
+        self.uniformedPatchV = [[[] for j in range(self.calV.nrOfColumns)] for i in range(self.calV.nrOfRows) ]
         self.pixelsTempRefK = []
         self.pixelsTempCalK = []
         self.pixelsTempRefV = []
@@ -196,20 +214,33 @@ class MainWindow(wx.Frame):
 
         for i in range(self.calK.nrOfRows):
             for j in range(self.calK.nrOfColumns):
-                # simply attach the dispersion of patches from left to right, from up to down
-                self.dispersionOfDICOMK.append(numpy.std(self.calK.rearrangedPixels[i][j]))
-                self.dispersionOfDICOMV.append(numpy.std(self.calV.rearrangedPixels[i][j]))
-
                 # collect all the pixels to calculate the std error
                 self.pixelsTempRefK.extend(self.refK.rearrangedPixels[i][j])
                 self.pixelsTempCalK.extend(self.calK.rearrangedPixels[i][j])
                 self.pixelsTempRefV.extend(self.refV.rearrangedPixels[i][j])
                 self.pixelsTempCalV.extend(self.calV.rearrangedPixels[i][j])
 
-
-        # linear regression
+        # linear regression, to remove the factor and offset in different models
         slopeK, interceptK, r_valueK, p_valueK, slope_std_errorK = stats.linregress(numpy.array(self.pixelsTempRefK), numpy.array(self.pixelsTempCalK))
         slopeV, interceptV, r_valueV, p_valueV, slope_std_errorV = stats.linregress(numpy.array(self.pixelsTempRefV), numpy.array(self.pixelsTempCalV))
+
+        #uniform the data first, then calculate the standard deviation of each patch
+        for i in range(self.calK.nrOfRows):
+            for j in range(self.calK.nrOfColumns):
+                for pixel in range(100):
+                    self.uniformedPatchK[i][j].append((self.calK.rearrangedPixels[i][j][pixel] - numpy.asscalar(interceptK)) / numpy.asscalar(slopeK) )
+                    self.uniformedPatchV[i][j].append((self.calV.rearrangedPixels[i][j][pixel] - numpy.asscalar(interceptV)) / numpy.asscalar(slopeV) )
+
+                # student t test to decide the patch has normal distribution or not
+                # skip this step firstly, and assume that each has normal distribution
+                self.deviationK[i].append(numpy.std(self.uniformedPatchK[i][j]))
+                self.deviationV[i].append(numpy.std(self.uniformedPatchV[i][j]))
+                self.meanValueOfPatchK[i].append(numpy.mean(self.uniformedPatchK[i][j]))
+                self.meanValueOfPatchV[i].append(numpy.mean(self.uniformedPatchV[i][j]))
+                self.medianValueOfPatchK[i].append(numpy.median(self.uniformedPatchK[i][j]))
+                self.medianValueOfPatchV[i].append(numpy.median(self.uniformedPatchV[i][j]))
+
+
 
         # uniform the calculated data, to remove artificial slope and intercept
         self.pixelsTempCalK_Uniformed = (self.pixelsTempCalK - interceptK) / slopeK
@@ -218,90 +249,126 @@ class MainWindow(wx.Frame):
         self.pixelsTempCalV_Uniformed = self.pixelsTempCalV_Uniformed.tolist()
 
         # calculate std error with uniformed data
+        # maybe make more sense if the errors are calculated for each patch
         stdErrorK_Uniformed = numpy.sqrt(numpy.sum((numpy.array(self.pixelsTempRefK) - numpy.array(self.pixelsTempCalK_Uniformed)) ** 2) / len(self.pixelsTempRefK))
         stdErrorV_Uniformed = numpy.sqrt(numpy.sum((numpy.array(self.pixelsTempRefV) - numpy.array(self.pixelsTempCalV_Uniformed)) ** 2) / len(self.pixelsTempRefV))
 
-        # calculate the dispersion after uniforming
-        tempK = []
-        tempV = []
-        for i in range(self.calK.nrOfRows):
-            for j in range(self.calK.nrOfColumns):
-                for pixel in range(100):
-                    tempK.append((self.calK.rearrangedPixels[i][j][pixel] - numpy.asscalar(interceptK)) / numpy.asscalar(slopeK) )
-                    tempV.append((self.calV.rearrangedPixels[i][j][pixel] - numpy.asscalar(interceptV)) / numpy.asscalar(slopeV) )
-                self.dispersionK[i].append(numpy.std(tempK))
-                self.dispersionV[i].append(numpy.std(tempV))
-                tempK = []
-                tempV = []
-
         # the std error after rescale? Also could add 3D bar chart, so that the performance according to the (K, V) combination could be viewed
         print '******** EVALUATION RESULT *********'
+        print 'the goodness of fit of Calculated Ktrans: ' + str(r_valueK) # this can be taken as a main factor for evaluating the performance of a model
+        print 'the goodness of fit of Calculated Ve: ' + str(r_valueV)
         print 'std error of uniformed calculated Ktrans:' + str(stdErrorK_Uniformed)
         print 'std error of uniformed calculated Ve:' + str(stdErrorV_Uniformed)
         print 'estimate the artificial slope of calculated Ktrans: ' + str(slopeK)
         print 'estimate the artificial intercept of calculated Ktrans: ' + str(interceptK)
         print 'estimate the artificial slope of calculated Ve: ' + str(slopeV)
         print 'estimate the artificial intercept calculated Ve: ' + str(interceptV)
-        print 'patch dispersion of uniformed calculated Ktrans: ' + str(self.dispersionK)
-        print 'patch dispersion of uniformed calculated Ve: ' + str(self.dispersionV)
+        print 'patch deviation of uniformed calculated Ktrans: ' + str(self.deviationK)
+        print 'patch deviation of uniformed calculated Ve: ' + str(self.deviationV)
 
         # draw the figures
-        self.DrawPlot()
-        self.DrawPlot3D()
+        self.DrawScatterPlot()
+        self.Draw3DPlot()
+        self.DrawBoxPlot()
         self.SetStatusText('Evaluation finished.')
 
-    def DrawPlot(self):
+    def OnSave(self, event):
+        # Save the statistic data for recording
+        pass
+
+    def DrawScatterPlot(self):
         '''
         the scatter plots show the distribution of the calculated values
         '''
-        subPlotK = self.figure.add_subplot(2, 1, 1)
+        subPlotK = self.figureScatter.add_subplot(2, 1, 1)
         subPlotK.clear()
-        plotRaw = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempCalK, color = 'g', alpha = 0.25)
-        plotUniformed = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempCalK_Uniformed, color = 'b', alpha = 0.25)
-        plotRef = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempRefK, color = 'r', alpha = 0.25)
-        subPlotK.legend([plotRef, plotRaw,  plotUniformed], ['reference value', 'calculated value', 'uniformed calculated value'])
+        plotRaw = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempCalK, color = 'g', alpha = 0.25, label = 'reference value')
+        plotUniformed = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempCalK_Uniformed, color = 'b', alpha = 0.25, label = 'calculated value')
+        plotRef = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempRefK, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
+        subPlotK.legend(loc = 'upper left')
         subPlotK.set_xlabel('Reference Ktrans')
         subPlotK.set_ylabel('Calculated Ktrans')
         subPlotK.set_title('Distribution plot of Ktrans')
 
-        subPlotV = self.figure.add_subplot(2, 1, 2)
+        subPlotV = self.figureScatter.add_subplot(2, 1, 2)
         subPlotV.clear()
-        plotRaw = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempCalV, color = 'g', alpha = 0.25)
-        plotUniformed = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempCalV_Uniformed, color = 'b', alpha = 0.25)
-        plotRef = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempRefV, color = 'r', alpha = 0.25)
-        subPlotV.legend([plotRef, plotRaw,  plotUniformed], ['reference value', 'calculated value', 'uniformed calculated value'])
+        plotRaw = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempCalV, color = 'g', alpha = 0.25, label = 'reference value')
+        plotUniformed = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempCalV_Uniformed, color = 'b', alpha = 0.25, label = 'calculated value')
+        plotRef = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempRefV, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
+        subPlotV.legend(loc = 'upper left')
         subPlotV.set_xlabel('Reference Ve')
         subPlotV.set_ylabel('Calculated Ve')
         subPlotV.set_title('Distribution plot of Ve')
 
-        self.canvas.draw()
+        self.canvasScatter.draw()
         self.rightPanel.Layout()
 
-    def DrawPlot3D(self):
+    def DrawBoxPlot(self):
         '''
-        plot 3D bar s, so that a distribution view of the dispersion can be referred to for different K,V combination
+        draw box plots
+        '''
+
+        subPlotK = self.figureBoxPlot.add_subplot(2, 1, 1)
+        subPlotK.clear()
+        temp = []
+        referValueK = []
+        for i in range(self.calK.nrOfRows):
+            temp.extend(self.uniformedPatchK[i])
+            referValueK.append(self.refK.rearrangedPixels[i][0][0])
+        subPlotK.boxplot(temp)
+
+        subPlotK.set_title('Box plot of calculated Ktrans')
+        subPlotK.set_xlabel('Patches\' number, concatenated row by row')
+        subPlotK.set_ylabel('Calculated values in patches')
+        subPlotK.set_yticks(referValueK, minor = True)
+        subPlotK.grid(True, which = 'minor')
+
+
+        subPlotV = self.figureBoxPlot.add_subplot(2, 1, 2)
+        subPlotV.clear()
+        temp = []
+        referValueV = []
+        for j in range(self.calV.nrOfColumns):
+            referValueV.append(self.refV.rearrangedPixels[0][j][0])
+            for i in range(self.calV.nrOfRows):
+                temp.append(self.uniformedPatchV[i][j])
+        subPlotV.boxplot(temp)
+
+        subPlotV.set_title('Box plot of calculated Ve')
+        subPlotV.set_xlabel('Patches\' number, concatenated column by column')
+        subPlotV.set_ylabel('Calculated values in patches')
+        subPlotV.set_yticks(referValueV, minor = True)
+        subPlotV.grid(True, which = 'minor')
+
+        self.canvasBoxPlot.draw()
+        self.rightPanel.Layout()
+
+
+    def Draw3DPlot(self):
+        '''
+        plot 3D bar s, so that a distribution view of the standard deviation can be referred to for different K,V combination
         '''
         subPlotK3D = self.figure3D.add_subplot(2, 1, 1, projection = '3d')
         subPlotK3D.clear()
         for i in range(self.calK.nrOfRows):
             xs = range(self.calK.nrOfColumns)
-            ys = self.dispersionK[i]
+            ys = self.deviationK[i]
             subPlotK3D.bar(xs, ys, zs = i, zdir = 'x', alpha = 0.8)
         subPlotK3D.set_xlabel('Ktrans')
         subPlotK3D.set_ylabel('Ve')
-        subPlotK3D.set_zlabel('Dispersion of calculated data')
-        subPlotK3D.set_title('Distribution of dispersion of the calculated Ktrans')
+        subPlotK3D.set_zlabel('Standard deviation of calculated data')
+        subPlotK3D.set_title('Distribution of standard deviation of the calculated Ktrans')
 
         subPlotV3D = self.figure3D.add_subplot(2, 1, 2, projection = '3d')
         subPlotV3D.clear()
         for i in range(self.calV.nrOfRows):
             xs = range(self.calV.nrOfColumns)
-            ys = self.dispersionV[i]
+            ys = self.deviationV[i]
             subPlotV3D.bar(xs, ys, zs = i, zdir = 'x', alpha = 0.8)
         subPlotV3D.set_xlabel('Ktrans')
         subPlotV3D.set_ylabel('Ve')
-        subPlotV3D.set_zlabel('Dispersion of calculated data')
-        subPlotV3D.set_title('Distribution of dispersion of the calculated Ve')
+        subPlotV3D.set_zlabel('Standard deviation of calculated data')
+        subPlotV3D.set_title('Distribution of standard deviation of the calculated Ve')
 
         self.canvas3D.draw()
         self.rightPanel.Layout()
