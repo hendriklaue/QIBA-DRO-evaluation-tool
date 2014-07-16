@@ -32,14 +32,6 @@ class MainWindow(wx.Frame):
 
         self.SetupLayoutMain()
 
-        self.InitModel()
-
-    def InitModel(self):
-        # paths tp import files
-        self.path_Ktrans_ref = ''
-        self.path_Ve_ref = ''
-        self.path_Ktrans_cal = ''
-        self.path_Ve_cal = ''
 
     def SetupMenubar(self):
         '''
@@ -168,33 +160,42 @@ class MainWindow(wx.Frame):
         '''
         Import the reference Ktrans
         '''
+        self.path_Ktrans_ref = ''
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ktrans_ref += (dlg.GetPath())
+           self.path_Ktrans_ref += (dlg.GetPath())
+        #self.path_Ktrans_ref += r'C:\Users\tzhang\Desktop\test data\Ktrans.dcm'
+
 
     def OnImportRefV(self, event):
         '''
         Import the reference Ve
         '''
+        self.path_Ve_ref = ''
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ve_ref += (dlg.GetPath())
+        #self.path_Ve_ref += r'C:\Users\tzhang\Desktop\test data\Ve.dcm'
 
     def OnImportCalK(self, event):
         '''
         Import the calculated Ktrans
         '''
+        self.path_Ktrans_cal = ''
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ktrans_cal += (dlg.GetPath())
+        #self.path_Ktrans_cal += r'C:\Users\tzhang\Desktop\test data\Calculated_Ktrans.dcm'
 
     def OnImportCalV(self, event):
         '''
         Import the calculated Ve
         '''
+        self.path_Ve_cal = ''
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ve_cal += (dlg.GetPath())
+        #self.path_Ve_ref += r'C:\Users\tzhang\Desktop\test data\Calculated_Ve.dcm'
 
     def OnEvaluate(self, event):
         '''
@@ -234,85 +235,15 @@ class MainWindow(wx.Frame):
         self.newModel.Ve_fittingParameter = self.newModel.FittingPlanar(self.newModel.Ve_cal_patchValue)
 
         print 'the planar fitting result is:'
-        print 'for the Ktrans map, Ktrans_cal = ' + str(self.newModel.Ktrans_fittingParameter[0]) + '* Ktrans_ref + ' + str(self.newModel.Ktrans_fittingParameter[1]) + '* Ve_ref' + str(self.newModel.Ktrans_fittingParameter[2])
-        print 'for the Ve map, Ve_cal = ' + str(self.newModel.Ve_fittingParameter[0]) + '* Ktrans_ref + ' + str(self.newModel.Ve_fittingParameter[1]) + '* Ve_ref' + str(self.newModel.Ve_fittingParameter[2])
+        print 'for the Ktrans map, Ktrans_cal = ' + str(self.newModel.Ktrans_fittingParameter[0]) + ' * Ktrans_ref + ' + str(self.newModel.Ktrans_fittingParameter[1]) + ' * Ve_ref + ' + str(self.newModel.Ktrans_fittingParameter[2])
+        print 'for the Ve map, Ve_cal = ' + str(self.newModel.Ve_fittingParameter[0]) + ' * Ktrans_ref + ' + str(self.newModel.Ve_fittingParameter[1]) + ' * Ve_ref + ' + str(self.newModel.Ve_fittingParameter[2])
 
-
-# ****************************
-        self.deviationK = [[]*i for i in range(self.calK.nrOfRows)] # the std deviation of each patch, one list contains the values of a row
-        self.deviationV = [[]*i for i in range(self.calV.nrOfRows)]
-        self.meanValueOfPatchK = [[]*i for i in range(self.calK.nrOfRows)] # the mean value of the each patch, one list contains the values of a row
-        self.meanValueOfPatchV = [[]*i for i in range(self.calV.nrOfRows)]
-        self.medianValueOfPatchK = [[]*i for i in range(self.calK.nrOfRows)] # the median value of the each patch, one list contains the values of a row
-        self.medianValueOfPatchV = [[]*i for i in range(self.calV.nrOfRows)]
-        self.uniformedPatchK = [[[] for j in range(self.calK.nrOfColumns)] for i in range(self.calK.nrOfRows) ]
-        self.uniformedPatchV = [[[] for j in range(self.calV.nrOfColumns)] for i in range(self.calV.nrOfRows) ]
-        self.pixelsTempRefK = []
-        self.pixelsTempCalK = []
-        self.pixelsTempRefV = []
-        self.pixelsTempCalV = []
-
-        for i in range(self.calK.nrOfRows):
-            for j in range(self.calK.nrOfColumns):
-                # collect all the pixels to calculate the std error
-                self.pixelsTempRefK.extend(self.refK.rearrangedPixels[i][j])
-                self.pixelsTempCalK.extend(self.calK.rearrangedPixels[i][j])
-                self.pixelsTempRefV.extend(self.refV.rearrangedPixels[i][j])
-                self.pixelsTempCalV.extend(self.calV.rearrangedPixels[i][j])
-
-        # linear regression, to remove the factor and offset in different models
-        slopeK, interceptK, r_valueK, p_valueK, slope_std_errorK = stats.linregress(numpy.array(self.pixelsTempRefK), numpy.array(self.pixelsTempCalK))
-        slopeV, interceptV, r_valueV, p_valueV, slope_std_errorV = stats.linregress(numpy.array(self.pixelsTempRefV), numpy.array(self.pixelsTempCalV))
-
-        #uniform the data first, then calculate the standard deviation of each patch
-        for i in range(self.calK.nrOfRows):
-            for j in range(self.calK.nrOfColumns):
-                for pixel in range(100):
-                    self.uniformedPatchK[i][j].append((self.calK.rearrangedPixels[i][j][pixel] - numpy.asscalar(interceptK)) / numpy.asscalar(slopeK) )
-                    self.uniformedPatchV[i][j].append((self.calV.rearrangedPixels[i][j][pixel] - numpy.asscalar(interceptV)) / numpy.asscalar(slopeV) )
-
-                # student t test to decide the patch has normal distribution or not
-                # skip this step firstly, and assume that each has normal distribution
-                self.deviationK[i].append(numpy.std(self.uniformedPatchK[i][j]))
-                self.deviationV[i].append(numpy.std(self.uniformedPatchV[i][j]))
-                self.meanValueOfPatchK[i].append(numpy.mean(self.uniformedPatchK[i][j]))
-                self.meanValueOfPatchV[i].append(numpy.mean(self.uniformedPatchV[i][j]))
-                self.medianValueOfPatchK[i].append(numpy.median(self.uniformedPatchK[i][j]))
-                self.medianValueOfPatchV[i].append(numpy.median(self.uniformedPatchV[i][j]))
-
-
-
-        # uniform the calculated data, to remove artificial slope and intercept
-        self.pixelsTempCalK_Uniformed = (self.pixelsTempCalK - interceptK) / slopeK
-        self.pixelsTempCalK_Uniformed = self.pixelsTempCalK_Uniformed.tolist()
-        self.pixelsTempCalV_Uniformed = (self.pixelsTempCalV - interceptV) / slopeV
-        self.pixelsTempCalV_Uniformed = self.pixelsTempCalV_Uniformed.tolist()
-
-        # calculate std error with uniformed data
-        # maybe make more sense if the errors are calculated for each patch
-        stdErrorK_Uniformed = numpy.sqrt(numpy.sum((numpy.array(self.pixelsTempRefK) - numpy.array(self.pixelsTempCalK_Uniformed)) ** 2) / len(self.pixelsTempRefK))
-        stdErrorV_Uniformed = numpy.sqrt(numpy.sum((numpy.array(self.pixelsTempRefV) - numpy.array(self.pixelsTempCalV_Uniformed)) ** 2) / len(self.pixelsTempRefV))
-
-        # the std error after rescale? Also could add 3D bar chart, so that the performance according to the (K, V) combination could be viewed
-        print '******** EVALUATION RESULT *********'
-        print 'the goodness of fit of Calculated Ktrans: ' + str(r_valueK) # this can be taken as a main factor for evaluating the performance of a model
-        print 'the goodness of fit of Calculated Ve: ' + str(r_valueV)
-        print 'std error of uniformed calculated Ktrans:' + str(stdErrorK_Uniformed)
-        print 'std error of uniformed calculated Ve:' + str(stdErrorV_Uniformed)
-        print 'estimate the artificial slope of calculated Ktrans: ' + str(slopeK)
-        print 'estimate the artificial intercept of calculated Ktrans: ' + str(interceptK)
-        print 'estimate the artificial slope of calculated Ve: ' + str(slopeV)
-        print 'estimate the artificial intercept calculated Ve: ' + str(interceptV)
-        print 'patch deviation of uniformed calculated Ktrans: ' + str(self.deviationK)
-        print 'patch deviation of uniformed calculated Ve: ' + str(self.deviationV)
 
         # draw the figures
         self.DrawScatterPlot()
-        self.Draw3DPlot()
-        self.DrawBoxPlot()
+        # self.Draw3DPlot()
+        # self.DrawBoxPlot()
         self.SetStatusText('Evaluation finished.')
-
-        self.InitModel()
 
     def OnSave(self, event):
         # Save the statistic data for recording
@@ -324,9 +255,9 @@ class MainWindow(wx.Frame):
         '''
         subPlotK = self.figureScatter.add_subplot(2, 1, 1)
         subPlotK.clear()
-        plotRaw = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempCalK, color = 'g', alpha = 0.25, label = 'reference value')
-        plotUniformed = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempCalK_Uniformed, color = 'b', alpha = 0.25, label = 'calculated value')
-        plotRef = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempRefK, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
+        plotRaw = subPlotK.scatter(self.newModel.Ktrans_ref_inPatch, self.newModel.Ktrans_ref_inPatch, color = 'g', alpha = 0.25, label = 'reference value')
+        plotUniformed = subPlotK.scatter(self.newModel.Ktrans_ref_inPatch, self.newModel.Ktrans_cal_inPatch, color = 'b', alpha = 0.25, label = 'calculated value')
+        # plotRef = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempRefK, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
         subPlotK.legend(loc = 'upper left')
         subPlotK.set_xlabel('Reference Ktrans')
         subPlotK.set_ylabel('Calculated Ktrans')
@@ -334,9 +265,9 @@ class MainWindow(wx.Frame):
 
         subPlotV = self.figureScatter.add_subplot(2, 1, 2)
         subPlotV.clear()
-        plotRaw = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempCalV, color = 'g', alpha = 0.25, label = 'reference value')
-        plotUniformed = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempCalV_Uniformed, color = 'b', alpha = 0.25, label = 'calculated value')
-        plotRef = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempRefV, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
+        plotRaw = subPlotV.scatter(self.newModel.Ve_ref_inPatch, self.newModel.Ve_ref_inPatch, color = 'g', alpha = 0.25, label = 'reference value')
+        plotUniformed = subPlotV.scatter(self.newModel.Ve_ref_inPatch, self.newModel.Ve_cal_inPatch, color = 'b', alpha = 0.25, label = 'calculated value')
+        # plotRef = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempRefV, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
         subPlotV.legend(loc = 'upper left')
         subPlotV.set_xlabel('Reference Ve')
         subPlotV.set_ylabel('Calculated Ve')
@@ -602,7 +533,7 @@ class ImportedDICOM:
 
     def RearrangePixels(self, pxlArr, nrOfRows, nrOfColumns):
         '''
-        earrange the pixels so that they can be picked up in unit of patch, with index of [indexOfRow][indexOfColumn]
+        rearrange the pixels so that they can be picked up in unit of patch, with index of [indexOfRow][indexOfColumn]
         '''
         patchAll = [[[] for j in range(nrOfColumns)] for i in range(nrOfRows) ]
         patchTemp = []
@@ -629,11 +560,7 @@ class ImportedDICOM:
             self.VeMap.append('%.2f' %self.rearrangedPixels[1][i][1])
 
 
-if __name__ == "__main__":
-    Application = wx.App()
-    window = MainWindow(None)
-    window.Show()
-    Application.MainLoop()
+
 
 ## *****************************************************************
 class ModelTested:
@@ -668,10 +595,10 @@ class ModelTested:
         self.Ve_cal_inPatch = [[[] for j in range(self.nrOfColumns)] for i in range(self.nrOfRows) ]
 
         # the mean value(or median value) matrix of a calculated image
-        self.Ktrans_ref_patchValue = [[]for i in self.nrOfRows]
-        self.Ve_ref_patchValue = [[]for i in self.nrOfRows]
-        self.Ktrans_cal_patchValue = [[]for i in self.nrOfRows]
-        self.Ve_cal_patchValue = [[]for i in self.nrOfRows]
+        self.Ktrans_ref_patchValue = [[]for i in range(self.nrOfRows)]
+        self.Ve_ref_patchValue = [[]for i in range(self.nrOfRows)]
+        self.Ktrans_cal_patchValue = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patchValue = [[]for i in range(self.nrOfRows)]
 
         # planar fitting parameters
         self.Ktrans_fittingParameter = []
@@ -681,28 +608,24 @@ class ModelTested:
         # import reference and calculated DICOM files
         # it should be able to deal with different data type like DICOM, binary and so on. right now it's possible for DICOM
         try:
-            ds = dicom.read_file(path)
-            return ds
+            return  dicom.read_file(path)
         except:
-            dlg = wx.MessageBox('Invalid file path!', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
-            dlg.ShowModal()
+            wx.MessageBox('Invalid file path!\n' + '(' + path +')', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
 
 
     def Rescale(self, ds):
         # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.
-
         try:
-            self.rescaleIntercept = ds.rescaleIntercept
-            self.rescaleSlope = ds.rescaleSlope
+            self.rescaleIntercept = ds.RescaleIntercept
+            self.rescaleSlope = ds.RescaleSlope
         except:
             pass
-
         pixelFlow = []
-        for row in ds.pixel_array[1:len(originalPixels)-1]:
+        for row in ds.pixel_array:
             temp = []
             for pixel in row:
-                temp.append(pixel * self.rescaleSlope - self.rescaleIntercept)
-            pixelFlow.extend(temp)
+                temp.append(pixel * self.rescaleSlope + self.rescaleIntercept)
+            pixelFlow.append(temp)
         return pixelFlow
 
     def Rearrange(self, pixelFlow):
@@ -712,7 +635,7 @@ class ModelTested:
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
                 for k in range(self.patchLen):
-                    tempPatch.append(pixelFlow[i * self.patchLen + k][j * self.patchLen : (j + 1) * self.patchLen])
+                    tempPatch.append(pixelFlow[(i + 1) * self.patchLen + k][j * self.patchLen : (j + 1) * self.patchLen - 1])
                 tempAll[i][j].extend(tempPatch)
                 tempPatch = []
         return tempAll
@@ -753,10 +676,19 @@ class ModelTested:
                 xy.append(xCurrent * yCurrent)
                 xz.append(xCurrent * zCurrent)
                 yz.append(yCurrent * zCurrent)
-        [a, b, c] = numpy.squeeze(numpy.array(numpy.inv([[numpy.sum(xx), numpy.sum(xy), numpy.sum(x)], [numpy.sum(xy), numpy.sum(yy), numpy.sum(y)], [numpy.sum(x), numpy.sum(y), self.nrOfRows * self.nrOfColumns]]) * numpy.array([[numpy.sum(xz)], [numpy.sum(yz)], [numpy.sum(z)]])))
+        left = numpy.matrix([[numpy.sum(xx), numpy.sum(xy), numpy.sum(x)], [numpy.sum(xy), numpy.sum(yy), numpy.sum(y)], [numpy.sum(x), numpy.sum(y), self.nrOfRows * self.nrOfColumns]])
+        right = numpy.matrix([[numpy.sum(xz)], [numpy.sum(yz)], [numpy.sum(z)]])
+
+        [a, b ,c] = numpy.squeeze(numpy.array( numpy.linalg.inv(left) * right ))
         return a, b, c
 
     def Score(self):
         # give a score for evaluation according to the weighting factors.
         pass
 
+
+if __name__ == "__main__":
+    Application = wx.App()
+    window = MainWindow(None)
+    window.Show()
+    Application.MainLoop()
