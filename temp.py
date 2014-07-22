@@ -9,7 +9,8 @@ from scipy import stats
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import axes3d
-
+import matplotlib.pyplot as plt
+import time # for waiting method selection from user
 
 class MainWindow(wx.Frame):
     '''
@@ -224,9 +225,13 @@ class MainWindow(wx.Frame):
         self.newModel.Ktrans_cal_inPatch = self.newModel.Rearrange(self.newModel.Ktrans_cal_rescaled)
         self.newModel.Ve_cal_inPatch = self.newModel.Rearrange(self.newModel.Ve_cal_rescaled)
 
-        # abstract the mean value for each patch
-        self.newModel.Ktrans_ref_patchValue = self.newModel.EstimatePatch(self.newModel.Ktrans_ref_inPatch)
-        self.newModel.Ve_ref_patchValue = self.newModel.EstimatePatch(self.newModel.Ve_ref_inPatch)
+        # abstract the representing value for each patch
+        # windowShowHist = WindowShowHistogram(self, self.newModel)
+        # windowShowHist.Show()
+        # windowShowHist.Maximize(True)
+        ## this new histogram method doesnt work well, because the new window shows up and the process doesnr wait for the assignment.
+        self.newModel.METHOD = 'MEAN'
+
         self.newModel.Ktrans_cal_patchValue = self.newModel.EstimatePatch(self.newModel.Ktrans_cal_inPatch)
         self.newModel.Ve_cal_patchValue = self.newModel.EstimatePatch(self.newModel.Ve_cal_inPatch)
 
@@ -563,6 +568,8 @@ class ImportedDICOM:
 
 
 ## *****************************************************************
+
+
 class ModelTested:
     ''' the class for a tested model. It includes the necessary data and methods for evaluating one model.
     '''
@@ -575,6 +582,7 @@ class ModelTested:
         self.patchLen = 10
         self.rescaleIntercept = 0
         self.rescaleSlope = 1
+        self.METHOD = ''
 
         # the raw image data as pixel flow
         self.Ktrans_ref_raw = []
@@ -630,24 +638,35 @@ class ModelTested:
 
     def Rearrange(self, pixelFlow):
         # rearrange the DICOM file so that the file can be accessed in patches and the top and bottom strips are removed as they are not meaningful here.
-        tempAll = [[[] for j in range(self.nrOfColumns)] for i in range(self.nrOfRows) ]
+        tempAll = []
         tempPatch = []
+        tempRow = []
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
                 for k in range(self.patchLen):
-                    tempPatch.append(pixelFlow[(i + 1) * self.patchLen + k][j * self.patchLen : (j + 1) * self.patchLen - 1])
-                tempAll[i][j].extend(tempPatch)
+                    tempPatch.extend(pixelFlow[(i + 1) * self.patchLen + k][j * self.patchLen : (j + 1) * self.patchLen])
+                tempRow.append(tempPatch)
                 tempPatch = []
+            tempAll.append(tempRow)
+            tempRow = []
         return tempAll
 
     def EstimatePatch(self, dataInPatch):
         # estimate the value that can represent a patch. It can be mean or median value, and the deviation could also be provided for further evaluation.
-        # some statistics test like normal distribution test should be applied to decide which value to take
-        # as the first step each patch is believed as normally distributed. Therefore the mean value is taken.
+        # some statistics test like normality test could be applied to decide which value to take. But considering there are many patches, how to synchronise is also a question.
+        # currently the solution is, to open one new window when the 'process' button is pressed, on which the histograms of the patches will be shown. Whether to choose mean value
+        # or median value to represent a patch is up to the user.
         temp = [[]for i in range(self.nrOfRows) ]
-        for i in range(self.nrOfRows):
-            for j in range (self.nrOfColumns):
-                temp[i].append(numpy.mean(dataInPatch[i][j]))
+        if self.METHOD == 'MEAN':
+            for i in range(self.nrOfRows):
+                for j in range (self.nrOfColumns):
+                    temp[i].append(numpy.mean(dataInPatch[i][j]))
+                    print numpy.mean(dataInPatch[i][j])
+        if self.METHOD == 'MEDIAN':
+            for i in range(self.nrOfRows):
+                for j in range (self.nrOfColumns):
+                    temp[i].append(numpy.median(dataInPatch[i][j]))
+        print temp
         return temp
 
     def FittingPlanar(self, calculatedPatchValue):
@@ -662,11 +681,12 @@ class ModelTested:
         xy = []
         xz = []
         yz = []
+        print calculatedPatchValue
 
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
-                xCurrent = self.Ktrans_ref_patchValue[i][j]
-                yCurrent = self.Ve_ref_patchValue[i][j]
+                xCurrent = self.Ktrans_ref_inPatch[i][j][0]
+                yCurrent = self.Ve_ref_inPatch[i][j][0]
                 zCurrent = calculatedPatchValue[i][j]
                 x.append(xCurrent)
                 y.append(yCurrent)
@@ -682,13 +702,113 @@ class ModelTested:
         [a, b ,c] = numpy.squeeze(numpy.array( numpy.linalg.inv(left) * right ))
         return a, b, c
 
+    def CalCorrMatrix(self):
+        # calculate the correlation matrix of the calculated and reference DICOMs
+        pass
+
     def Score(self):
         # give a score for evaluation according to the weighting factors.
         pass
+
+class WindowShowHistogram(wx.Frame, ModelTested):
+    ''' the second window that shows up when the "process" button is pressed. In this window, the histogram of each patch will be shown,
+    so that the user can see the distribution of the patches and decide which one(mean or median value) to choose to represent
+    each patch.
+    '''
+
+    def __init__(self, parent, ModelTested):
+        # initialize the second window
+        wx.Frame.__init__(self, parent, title = 'Mean value or median value...', size = wx.DisplaySize())
+        self.leftPanel = wx.Panel(self)
+        self.rightPanel = wx.Panel(self)
+
+        # figure for histogram, Ktrans cal.
+        self.figureHistogram_K = Figure()
+        self.figureCanvas_K = FigureCanvas(self, -1, self.figureHistogram_K)
+
+        # figure for histogram, Ktrans cal.
+        self.figureHistogram_V = Figure()
+        self.figureCanvas_V = FigureCanvas(self, -1, self.figureHistogram_V)
+
+        # set sizer for the figures
+        sizer = wx.BoxSizer()
+        sizer.Add(self.figureCanvas_K, 1, border = 5, flag =wx.EXPAND)
+        sizer.Add(self.figureCanvas_V, 1, border = 5, flag= wx.EXPAND)
+        #sizer.Add(self.figureCanvas_V, 1, wx.EXPAND)
+        self.leftPanel.SetSizer(sizer)
+
+        # instruction text for choosing method
+        #text = wx.StaticText(self.rightPanel, -1, 'You can choose one method, so that the corresponding value can represent the patch.' ) #, (100,10))
+
+        # button configuration
+        buttonMean = wx.Button(self.rightPanel, wx.ID_ANY, 'Mean value')
+        buttonMedian = wx.Button(self.rightPanel, wx.ID_ANY, 'Median value')
+
+        self.Bind(wx.EVT_BUTTON, self.OnClickMean, buttonMean)
+        self.Bind(wx.EVT_BUTTON, self.OnClickMedian, buttonMedian)
+
+        sizer = wx.GridSizer(cols = 1)
+        #sizer.Add(text)
+        sizer.Add(buttonMean)
+        sizer.Add(buttonMedian)
+        self.rightPanel.SetSizer(sizer)
+
+        # set sizer for the
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.leftPanel, 8, wx.EXPAND)
+        sizer.Add(self.rightPanel, 1, wx.EXPAND)
+        self.SetSizer(sizer)
+
+        self.K_ref = ModelTested.Ktrans_ref_inPatch
+        self.K_cal = ModelTested.Ktrans_cal_inPatch
+        self.V_ref = ModelTested.Ve_ref_inPatch
+        self.V_cal = ModelTested.Ve_cal_inPatch
+
+        self.nrOfRows = ModelTested.nrOfRows
+        self.nrOfColumns = ModelTested.nrOfColumns
+
+        self.PlotHistogram()
+
+    def OnClickMean(self, event):
+        # when click on 'mean' button
+        ModelTested.METHOD = 'MEAN'
+        self.Close()
+
+    def OnClickMedian(self, event):
+        # when click on 'median' button
+        ModelTested.METHOD = 'MEDIAN'
+        self.Close()
+
+    def PlotHistogram(self):
+        # plot the histogram to illustrate the value distribution of each patch, so that the user can choose the method accordingly.
+
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                subPlot_K = self.figureHistogram_K.add_subplot(self.nrOfRows, self.nrOfColumns, i * self.nrOfColumns + (j * 1) )
+                subPlot_K.clear()
+                nrOfBins = 10
+                subPlot_K.hist(self.K_cal[i][j], nrOfBins)
+
+                subPlot_V = self.figureHistogram_V.add_subplot(self.nrOfRows, self.nrOfColumns, i * self.nrOfColumns + (j * 1) )
+                subPlot_V.clear()
+                nrOfBins = 10
+                subPlot_V.hist(self.V_cal[i][j], nrOfBins)
+
+                #subPlotK.step(patches, 'facecolor', 'g', 'alpha', 0.75)
+                # subPlotK.set_title = 'Ktrans=' + str(self.K_ref[i][j][0]) + ', Ve=' + str(self.V_ref[i][j][0])
+                #subPlotK.set_xlabel('Calculated value')
+                #subPlotK.set_ylabel('Counting number')
+
+        self.figureHistogram_K.tight_layout()
+        self.figureHistogram_V.tight_layout()
+
+
+
 
 
 if __name__ == "__main__":
     Application = wx.App()
     window = MainWindow(None)
     window.Show()
+    window.Maximize(True)
     Application.MainLoop()
