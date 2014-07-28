@@ -234,6 +234,8 @@ class MainWindow(wx.Frame):
 
         self.newModel.Ktrans_cal_patchValue = self.newModel.EstimatePatch(self.newModel.Ktrans_cal_inPatch)
         self.newModel.Ve_cal_patchValue = self.newModel.EstimatePatch(self.newModel.Ve_cal_inPatch)
+        self.newModel.Ktrans_ref_patchValue = self.newModel.EstimatePatch(self.newModel.Ktrans_ref_inPatch)
+        self.newModel.Ve_ref_patchValue = self.newModel.EstimatePatch(self.newModel.Ve_ref_inPatch)
 
         # execute the planar fitting
         self.newModel.Ktrans_fittingParameter = self.newModel.FittingPlanar(self.newModel.Ktrans_cal_patchValue)
@@ -243,6 +245,20 @@ class MainWindow(wx.Frame):
         print 'for the Ktrans map, Ktrans_cal = ' + str(self.newModel.Ktrans_fittingParameter[0]) + ' * Ktrans_ref + ' + str(self.newModel.Ktrans_fittingParameter[1]) + ' * Ve_ref + ' + str(self.newModel.Ktrans_fittingParameter[2])
         print 'for the Ve map, Ve_cal = ' + str(self.newModel.Ve_fittingParameter[0]) + ' * Ktrans_ref + ' + str(self.newModel.Ve_fittingParameter[1]) + ' * Ve_ref + ' + str(self.newModel.Ve_fittingParameter[2])
 
+
+        # calculate the correlation matrix
+        print "***********"
+        print "for the calculated Ktrans map:"
+
+        for i in range(self.newModel.nrOfRows):
+            print "the correlation of the " + str(i + 1) + "th row between Ktrans_cal and Ve_ref is: " + str(numpy.corrcoef(self.newModel.Ktrans_cal_patchValue[i], self.newModel.Ve_ref_patchValue[i])[0][1])
+        for j in range(self.newModel.nrOfColumns):
+            print "the correlation of the " + str(j + 1) + "th column between Ktrans_cal and Ktrans_ref is: " + str(numpy.corrcoef(zip(*self.newModel.Ktrans_cal_patchValue)[j], zip(*self.newModel.Ktrans_ref_patchValue)[j])[0][1])
+        print "for the calcualted Ve map:"
+        for j in range(self.newModel.nrOfColumns):
+            print "the correlation of the " + str(j + 1) + "th column between Ve_cal and Ktrans_ref is: " + str(numpy.corrcoef(zip(*self.newModel.Ve_cal_patchValue)[j], zip(*self.newModel.Ktrans_ref_patchValue)[j])[0][1])
+        for i in range(self.newModel.nrOfRows):
+            print "the correlation of the " + str(i + 1) + "th row between Ve_cal and Ve_ref is: " + str(numpy.corrcoef(self.newModel.Ve_cal_patchValue[i], self.newModel.Ve_ref_patchValue[i])[0][1])
 
         # draw the figures
         self.DrawScatterPlot()
@@ -661,12 +677,10 @@ class ModelTested:
             for i in range(self.nrOfRows):
                 for j in range (self.nrOfColumns):
                     temp[i].append(numpy.mean(dataInPatch[i][j]))
-                    print numpy.mean(dataInPatch[i][j])
         if self.METHOD == 'MEDIAN':
             for i in range(self.nrOfRows):
                 for j in range (self.nrOfColumns):
                     temp[i].append(numpy.median(dataInPatch[i][j]))
-        print temp
         return temp
 
     def FittingPlanar(self, calculatedPatchValue):
@@ -681,7 +695,6 @@ class ModelTested:
         xy = []
         xz = []
         yz = []
-        print calculatedPatchValue
 
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
