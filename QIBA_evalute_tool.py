@@ -2,6 +2,7 @@
 
 import os.path
 import wx
+import wx.richtext as rt
 import dicom
 import pylab
 import numpy
@@ -10,20 +11,18 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import axes3d
 import matplotlib.pyplot as plt
-import time # for waiting method selection from user
 
 class MainWindow(wx.Frame):
     '''
     this is the main window of the QIBA evaluate tool
     '''
     applicationName = "QIBA evaluate tool"
-    # the list of models to evaluate on
+    # the list of evaluated models
     testedModels = []
 
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, title = self.applicationName, size = wx.DisplaySize()) #size = (900, 600)
 
-        #self.SetMinSize((900, 600))
         self.CenterOnScreen()
 
         self.CreateStatusBar()
@@ -36,7 +35,7 @@ class MainWindow(wx.Frame):
 
     def SetupMenubar(self):
         '''
-        set up the menubar
+        set up the menu bar
         '''
         menubar = wx.MenuBar()
 
@@ -46,18 +45,14 @@ class MainWindow(wx.Frame):
         OnExit = fileMenu.Append(wx.ID_ANY, "&Quit\tCtrl+Q", "Quit " + self.applicationName)
 
         editMenu = wx.Menu()
-        OnClearRef = editMenu.Append(wx.ID_ANY, "Clear Reference DICOM Files.")
-        OnClearDICOMs = editMenu.Append(wx.ID_ANY, "Clear Calculated DICOM Files.")
+        OnClearModelList = editMenu.Append(wx.ID_ANY, "Clear evaluated model list")
 
         aboutMenu = wx.Menu()
-        OnThirdPartyLib = aboutMenu.Append(wx.ID_ANY, "Third party libraries...", "Third party libraries used in this application.")
         OnAboutApp = aboutMenu.Append(wx.ID_ANY, "About this application")
 
         menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
-        menubar.Bind(wx.EVT_MENU, self.OnClearRef, OnClearRef)
-        menubar.Bind(wx.EVT_MENU, self.OnClearDICOMs, OnClearDICOMs)
+        menubar.Bind(wx.EVT_MENU, self.OnClearModelList, OnClearModelList)
         menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
-        menubar.Bind(wx.EVT_MENU, self.OnShowThirdParty, OnThirdPartyLib)
         menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
 
         menubar.Append(fileMenu, "&File")
@@ -67,7 +62,8 @@ class MainWindow(wx.Frame):
 
     def SetupLeft(self):
         '''
-        set up the left panel. Empty right now.
+        Empty right now.
+        set up the left panel.
         '''
         pass
 
@@ -136,6 +132,13 @@ class MainWindow(wx.Frame):
         sizer.Add(self.canvasBoxPlot, 1, wx.EXPAND)
         self.page3.SetSizer(sizer)
 
+        # page 4, evaluation results
+        # self.resultPage = rt.RichTextCtrl(self, style = wx.VSCROLL|wx.NO_BORDER)
+        self.resultPage = wx.TextCtrl(self.page4, -1, style = wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_RICH)
+        sizer = wx.BoxSizer()
+        sizer.Add(self.resultPage, 1, wx.EXPAND)
+        self.page4.SetSizer(sizer)
+
         # sizer for the right panel
         sizer = wx.BoxSizer()
         sizer.Add(self.noteBookRight, 1, wx.EXPAND)
@@ -146,15 +149,15 @@ class MainWindow(wx.Frame):
         '''
         set up the main window
         '''
-        self.leftPanel = wx.Panel(self, size = (200, 600))
-        self.rightPanel = wx.Panel(self, size = (700, 600))
+        self.leftPanel = wx.Panel(self)
+        self.rightPanel = wx.Panel(self)
 
         self.SetupLeft()
         self.SetupRight()
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.leftPanel, 2, flag = wx.EXPAND)  # second argument being 0 to make sure that it wont expand
-        sizer.Add(self.rightPanel, 7, flag = wx.EXPAND)  # second argument is for expansion proportion
+        sizer.Add(self.rightPanel, 7, flag = wx.EXPAND)
         self.SetSizer(sizer)
 
     def OnImportRefK(self, event):
@@ -165,8 +168,6 @@ class MainWindow(wx.Frame):
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
            self.path_Ktrans_ref += (dlg.GetPath())
-        #self.path_Ktrans_ref += r'C:\Users\tzhang\Desktop\test data\Ktrans.dcm'
-
 
     def OnImportRefV(self, event):
         '''
@@ -176,7 +177,6 @@ class MainWindow(wx.Frame):
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ve_ref += (dlg.GetPath())
-        #self.path_Ve_ref += r'C:\Users\tzhang\Desktop\test data\Ve.dcm'
 
     def OnImportCalK(self, event):
         '''
@@ -186,7 +186,6 @@ class MainWindow(wx.Frame):
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ktrans_cal += (dlg.GetPath())
-        #self.path_Ktrans_cal += r'C:\Users\tzhang\Desktop\test data\Calculated_Ktrans.dcm'
 
     def OnImportCalV(self, event):
         '''
@@ -196,7 +195,6 @@ class MainWindow(wx.Frame):
         dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ve_cal += (dlg.GetPath())
-        #self.path_Ve_ref += r'C:\Users\tzhang\Desktop\test data\Calculated_Ve.dcm'
 
     def OnEvaluate(self, event):
         '''
@@ -204,61 +202,18 @@ class MainWindow(wx.Frame):
         '''
         self.SetStatusText('Start to evaluate...')
 
-        # create new model object
-        self.newModel = ModelTested()
+        # create new model object to evaluated on
+        self.newModel = ModelEvaluated()
 
-        # pass the paths and import the files
-        self.newModel.Ktrans_ref_raw = self.newModel.ImportDICOM(self.path_Ktrans_ref)
-        self.newModel.Ve_ref_raw = self.newModel.ImportDICOM(self.path_Ve_ref)
-        self.newModel.Ktrans_cal_raw = self.newModel.ImportDICOM(self.path_Ktrans_cal)
-        self.newModel.Ve_cal_raw = self.newModel.ImportDICOM(self.path_Ve_cal)
+        # call the method to execute evaluation
+        self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
 
-        # rescale the data if possible
-        self.newModel.Ktrans_ref_rescaled = self.newModel.Rescale(self.newModel.Ktrans_ref_raw)
-        self.newModel.Ve_ref_rescaled = self.newModel.Rescale(self.newModel.Ve_ref_raw)
-        self.newModel.Ktrans_cal_rescaled = self.newModel.Rescale(self.newModel.Ktrans_cal_raw)
-        self.newModel.Ve_cal_rescaled = self.newModel.Rescale(self.newModel.Ve_cal_raw)
+        # show the results in the main window
+        #print self.newModel.GetEvaluationResultText()
+        self.resultPage.SetValue(self.newModel.GetEvaluationResultText())
 
-        # rearrange the data
-        self.newModel.Ktrans_ref_inPatch = self.newModel.Rearrange(self.newModel.Ktrans_ref_rescaled)
-        self.newModel.Ve_ref_inPatch = self.newModel.Rearrange(self.newModel.Ve_ref_rescaled)
-        self.newModel.Ktrans_cal_inPatch = self.newModel.Rearrange(self.newModel.Ktrans_cal_rescaled)
-        self.newModel.Ve_cal_inPatch = self.newModel.Rearrange(self.newModel.Ve_cal_rescaled)
-
-        # abstract the representing value for each patch
-        # windowShowHist = WindowShowHistogram(self, self.newModel)
-        # windowShowHist.Show()
-        # windowShowHist.Maximize(True)
-        ## this new histogram method doesnt work well, because the new window shows up and the process doesnr wait for the assignment.
-        self.newModel.METHOD = 'MEAN'
-
-        self.newModel.Ktrans_cal_patchValue = self.newModel.EstimatePatch(self.newModel.Ktrans_cal_inPatch)
-        self.newModel.Ve_cal_patchValue = self.newModel.EstimatePatch(self.newModel.Ve_cal_inPatch)
-        self.newModel.Ktrans_ref_patchValue = self.newModel.EstimatePatch(self.newModel.Ktrans_ref_inPatch)
-        self.newModel.Ve_ref_patchValue = self.newModel.EstimatePatch(self.newModel.Ve_ref_inPatch)
-
-        # execute the planar fitting
-        self.newModel.Ktrans_fittingParameter = self.newModel.FittingPlanar(self.newModel.Ktrans_cal_patchValue)
-        self.newModel.Ve_fittingParameter = self.newModel.FittingPlanar(self.newModel.Ve_cal_patchValue)
-
-        print 'the planar fitting result is:'
-        print 'for the Ktrans map, Ktrans_cal = ' + str(self.newModel.Ktrans_fittingParameter[0]) + ' * Ktrans_ref + ' + str(self.newModel.Ktrans_fittingParameter[1]) + ' * Ve_ref + ' + str(self.newModel.Ktrans_fittingParameter[2])
-        print 'for the Ve map, Ve_cal = ' + str(self.newModel.Ve_fittingParameter[0]) + ' * Ktrans_ref + ' + str(self.newModel.Ve_fittingParameter[1]) + ' * Ve_ref + ' + str(self.newModel.Ve_fittingParameter[2])
-
-
-        # calculate the correlation matrix
-        print "***********"
-        print "for the calculated Ktrans map:"
-
-        for i in range(self.newModel.nrOfRows):
-            print "the correlation of the " + str(i + 1) + "th row between Ktrans_cal and Ve_ref is: " + str(numpy.corrcoef(self.newModel.Ktrans_cal_patchValue[i], self.newModel.Ve_ref_patchValue[i])[0][1])
-        for j in range(self.newModel.nrOfColumns):
-            print "the correlation of the " + str(j + 1) + "th column between Ktrans_cal and Ktrans_ref is: " + str(numpy.corrcoef(zip(*self.newModel.Ktrans_cal_patchValue)[j], zip(*self.newModel.Ktrans_ref_patchValue)[j])[0][1])
-        print "for the calcualted Ve map:"
-        for j in range(self.newModel.nrOfColumns):
-            print "the correlation of the " + str(j + 1) + "th column between Ve_cal and Ktrans_ref is: " + str(numpy.corrcoef(zip(*self.newModel.Ve_cal_patchValue)[j], zip(*self.newModel.Ktrans_ref_patchValue)[j])[0][1])
-        for i in range(self.newModel.nrOfRows):
-            print "the correlation of the " + str(i + 1) + "th row between Ve_cal and Ve_ref is: " + str(numpy.corrcoef(self.newModel.Ve_cal_patchValue[i], self.newModel.Ve_ref_patchValue[i])[0][1])
+        # push the new tested model to the list
+        self.testedModels.append(self.newModel)
 
         # draw the figures
         self.DrawScatterPlot()
@@ -266,8 +221,11 @@ class MainWindow(wx.Frame):
         # self.DrawBoxPlot()
         self.SetStatusText('Evaluation finished.')
 
+
+
     def OnSave(self, event):
         # Save the statistic data for recording
+        print 'save result function needed to be added.'
         pass
 
     def DrawScatterPlot(self):
@@ -299,6 +257,7 @@ class MainWindow(wx.Frame):
 
     def DrawBoxPlot(self):
         '''
+        Not used now.
         draw box plots
         '''
 
@@ -340,7 +299,8 @@ class MainWindow(wx.Frame):
 
     def Draw3DPlot(self):
         '''
-        plot 3D bar s, so that a distribution view of the standard deviation can be referred to for different K,V combination
+        Not used now.
+        plot 3D bars, so that a distribution view of the standard deviation can be referred to for different K,V combination
         '''
         subPlotK3D = self.figure3D.add_subplot(2, 1, 1, projection = '3d')
         subPlotK3D.clear()
@@ -367,19 +327,13 @@ class MainWindow(wx.Frame):
         self.canvas3D.draw()
         self.rightPanel.Layout()
 
-    def OnClearRef(self, event):
-        self.refK = []
-        self.refV = []
-        self.CleanPanel(self.rightPanel)
-        self.SetupLayoutRight()
-        self.SetStatusText("Reference DICOM files cleared.")
-
-    def OnClearDICOMs(self, event):
-        self.calK = []
-        self.calV = []
-        self.CleanPanel(self.rightPanel)
-        self.SetupLayoutRight()
-        self.SetStatusText('Calculated DICOM files cleared.')
+    def OnClearModelList(self, event):
+        # clear the list which holds all the models that have been evaluated.
+        if self.testedModels == []:
+            self.SetStatusText('Evaluated model list is empty.')
+        else:
+            self.testedModels = []
+            self.SetStatusText('Evaluated model list is cleared.')
 
     def CleanPanel(self, panel):
         for child in panel.GetChildren():
@@ -394,11 +348,8 @@ class MainWindow(wx.Frame):
     def OnQuit(self, event):
         self.Close()
 
-    def OnShowThirdParty(self):
-        # could be added to the about dialog?
-        pass
-
     def OnAbout(self, event):
+        # show the information about this application and the related.
         description = """This is the description of this software."""
 
         licence = """This is the Licence of the software."""
@@ -426,168 +377,9 @@ class MainWindow(wx.Frame):
 
         wx.AboutBox(info)
 
-class ParameterTree(wx.TreeCtrl):
+class ModelEvaluated:
     '''
-    The customized TreeCtrl class, to index the display of the scatter plot accordingly. Not used now.
-    '''
-    def __init__(self, parent):
-        wx.TreeCtrl.__init__(self, parent)
-        treeListItems = []
-        parameterList = []
-
-        # try to abstract the parameter map from the DICOM, in order to show in the tree list
-        if not ('Ktrans.dcm' in window.refDICOMS):
-            wx.MessageDialog(self,  'Please Import reference DICOM for Ktrans mapping.', 'Ktrans mapping DICOM needed', wx.OK)
-            return
-        elif not ('Ve.dcm' in window.refDICOMS):
-            wx.MessageDialog(self,  'Please Import reference DICOM for Ve mapping.', 'Ve mapping DICOM needed', wx.OK)
-            return
-        else:
-            parameterList.append(['Ktrans', window.refDICOMS['Ktrans.dcm'].KtransMap])
-            parameterList.append(['Ve', window.refDICOMS['Ve.dcm'].VeMap])
-
-        if window.DICOMSeries == {}:
-            return
-
-        self.root = self.AddRoot('Imported DICOM files')  # a name that could distinguish the imported DICOM
-
-        for key, DICOM in window.DICOMSeries.items():
-            treeListItems.append([key, parameterList])
-
-        # add nodes to the tree
-        self.AddTreeNodes(self.root, treeListItems)
-        self.ExpandAll()
-        self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.OnActivated, self)
-
-    def AddTreeNodes(self, parentItem, items):
-        for item in items:
-            if type(item) == str:
-                self.AppendItem(parentItem, item)
-            else:
-                newParentItem = self.AppendItem(parentItem, item[0])
-                self.AddTreeNodes(newParentItem, item[1])
-
-    def OnActivated(self, event):
-        # get the parameter entry from the treelist, in order to display the specific plot
-        try:
-            fileName = self.GetItemText(self.GetItemParent(self.GetItemParent(event.GetItem())))
-            parameterName = self.GetItemText(self.GetItemParent(event.GetItem()))
-            parameter = self.GetItemText(event.GetItem())
-            window.x = [[], []]
-            window.y = [[], []]
-            yAverageTemp = []
-
-            if parameterName == 'Ktrans':
-                xTemp = [ [float(p)] * 100 for p in  window.refDICOMS['Ve.dcm'].VeMap]
-                for patch in xTemp:
-                    window.x[0].extend(patch)
-                window.x[1] = [float(p) for p in  window.refDICOMS['Ve.dcm'].VeMap]
-
-                yTemp = window.DICOMSeries[fileName].OnQuery(parameterName, parameter)
-                for patch in yTemp:
-                    yAverageTemp.append(numpy.mean(patch))
-                    window.y[0].extend(patch)
-
-            if parameterName == 'Ve':
-                xTemp = [ [float(p)] * 100 for p in  window.refDICOMS['Ktrans.dcm'].KtransMap]
-                for patch in xTemp:
-                    window.x[0].extend(patch)
-                window.x[1] = [float(p) for p in  window.refDICOMS['Ktrans.dcm'].KtransMap]
-
-                yTemp = window.DICOMSeries[fileName].OnQuery(parameterName, parameter)
-                for patch in yTemp:
-                    yAverageTemp.append(numpy.mean(patch))
-                    window.y[0].extend(patch)
-            window.y[1] = yAverageTemp
-        except:
-            return
-
-        window.DrawPlot()
-
-class ImportedDICOM:
-    '''
-    Manages the imported DICOM files.
-    '''
-    def __init__(self, path):
-        self.extraPatchNr = 2
-        self.patchPxlNr = 10
-
-        self.KtransMap = []
-        self.VeMap = []
-        self.parameterMaps = {}
-        self.pixelArray = []
-        self.rearrangedPixels = []
-
-        ds = dicom.read_file(path)
-
-        # rescale the pixel value
-        try:
-            self.rescaleIntercept = ds.RescaleIntercept
-            self.rescaleSlope = ds.RescaleSlope
-        except:
-            self.rescaleIntercept = 0
-            self.rescaleSlope = 1
-            pass
-
-        self.pixelArray.extend(self.Rescale(ds.pixel_array))
-
-        # calculate the size of the patches
-        self.nrOfRows = ds.Rows/self.patchPxlNr - self.extraPatchNr
-        self.nrOfColumns = ds.Columns/self.patchPxlNr
-
-        # rearrange the pixels
-        self.rearrangedPixels.extend(self.RearrangePixels(self.pixelArray, self.nrOfRows, self.nrOfColumns))
-
-
-    def Rescale(self, intPixelArray):
-        '''
-        rescale the pixel value from int to float
-        '''
-        temp = []
-        floatPixelArray = []
-        for row in intPixelArray:
-            for pixel in row:
-                temp.append(pixel * self.rescaleSlope + self.rescaleIntercept)
-            floatPixelArray.append(temp)
-            temp = []
-        return floatPixelArray
-
-    def RearrangePixels(self, pxlArr, nrOfRows, nrOfColumns):
-        '''
-        rearrange the pixels so that they can be picked up in unit of patch, with index of [indexOfRow][indexOfColumn]
-        '''
-        patchAll = [[[] for j in range(nrOfColumns)] for i in range(nrOfRows) ]
-        patchTemp = []
-        for i in range(nrOfRows):
-            for j in range(nrOfColumns):
-                for k in range(self.patchPxlNr):
-                    patchTemp.extend(pxlArr[(i+1) * self.patchPxlNr + k ][j * self.patchPxlNr : (j + 1) * self.patchPxlNr])
-                patchAll[i][j].extend(patchTemp)
-                patchTemp = []
-        return patchAll
-
-    def AbstractKtrans(self):
-        '''
-        get the Ktrans parameters
-        '''
-        for i in range(self.nrOfRows):
-            self.KtransMap.append('%.2f' %self.rearrangedPixels[i][1][1])
-
-    def AbstractVe(self):
-        '''
-        get the Ve parameters
-        '''
-        for i in range(self.nrOfColumns):
-            self.VeMap.append('%.2f' %self.rearrangedPixels[1][i][1])
-
-
-
-
-## *****************************************************************
-
-
-class ModelTested:
-    ''' the class for a tested model. It includes the necessary data and methods for evaluating one model.
+    the class for a evaluated model. It includes the necessary data and methods for evaluating the result from one calculation model.
     '''
     def __init__(self):
         # initializes the class
@@ -628,6 +420,109 @@ class ModelTested:
         self.Ktrans_fittingParameter = []
         self.Ve_fittingParameter = []
 
+        # the result text
+        self.resultText = ''
+
+    def Evaluate(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
+        # do evaluation
+        # preprocess for the imported DICOMS
+        self.ImportDICOMS(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
+        self.RescaleImportedDICOMS()
+        self.RearrangeImportedDICOMS()
+        self.EstimatePatchForImportedDICOMS('MEAN')
+
+        # evaluation operations
+        self.FittingPlanarForImportedDICOMS()
+        self.CalculateCorrelation()
+
+        # write the result to the result text
+        self.TextResult()
+
+    def TextResult(self):
+        tempResultKtrans = ''
+        tempResultVe = ''
+
+        tempResultKtrans += '********************************************\n' \
+                            'The result for calculated Ktrans map: \n' \
+                            '********************************************\n'
+        tempResultKtrans += 'Planar fitting:\n'
+        tempResultKtrans += 'Ktrans_cal = ' + str(self.a_Ktrans) + '  * Ktrans_ref + ' + str(self.b_Ktrans) + ' * Ve_ref + ' + str(self.c_Ktrans) + '\n\n'
+        tempResultKtrans += 'Correlation:\n'
+        for j in range(self.nrOfColumns):
+            tempResultKtrans += 'The correlation between ' + str(j + 1) + 'th column of calculated Ktrans and reference Ktrans is: ' + str(self.Corre_KK[j]) + '\n'
+        tempResultKtrans += '\n'
+        for i in range(self.nrOfRows):
+            tempResultKtrans += 'The correlation between ' + str(i + 1) + 'th row of calculated Ktrans and reference Ve is: ' + str(self.Corre_KV[i]) + '\n'
+        tempResultKtrans += '\n'
+
+        tempResultVe += '********************************************\n' \
+                            'The result for calculated Ve map: \n' \
+                            '********************************************\n'
+        tempResultVe += 'Planar fitting:\n'
+        tempResultVe += 'Ve_cal = ' + str(self.a_Ve) + ' * Ktrans_ref + ' + str(self.b_Ve) + ' * Ve_ref + ' + str(self.c_Ve) + '\n\n'
+        tempResultVe += 'Correlation:\n'
+        for i in range(self.nrOfRows):
+            tempResultVe += 'The correlation between ' + str(i + 1) + 'th row of calculated Ktrans and reference Ve is: ' + str(self.Corre_VV[i]) + '\n'
+        tempResultVe += '\n'
+        for j in range(self.nrOfColumns):
+            tempResultVe += 'The correlation between ' + str(j + 1) + 'th column of calculated Ve and reference Ktrans is: ' + str(self.Corre_VK[j]) + '\n'
+        tempResultVe += '\n'
+
+
+        self.resultText += tempResultKtrans
+        self.resultText += tempResultVe
+
+    def GetEvaluationResultText(self):
+        return self.resultText
+
+    def ImportDICOMS(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
+        # import the DICOM files
+        self.Ktrans_ref_raw = self.ImportDICOM(path_K_ref)
+        self.Ve_ref_raw = self.ImportDICOM(path_V_ref)
+        self.Ktrans_cal_raw = self.ImportDICOM(path_K_cal)
+        self.Ve_cal_raw = self.ImportDICOM(path_V_cal)
+
+    def RescaleImportedDICOMS(self):
+        # rescale the imported DICOM files
+        self.Ktrans_ref_rescaled = self.Rescale(self.Ktrans_ref_raw)
+        self.Ve_ref_rescaled = self.Rescale(self.Ve_ref_raw)
+        self.Ktrans_cal_rescaled = self.Rescale(self.Ktrans_cal_raw)
+        self.Ve_cal_rescaled = self.Rescale(self.Ve_cal_raw)
+
+    def RearrangeImportedDICOMS(self):
+        # rearrange the patched for each the imported DICOM
+        self.Ktrans_ref_inPatch = self.Rearrange(self.Ktrans_ref_rescaled)
+        self.Ve_ref_inPatch = self.Rearrange(self.Ve_ref_rescaled)
+        self.Ktrans_cal_inPatch = self.Rearrange(self.Ktrans_cal_rescaled)
+        self.Ve_cal_inPatch = self.Rearrange(self.Ve_cal_rescaled)
+
+    def EstimatePatchForImportedDICOMS(self, patchValueMethod):
+        # estimate the value to represent the patches for each imported DICOM
+        self.Ktrans_ref_patchValue = self.EstimatePatch(self.Ktrans_ref_inPatch, patchValueMethod)
+        self.Ve_ref_patchValue = self.EstimatePatch(self.Ve_ref_inPatch, patchValueMethod)
+        self.Ktrans_cal_patchValue = self.EstimatePatch(self.Ktrans_cal_inPatch, patchValueMethod)
+        self.Ve_cal_patchValue = self.EstimatePatch(self.Ve_cal_inPatch, patchValueMethod)
+
+    def FittingPlanarForImportedDICOMS(self):
+        # fit a planar for the calculated Ktrans and Ve maps
+        self.a_Ktrans, self.b_Ktrans, self.c_Ktrans = self.FittingPlanar(self.Ktrans_cal_patchValue)
+        self.a_Ve, self.b_Ve, self.c_Ve = self.FittingPlanar(self.Ve_cal_patchValue)
+
+    def CalculateCorrelation(self):
+        # calculate the correlation between the calculated parameters and the reference parameters
+        # 'Corre_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
+        self.Corre_KK = []
+        self.Corre_VV = []
+        self.Corre_KV = []
+        self.Corre_VK = []
+
+        for i in range(self.nrOfColumns):
+            self.Corre_KK.append(self.CalCorrMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.Corre_VK.append(self.CalCorrMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+        for j in range(self.nrOfRows):
+            self.Corre_VV.append(self.CalCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.Corre_KV.append(self.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+
     def ImportDICOM(self, path):
         # import reference and calculated DICOM files
         # it should be able to deal with different data type like DICOM, binary and so on. right now it's possible for DICOM
@@ -635,7 +530,6 @@ class ModelTested:
             return  dicom.read_file(path)
         except:
             wx.MessageBox('Invalid file path!\n' + '(' + path +')', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
-
 
     def Rescale(self, ds):
         # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.
@@ -667,17 +561,17 @@ class ModelTested:
             tempRow = []
         return tempAll
 
-    def EstimatePatch(self, dataInPatch):
+    def EstimatePatch(self, dataInPatch, patchValueMethod):
         # estimate the value that can represent a patch. It can be mean or median value, and the deviation could also be provided for further evaluation.
         # some statistics test like normality test could be applied to decide which value to take. But considering there are many patches, how to synchronise is also a question.
         # currently the solution is, to open one new window when the 'process' button is pressed, on which the histograms of the patches will be shown. Whether to choose mean value
         # or median value to represent a patch is up to the user.
         temp = [[]for i in range(self.nrOfRows) ]
-        if self.METHOD == 'MEAN':
+        if patchValueMethod == 'MEAN':
             for i in range(self.nrOfRows):
                 for j in range (self.nrOfColumns):
                     temp[i].append(numpy.mean(dataInPatch[i][j]))
-        if self.METHOD == 'MEDIAN':
+        if patchValueMethod == 'MEDIAN':
             for i in range(self.nrOfRows):
                 for j in range (self.nrOfColumns):
                     temp[i].append(numpy.median(dataInPatch[i][j]))
@@ -715,21 +609,22 @@ class ModelTested:
         [a, b ,c] = numpy.squeeze(numpy.array( numpy.linalg.inv(left) * right ))
         return a, b, c
 
-    def CalCorrMatrix(self):
+    def CalCorrMatrix(self, calculatedPatchValue, referencePatchValue):
         # calculate the correlation matrix of the calculated and reference DICOMs
-        pass
+        return numpy.corrcoef(calculatedPatchValue, referencePatchValue)
 
     def Score(self):
         # give a score for evaluation according to the weighting factors.
         pass
 
-class WindowShowHistogram(wx.Frame, ModelTested):
-    ''' the second window that shows up when the "process" button is pressed. In this window, the histogram of each patch will be shown,
+class WindowShowHistogram(wx.Frame, ModelEvaluated):
+    '''
+    the second window that shows up when the "process" button is pressed. In this window, the histogram of each patch will be shown,
     so that the user can see the distribution of the patches and decide which one(mean or median value) to choose to represent
     each patch.
     '''
 
-    def __init__(self, parent, ModelTested):
+    def __init__(self, parent, ModelEvaluated):
         # initialize the second window
         wx.Frame.__init__(self, parent, title = 'Mean value or median value...', size = wx.DisplaySize())
         self.leftPanel = wx.Panel(self)
@@ -772,24 +667,24 @@ class WindowShowHistogram(wx.Frame, ModelTested):
         sizer.Add(self.rightPanel, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
-        self.K_ref = ModelTested.Ktrans_ref_inPatch
-        self.K_cal = ModelTested.Ktrans_cal_inPatch
-        self.V_ref = ModelTested.Ve_ref_inPatch
-        self.V_cal = ModelTested.Ve_cal_inPatch
+        self.K_ref = ModelEvaluated.Ktrans_ref_inPatch
+        self.K_cal = ModelEvaluated.Ktrans_cal_inPatch
+        self.V_ref = ModelEvaluated.Ve_ref_inPatch
+        self.V_cal = ModelEvaluated.Ve_cal_inPatch
 
-        self.nrOfRows = ModelTested.nrOfRows
-        self.nrOfColumns = ModelTested.nrOfColumns
+        self.nrOfRows = ModelEvaluated.nrOfRows
+        self.nrOfColumns = ModelEvaluated.nrOfColumns
 
         self.PlotHistogram()
 
     def OnClickMean(self, event):
         # when click on 'mean' button
-        ModelTested.METHOD = 'MEAN'
+        ModelEvaluated.METHOD = 'MEAN'
         self.Close()
 
     def OnClickMedian(self, event):
         # when click on 'median' button
-        ModelTested.METHOD = 'MEDIAN'
+        ModelEvaluated.METHOD = 'MEDIAN'
         self.Close()
 
     def PlotHistogram(self):
@@ -815,11 +710,9 @@ class WindowShowHistogram(wx.Frame, ModelTested):
         self.figureHistogram_K.tight_layout()
         self.figureHistogram_V.tight_layout()
 
-
-
-
-
 if __name__ == "__main__":
+    # show the application's main window
+
     Application = wx.App()
     window = MainWindow(None)
     window.Show()
