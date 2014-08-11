@@ -5,8 +5,9 @@ The QIBA-PDA-evaluation tool allows to compare the results from DCE-MRI analysis
 
 ========================
 
-The application is under development right now, and is available with source code. Later the stand alone version will be distributed. A short manual shall be fund in file 'Manual.doc'.
-The test data is in the pack 'test data.zip'.
+The application is under development, and is available with source code. Later the stand alone version will be distributed. 
+The steady version could be found in 'QIBA_eveluate_tool.py', while the developing version(which may be buggy) could be found in 'QIBA_eveluate_tool_testing.py'.
+A short manual could be found in file 'Manual.doc'(may be out of date, but I will try to keep it up to date). The test data could be found in the pack 'test_data.zip'. 
 
 ========================
 
