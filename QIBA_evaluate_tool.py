@@ -172,7 +172,7 @@ class MainWindow(wx.Frame):
         '''
         Import the reference Ktrans
         '''
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
            self.path_Ktrans_ref = dlg.GetPath()
 
@@ -180,7 +180,7 @@ class MainWindow(wx.Frame):
         '''
         Import the reference Ve
         '''
-        dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ve_ref = dlg.GetPath()
 
@@ -188,7 +188,7 @@ class MainWindow(wx.Frame):
         '''
         Import the calculated Ktrans
         '''
-        dlg = wx.FileDialog(self, 'Load calculated Ktrans...', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load calculated Ktrans...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ktrans_cal = dlg.GetPath()
 
@@ -196,7 +196,7 @@ class MainWindow(wx.Frame):
         '''
         Import the calculated Ve
         '''
-        dlg = wx.FileDialog(self, 'Load calculated Ve...', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load calculated Ve...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ve_cal = dlg.GetPath()
 
