@@ -11,6 +11,7 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import axes3d
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 
 class MainWindow(wx.Frame):
     '''
@@ -76,19 +77,19 @@ class MainWindow(wx.Frame):
         self.page2 = wx.Panel(self.noteBookRight)
         self.page3 = wx.Panel(self.noteBookRight)
         self.page4 = wx.Panel(self.noteBookRight)
-        self.noteBookRight.AddPage(self.page1, "Scatter plots Viewer")
-        self.noteBookRight.AddPage(self.page2, "Standard Deviation 3D plots")
-        self.noteBookRight.AddPage(self.page3, "Box plots")
-        self.noteBookRight.AddPage(self.page4, "Result Review")
+        self.noteBookRight.AddPage(self.page1, "Scatter Plots Viewer")
+        self.noteBookRight.AddPage(self.page2, "Histograms Plots Viewer")
+        self.noteBookRight.AddPage(self.page3, "Box Plots Viewer")
+        self.noteBookRight.AddPage(self.page4, "Result Text Viewer")
 
         # page 1
         # buttons
-        button1 = wx.Button(self.page1, wx.ID_ANY, 'reference Ktrans')
-        button2 = wx.Button(self.page1, wx.ID_ANY, 'reference Ve')
-        button3 = wx.Button(self.page1, wx.ID_ANY, 'calculated trans')
-        button4 = wx.Button(self.page1, wx.ID_ANY, 'calculated Ve')
+        button1 = wx.Button(self.page1, wx.ID_ANY, 'Load reference Ktrans')
+        button2 = wx.Button(self.page1, wx.ID_ANY, 'Load reference Ve')
+        button3 = wx.Button(self.page1, wx.ID_ANY, 'Load calculated Ktrans')
+        button4 = wx.Button(self.page1, wx.ID_ANY, 'Load calculated Ve')
         buttonOK = wx.Button(self.page1, wx.ID_ANY, 'Evaluate')
-        buttonSave = wx.Button(self.page1, wx.ID_ANY, 'Save')
+        buttonSave = wx.Button(self.page1, wx.ID_ANY, 'Save evaluation result')
 
         self.Bind(wx.EVT_BUTTON, self.OnImportRefK, button1)
         self.Bind(wx.EVT_BUTTON, self.OnImportRefV, button2)
@@ -116,11 +117,18 @@ class MainWindow(wx.Frame):
         self.page1.SetSizer(sizer)
 
         # page 2
-        self.figure3D = Figure()
-        self.canvas3D = FigureCanvas(self.page2,-1, self.figure3D)
+        self.figureHist_Ktrans = Figure()
+        self.canvasHist_Ktrans = FigureCanvas(self.page2,-1, self.figureHist_Ktrans)
+
+        self.figureHist_Ve = Figure()
+        self.canvasHist_Ve = FigureCanvas(self.page2,-1, self.figureHist_Ve)
+
+        self.verticalLine = wx.StaticLine(self.page2, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvas3D, 1, wx.EXPAND)
+        sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
+        sizer.Add(self.verticalLine, 1, wx.EXPAND)
+        sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
         self.page2.SetSizer(sizer)
 
         # page 3, box plots
@@ -164,43 +172,39 @@ class MainWindow(wx.Frame):
         '''
         Import the reference Ktrans
         '''
-        self.path_Ktrans_ref = ''
-        dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-           self.path_Ktrans_ref += (dlg.GetPath())
+           self.path_Ktrans_ref = dlg.GetPath()
 
     def OnImportRefV(self, event):
         '''
         Import the reference Ve
         '''
-        self.path_Ve_ref = ''
-        dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ve_ref += (dlg.GetPath())
+            self.path_Ve_ref = dlg.GetPath()
 
     def OnImportCalK(self, event):
         '''
         Import the calculated Ktrans
         '''
-        self.path_Ktrans_cal = ''
-        dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load calculated Ktrans...', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ktrans_cal += (dlg.GetPath())
+            self.path_Ktrans_cal = dlg.GetPath()
 
     def OnImportCalV(self, event):
         '''
         Import the calculated Ve
         '''
-        self.path_Ve_cal = ''
-        dlg = wx.FileDialog(self, 'Choose a DICOM file to add', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load calculated Ve...', '', '', "DICOM file(*.dcm) | *.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ve_cal += (dlg.GetPath())
+            self.path_Ve_cal = dlg.GetPath()
 
     def OnEvaluate(self, event):
         '''
         process the imported DICOM,and display
         '''
-        self.SetStatusText('Start to evaluate...')
+        self.SetStatusText('Evaluating...')
 
         # create new model object to evaluated on
         self.newModel = ModelEvaluated()
@@ -217,8 +221,8 @@ class MainWindow(wx.Frame):
 
         # draw the figures
         self.DrawScatterPlot()
-        # self.Draw3DPlot()
-        # self.DrawBoxPlot()
+        self.DrawHistograms()
+        self.DrawBoxPlot()
         self.SetStatusText('Evaluation finished.')
 
 
@@ -230,7 +234,7 @@ class MainWindow(wx.Frame):
 
     def DrawScatterPlot(self):
         '''
-        the scatter plots show the distribution of the calculated values
+        the scatter plots to show the distribution of the calculated values
         '''
         subPlotK = self.figureScatter.add_subplot(2, 1, 1)
         subPlotK.clear()
@@ -257,17 +261,16 @@ class MainWindow(wx.Frame):
 
     def DrawBoxPlot(self):
         '''
-        Not used now.
-        draw box plots
+        draw box plots of each patch
         '''
 
         subPlotK = self.figureBoxPlot.add_subplot(2, 1, 1)
         subPlotK.clear()
         temp = []
         referValueK = []
-        for i in range(self.calK.nrOfRows):
-            temp.extend(self.uniformedPatchK[i])
-            referValueK.append(self.refK.rearrangedPixels[i][0][0])
+        for i in range(self.newModel.nrOfRows):
+            temp.extend(self.newModel.Ktrans_cal_inPatch[i])
+            referValueK.append(self.newModel.Ktrans_ref_inPatch[i][0][0])
         subPlotK.boxplot(temp)
 
         subPlotK.set_title('Box plot of calculated Ktrans')
@@ -281,10 +284,10 @@ class MainWindow(wx.Frame):
         subPlotV.clear()
         temp = []
         referValueV = []
-        for j in range(self.calV.nrOfColumns):
-            referValueV.append(self.refV.rearrangedPixels[0][j][0])
-            for i in range(self.calV.nrOfRows):
-                temp.append(self.uniformedPatchV[i][j])
+        for j in range(self.newModel.nrOfColumns):
+            for i in range(self.newModel.nrOfRows):
+                temp.append(self.newModel.Ve_cal_inPatch[i][j])
+            referValueV.append(zip(*self.newModel.Ve_ref_inPatch)[j][0][0])
         subPlotV.boxplot(temp)
 
         subPlotV.set_title('Box plot of calculated Ve')
@@ -296,6 +299,37 @@ class MainWindow(wx.Frame):
         self.canvasBoxPlot.draw()
         self.rightPanel.Layout()
 
+    def DrawHistograms(self):
+        # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
+
+        self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans')
+        self.figureHist_Ve.suptitle('The histogram of the calculated Ve')
+
+        for i in range(self.newModel.nrOfRows):
+            for j in range(self.newModel.nrOfColumns):
+                subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + (j * 1) )
+                # subPlot_K.clear()
+                nrOfBins = 10
+                subPlot_K.hist(self.newModel.Ktrans_cal_inPatch[i][j], nrOfBins)
+                locator_K = mticker.MultipleLocator(numpy.mean(self.newModel.Ktrans_cal_inPatch[i][j])) # the parameter passed here stands for the base on which the locator will be drawn on the x-axis
+                subPlot_K.xaxis.set_major_locator(locator_K)
+
+
+                subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + (j * 1) )
+                # subPlot_V.clear()
+                nrOfBins = 10
+                subPlot_V.hist(self.newModel.Ve_cal_inPatch[i][j], nrOfBins)
+                locator_V = mticker.MultipleLocator(numpy.mean(self.newModel.Ve_cal_inPatch[i][j]))
+                subPlot_V.xaxis.set_major_locator(locator_V)
+
+        self.figureHist_Ve.tight_layout()
+        self.figureHist_Ktrans.tight_layout()
+
+        self.figureHist_Ktrans.subplots_adjust(top = 0.95)
+        self.figureHist_Ve.subplots_adjust(top = 0.95)
+
+        self.canvasHist_Ktrans.draw()
+        self.canvasHist_Ve.draw()
 
     def Draw3DPlot(self):
         '''
@@ -335,7 +369,23 @@ class MainWindow(wx.Frame):
             self.testedModels = []
             self.SetStatusText('Evaluated model list is cleared.')
 
-    def CleanPanel(self, panel):
+        # clean the interface plots
+        self.ClearInterface()
+
+    def ClearInterface(self):
+        # clear the plots in the interface, so that when the evaluated models are cleared, the interface will also be cleaned.
+        self.figureScatter.clear() # page 1
+        self.canvasScatter.draw()
+        self.figureBoxPlot.clear() # page 3
+        self.canvasBoxPlot.draw()
+        self.figureHist_Ktrans.clear() # page 2
+        self.canvasHist_Ktrans.draw()
+        self.figureHist_Ve.clear()
+        self.canvasHist_Ve.draw()
+        self.resultPage.SetValue('') # page 4
+
+    def ClearPanel(self, panel):
+        # clear a panel object(from wxPython)
         for child in panel.GetChildren():
             if child:
                 child.Destroy()
@@ -343,9 +393,11 @@ class MainWindow(wx.Frame):
                 pass
 
     def OnExport(self, event):
+        # export the evaluation result to pdf file.
         print "TODO: add export function"
 
     def OnQuit(self, event):
+        # quit the application
         self.Close()
 
     def OnAbout(self, event):
@@ -390,7 +442,7 @@ class ModelEvaluated:
         self.patchLen = 10
         self.rescaleIntercept = 0
         self.rescaleSlope = 1
-        self.METHOD = ''
+        self.METHOD = '' # for patch value decision
 
         # the raw image data as pixel flow
         self.Ktrans_ref_raw = []
@@ -425,7 +477,7 @@ class ModelEvaluated:
 
     def Evaluate(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # do evaluation
-        # preprocess for the imported DICOMS
+        # pre-process for the imported DICOMs
         self.ImportDICOMS(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
         self.RescaleImportedDICOMS()
         self.RearrangeImportedDICOMS()
@@ -439,6 +491,7 @@ class ModelEvaluated:
         self.TextResult()
 
     def TextResult(self):
+        # write the results into text form
         tempResultKtrans = ''
         tempResultVe = ''
 
@@ -473,10 +526,11 @@ class ModelEvaluated:
         self.resultText += tempResultVe
 
     def GetEvaluationResultText(self):
+        # getter for the result text.
         return self.resultText
 
     def ImportDICOMS(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
-        # import the DICOM files
+        # import the DICOM files for evaluation.
         self.Ktrans_ref_raw = self.ImportDICOM(path_K_ref)
         self.Ve_ref_raw = self.ImportDICOM(path_V_ref)
         self.Ktrans_cal_raw = self.ImportDICOM(path_K_cal)
@@ -524,7 +578,7 @@ class ModelEvaluated:
             self.Corre_KV.append(self.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
 
     def ImportDICOM(self, path):
-        # import reference and calculated DICOM files
+        # import a DICOM file(reference or calculated)
         # it should be able to deal with different data type like DICOM, binary and so on. right now it's possible for DICOM
         try:
             return  dicom.read_file(path)
