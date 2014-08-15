@@ -9,9 +9,8 @@ import numpy
 from scipy import stats
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
-from mpl_toolkits.mplot3d import axes3d
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
+from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 
 class MainWindow(wx.Frame):
     '''
@@ -305,22 +304,36 @@ class MainWindow(wx.Frame):
         self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans')
         self.figureHist_Ve.suptitle('The histogram of the calculated Ve')
 
+        pixelCountInPatch = self.newModel.patchLen ** 2
+        nrOfBins = 10
+
         for i in range(self.newModel.nrOfRows):
             for j in range(self.newModel.nrOfColumns):
                 subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + (j * 1) )
                 # subPlot_K.clear()
-                nrOfBins = 10
                 subPlot_K.hist(self.newModel.Ktrans_cal_inPatch[i][j], nrOfBins)
-                locator_K = mticker.MultipleLocator(numpy.mean(self.newModel.Ktrans_cal_inPatch[i][j])) # the parameter passed here stands for the base on which the locator will be drawn on the x-axis
-                subPlot_K.xaxis.set_major_locator(locator_K)
+                minPatch_K = numpy.min(self.newModel.Ktrans_cal_inPatch[i][j])
+                maxPatch_K = numpy.max(self.newModel.Ktrans_cal_inPatch[i][j])
+                meanPatch_K = numpy.mean(self.newModel.Ktrans_cal_inPatch[i][j])
+                subPlot_K.set_xticks([minPatch_K, maxPatch_K])
+                subPlot_K.set_xticklabels([str(minPatch_K), str(maxPatch_K)])
+                subPlot_K.axvline(meanPatch_K, color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+                subPlot_K.set_ylim([0, pixelCountInPatch])
+                subPlot_K.text(meanPatch_K + 0.01 * meanPatch_K, 0.9 * pixelCountInPatch, str(meanPatch_K), size = 'x-small') # parameters: location_x, location_y, text, size
+
 
 
                 subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + (j * 1) )
                 # subPlot_V.clear()
-                nrOfBins = 10
                 subPlot_V.hist(self.newModel.Ve_cal_inPatch[i][j], nrOfBins)
-                locator_V = mticker.MultipleLocator(numpy.mean(self.newModel.Ve_cal_inPatch[i][j]))
-                subPlot_V.xaxis.set_major_locator(locator_V)
+                minPatch_V = numpy.min(self.newModel.Ve_cal_inPatch[i][j])
+                maxPatch_V = numpy.max(self.newModel.Ve_cal_inPatch[i][j])
+                meanPatch_V = numpy.mean(self.newModel.Ve_cal_inPatch[i][j])
+                subPlot_V.set_xticks([minPatch_V, maxPatch_V])
+                subPlot_V.set_xticklabels([str(minPatch_V), str(maxPatch_V)])
+                subPlot_V.axvline(meanPatch_V, color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+                subPlot_V.set_ylim([0, pixelCountInPatch])
+                subPlot_V.text(meanPatch_V + 0.01 * meanPatch_V, 0.9 * pixelCountInPatch, str(meanPatch_V), size = 'x-small') # parameters: location_x, location_y, text, size
 
         self.figureHist_Ve.tight_layout()
         self.figureHist_Ktrans.tight_layout()
