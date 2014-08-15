@@ -19,6 +19,10 @@ class MainWindow(wx.Frame):
     applicationName = "QIBA evaluate tool"
     # the list of evaluated models
     testedModels = []
+    path_Ktrans_ref = ''
+    path_Ve_ref = ''
+    path_Ktrans_cal = ''
+    path_Ve_cal = ''
 
     def __init__(self, parent):
         wx.Frame.__init__(self, parent, title = self.applicationName, size = wx.DisplaySize()) #size = (900, 600)
@@ -45,13 +49,17 @@ class MainWindow(wx.Frame):
         OnExit = fileMenu.Append(wx.ID_ANY, "&Quit\tCtrl+Q", "Quit " + self.applicationName)
 
         editMenu = wx.Menu()
-        OnClearModelList = editMenu.Append(wx.ID_ANY, "Clear evaluated model list")
+        # OnClearModelList = editMenu.Append(wx.ID_ANY, "Clear evaluated model list")
+        OnLoadKtransRef = editMenu.Append(wx.ID_ANY, "Load Ktrans reference parameter map...")
+        OnLoadVeRef = editMenu.Append(wx.ID_ANY, "Load Ve reference parameter map...")
 
         aboutMenu = wx.Menu()
         OnAboutApp = aboutMenu.Append(wx.ID_ANY, "About this application")
 
         menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
-        menubar.Bind(wx.EVT_MENU, self.OnClearModelList, OnClearModelList)
+        # menubar.Bind(wx.EVT_MENU, self.OnClearModelList, OnClearModelList)
+        menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceKtrans, OnLoadKtransRef)
+        menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceVe, OnLoadVeRef)
         menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
         menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
 
@@ -62,10 +70,56 @@ class MainWindow(wx.Frame):
 
     def SetupLeft(self):
         '''
-        Empty right now.
         set up the left panel.
+        show the directories and files list to load calculated DICOMs
         '''
-        pass
+        self.selectedFilePath = ''
+        # setup the tree control widget for file viewing and selection
+        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = '', style = wx.DIRCTRL_EDIT_LABELS)
+        self.fileBrowser.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.GetFilePath)
+
+        # setup the right click function
+        self.popupMenu = wx.Menu()
+        itemLoadCalK = self.popupMenu.Append(-1, 'Load as calculated Ktrans')
+        self.leftPanel.Bind(wx.EVT_MENU, self.OnPopupItemSelected, itemLoadCalK)
+        itemLoadCalV = self.popupMenu.Append(-1, 'Load as calculated Ve')
+        self.leftPanel.Bind(wx.EVT_MENU, self.OnPopupItemSelected, itemLoadCalV)
+
+        self.leftPanel.Bind(wx.EVT_CONTEXT_MENU, self.OnShowPopup)
+
+        # setup 'evaluate' and 'export result' buttons
+        buttonEvaluate = wx.Button(self.leftPanel, wx.ID_ANY, 'Evaluate')
+        buttonExport = wx.Button(self.leftPanel, wx.ID_ANY, 'Export result')
+        self.Bind(wx.EVT_BUTTON, self.OnEvaluate, buttonEvaluate)
+        self.Bind(wx.EVT_BUTTON, self.OnExport, buttonExport)
+
+        sizerButton = wx.BoxSizer(wx.HORIZONTAL)
+        sizerButton.Add(buttonEvaluate, 1, wx.ALIGN_LEFT)
+        sizerButton.Add(buttonExport, 1, wx.ALIGN_RIGHT)
+
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(self.fileBrowser, 1, wx.EXPAND)
+        sizer.Add(sizerButton)
+        self.leftPanel.SetSizer(sizer)
+
+    def OnShowPopup(self, event):
+        # show the popup menu
+        position = event.GetPosition()
+        position = self.leftPanel.ScreenToClient(position)
+        self.leftPanel.PopupMenu(self.popupMenu, position)
+
+    def OnPopupItemSelected(self, event):
+        # do something when item of the popup menu is selected
+        item = self.popupMenu.FindItemById(event.GetId())
+        if item.GetText() == 'Load as calculated Ktrans':
+            self.OnLoadCalculatedKtrans()
+        elif item.GetText() == 'Load as calculated Ve':
+            self.OnLoadCalculatedVe()
+
+    def GetFilePath(self, event):
+        # copy the selected file's path for loading it
+        if self.fileBrowser.GetFilePath():
+            self.selectedFilePath = self.fileBrowser.GetFilePath()
 
     def SetupRight(self):
         '''
@@ -82,29 +136,6 @@ class MainWindow(wx.Frame):
         self.noteBookRight.AddPage(self.page4, "Result Text Viewer")
 
         # page 1
-        # buttons
-        button1 = wx.Button(self.page1, wx.ID_ANY, 'Load reference Ktrans')
-        button2 = wx.Button(self.page1, wx.ID_ANY, 'Load reference Ve')
-        button3 = wx.Button(self.page1, wx.ID_ANY, 'Load calculated Ktrans')
-        button4 = wx.Button(self.page1, wx.ID_ANY, 'Load calculated Ve')
-        buttonOK = wx.Button(self.page1, wx.ID_ANY, 'Evaluate')
-        buttonSave = wx.Button(self.page1, wx.ID_ANY, 'Save evaluation result')
-
-        self.Bind(wx.EVT_BUTTON, self.OnImportRefK, button1)
-        self.Bind(wx.EVT_BUTTON, self.OnImportRefV, button2)
-        self.Bind(wx.EVT_BUTTON, self.OnImportCalK, button3)
-        self.Bind(wx.EVT_BUTTON, self.OnImportCalV, button4)
-        self.Bind(wx.EVT_BUTTON, self.OnEvaluate, buttonOK)
-        self.Bind(wx.EVT_BUTTON, self.OnSave, buttonSave)
-
-        sizerButton = wx.GridSizer(cols=1)
-        sizerButton.Add(button1)
-        sizerButton.Add(button2)
-        sizerButton.Add(button3)
-        sizerButton.Add(button4)
-        sizerButton.Add(buttonOK)
-        sizerButton.Add(buttonSave)
-
         # set a canvas on page 1
         self.figureScatter = Figure()
         self.canvasScatter = FigureCanvas(self.page1,-1, self.figureScatter)
@@ -112,7 +143,6 @@ class MainWindow(wx.Frame):
         # set sizer for the canvas
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvasScatter, 1, wx.EXPAND)
-        sizer.Add(sizerButton)
         self.page1.SetSizer(sizer)
 
         # page 2
@@ -167,21 +197,35 @@ class MainWindow(wx.Frame):
         sizer.Add(self.rightPanel, 7, flag = wx.EXPAND)
         self.SetSizer(sizer)
 
-    def OnImportRefK(self, event):
-        '''
-        Import the reference Ktrans
-        '''
+    def OnLoadReferenceKtrans(self, event):
+        # Import the reference Ktrans
         dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-           self.path_Ktrans_ref = dlg.GetPath()
+            self.path_Ktrans_ref = dlg.GetPath()
+            self.SetStatusText('Reference Ktrans loaded.')
 
-    def OnImportRefV(self, event):
-        '''
-        Import the reference Ve
-        '''
+    def OnLoadReferenceVe(self, event):
+        # Import the reference Ve
         dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ve_ref = dlg.GetPath()
+            self.SetStatusText('Reference Ve loaded.')
+
+    def OnLoadCalculatedKtrans(self):
+        # load the selected DICOM as calculated Ktrans
+        if os.path.splitext(self.selectedFilePath)[1] == '.dcm':
+            self.path_Ktrans_cal = self.selectedFilePath
+            self.SetStatusText('Calculated Ktrans loaded.')
+        else:
+            self.SetStatusText('Invalid file chosen.')
+
+    def OnLoadCalculatedVe(self):
+        # load the selected DICOM as calculated Ve
+        if os.path.splitext(self.selectedFilePath)[1] == '.dcm':
+            self.path_Ve_cal = self.selectedFilePath
+            self.SetStatusText('Calculated Ve loaded.')
+        else:
+            self.SetStatusText('Invalid file chosen.')
 
     def OnImportCalK(self, event):
         '''
@@ -209,7 +253,20 @@ class MainWindow(wx.Frame):
         self.newModel = ModelEvaluated()
 
         # call the method to execute evaluation
-        self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
+        if self.path_Ktrans_ref == '':
+            self.SetStatusText('Please load a proper DICOM file as reference Ktrans.')
+            return 0
+        elif self.path_Ve_ref == '':
+            self.SetStatusText('Please load a proper DICOM file as reference Ve.')
+            return 0
+        elif self.path_Ktrans_cal == '':
+            self.SetStatusText('Please load a proper DICOM file as calculated Ktrans.')
+            return 0
+        elif self.path_Ve_cal == '':
+            self.SetStatusText('Please load a proper DICOM file as calculated Ve.')
+            return 0
+        else:
+            self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
 
         # show the results in the main window
         #print self.newModel.GetEvaluationResultText()
@@ -375,6 +432,7 @@ class MainWindow(wx.Frame):
         self.rightPanel.Layout()
 
     def OnClearModelList(self, event):
+        # not used now
         # clear the list which holds all the models that have been evaluated.
         if self.testedModels == []:
             self.SetStatusText('Evaluated model list is empty.')
