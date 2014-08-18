@@ -11,6 +11,8 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.ticker as ticker
 
 class MainWindow(wx.Frame):
     '''
@@ -75,7 +77,8 @@ class MainWindow(wx.Frame):
         '''
         self.selectedFilePath = ''
         # setup the tree control widget for file viewing and selection
-        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = '', style = wx.DIRCTRL_EDIT_LABELS)
+        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = '', style=wx.DIRCTRL_SHOW_FILTERS,
+                                filter="DICOM files (*.dcm)|*.dcm")
         self.fileBrowser.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.GetFilePath)
 
         # setup the right click function
@@ -126,55 +129,63 @@ class MainWindow(wx.Frame):
         set up the right panel
         '''
         self.noteBookRight = wx.Notebook(self.rightPanel)  #, style=wx.SUNKEN_BORDER)
-        self.page1 = wx.Panel(self.noteBookRight)
-        self.page2 = wx.Panel(self.noteBookRight)
-        self.page3 = wx.Panel(self.noteBookRight)
-        self.page4 = wx.Panel(self.noteBookRight)
-        self.noteBookRight.AddPage(self.page1, "Scatter Plots Viewer")
-        self.noteBookRight.AddPage(self.page2, "Histograms Plots Viewer")
-        self.noteBookRight.AddPage(self.page3, "Box Plots Viewer")
-        self.noteBookRight.AddPage(self.page4, "Result Text Viewer")
+        self.pageImagePreview = wx.Panel(self.noteBookRight)
+        self.pageScatter = wx.Panel(self.noteBookRight)
+        self.pageHistogram = wx.Panel(self.noteBookRight)
+        self.pageBoxPlot = wx.Panel(self.noteBookRight)
+        self.pageResult = wx.Panel(self.noteBookRight)
+        self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
+        self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
+        self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
+        self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
+        self.noteBookRight.AddPage(self.pageResult, "Result Text Viewer")
 
-        # page 1
-        # set a canvas on page 1
+        # show the calculated images and error images
+        self.figureImagePreview = Figure()
+        self.canvasImagePreview = FigureCanvas(self.pageImagePreview, -1, self.figureImagePreview)
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
+        self.pageImagePreview.SetSizer(sizer)
+
+        # page scatter
         self.figureScatter = Figure()
-        self.canvasScatter = FigureCanvas(self.page1,-1, self.figureScatter)
+        self.canvasScatter = FigureCanvas(self.pageScatter,-1, self.figureScatter)
 
-        # set sizer for the canvas
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvasScatter, 1, wx.EXPAND)
-        self.page1.SetSizer(sizer)
+        self.pageScatter.SetSizer(sizer)
 
-        # page 2
+        # page Histogram
         self.figureHist_Ktrans = Figure()
-        self.canvasHist_Ktrans = FigureCanvas(self.page2,-1, self.figureHist_Ktrans)
+        self.canvasHist_Ktrans = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ktrans)
 
         self.figureHist_Ve = Figure()
-        self.canvasHist_Ve = FigureCanvas(self.page2,-1, self.figureHist_Ve)
+        self.canvasHist_Ve = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ve)
 
-        self.verticalLine = wx.StaticLine(self.page2, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
+        self.verticalLine = wx.StaticLine(self.pageHistogram, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
         sizer.Add(self.verticalLine, 1, wx.EXPAND)
         sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
-        self.page2.SetSizer(sizer)
+        self.pageHistogram.SetSizer(sizer)
 
-        # page 3, box plots
-        # set a canvas on page 3
+        # page box plots
         self.figureBoxPlot = Figure()
-        self.canvasBoxPlot = FigureCanvas(self.page3,-1, self.figureBoxPlot)
+        self.canvasBoxPlot = FigureCanvas(self.pageBoxPlot,-1, self.figureBoxPlot)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvasBoxPlot, 1, wx.EXPAND)
-        self.page3.SetSizer(sizer)
+        self.pageBoxPlot.SetSizer(sizer)
 
-        # page 4, evaluation results
+        # page evaluation results
         # self.resultPage = rt.RichTextCtrl(self, style = wx.VSCROLL|wx.NO_BORDER)
-        self.resultPage = wx.TextCtrl(self.page4, -1, style = wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_RICH)
+        self.resultPage = wx.TextCtrl(self.pageResult, -1, style = wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_RICH)
+
         sizer = wx.BoxSizer()
         sizer.Add(self.resultPage, 1, wx.EXPAND)
-        self.page4.SetSizer(sizer)
+        self.pageResult.SetSizer(sizer)
 
         # sizer for the right panel
         sizer = wx.BoxSizer()
@@ -276,6 +287,7 @@ class MainWindow(wx.Frame):
         self.testedModels.append(self.newModel)
 
         # draw the figures
+        self.ShowImagePreview()
         self.DrawScatterPlot()
         self.DrawHistograms()
         self.DrawBoxPlot()
@@ -287,6 +299,53 @@ class MainWindow(wx.Frame):
         # Save the statistic data for recording
         print 'save result function needed to be added.'
         pass
+
+    def ShowImagePreview(self):
+        # show calculated images and the error images
+        subplotK_Cal = self.figureImagePreview.add_subplot(2,3,1)
+        handler = subplotK_Cal.imshow(self.newModel.Ktrans_cal_rescaled, cmap = 'bone', interpolation='nearest')
+        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
+        cax = divider.append_axes("right", "5%", pad="3%")
+        subplotK_Cal.get_figure().colorbar(handler, cax = cax).set_label('Ktrans[1/min]') # show color bar and the label
+        subplotK_Cal.set_title('Calculated Ktrans')
+
+        subplotK_Err = self.figureImagePreview.add_subplot(2,3,2)
+        handler = subplotK_Err.imshow(self.newModel.Ktrans_error, cmap = 'rainbow', interpolation='nearest')
+        divider = make_axes_locatable(subplotK_Err.get_figure().gca())
+        cax = divider.append_axes("right", "5%", pad="3%")
+        subplotK_Err.get_figure().colorbar(handler, cax = cax).set_label('Delta Ktrans[1/min.]')
+        subplotK_Err.set_title('Error map of Ktrans')
+
+        subplotK_Err_Normalized = self.figureImagePreview.add_subplot(2,3,3)
+        handler = subplotK_Err_Normalized.imshow(self.newModel.Ktrans_error_normalized, cmap = 'rainbow', interpolation='nearest')
+        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
+        cax = divider.append_axes("right", "5%", pad="3%")
+        subplotK_Err_Normalized.get_figure().colorbar(handler, cax = cax).set_label('Normalized error[1]')
+        subplotK_Err_Normalized.set_title('Normalized error map of Ktrans')
+
+        subplotV_Cal = self.figureImagePreview.add_subplot(2,3,4)
+        handler = subplotV_Cal.imshow(self.newModel.Ve_cal_rescaled, cmap = 'bone', interpolation='nearest')
+        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
+        cax = divider.append_axes("right", "5%", pad="3%")
+        subplotV_Cal.get_figure().colorbar(handler, cax = cax).set_label('ve[1/mm^3]')
+        subplotV_Cal.set_title('Preview of Calculated Ve')
+
+        subplotV_Err = self.figureImagePreview.add_subplot(2,3,5)
+        handler = subplotV_Err.imshow(self.newModel.Ve_error, cmap = 'rainbow', interpolation='nearest')
+        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
+        cax = divider.append_axes("right", "5%", pad="3%")
+        subplotV_Err.get_figure().colorbar(handler, cax = cax).set_label('Delta ve[1/mm^3]')
+        subplotV_Err.set_title('Error map of Ve')
+
+        subplotV_Err_Normalized = self.figureImagePreview.add_subplot(2,3,6)
+        handler = subplotV_Err_Normalized.imshow(self.newModel.Ve_error_normalized, cmap = 'rainbow', interpolation='nearest')
+        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
+        cax = divider.append_axes("right", "5%", pad="3%")
+        subplotV_Err_Normalized.get_figure().colorbar(handler, cax = cax).set_label('Normalized error[1]')
+        subplotV_Err_Normalized.set_title('Normalized error map of Ve')
+
+        self.figureImagePreview.tight_layout()
+        self.canvasImagePreview.draw()
 
     def DrawScatterPlot(self):
         '''
@@ -332,9 +391,12 @@ class MainWindow(wx.Frame):
         subPlotK.set_title('Box plot of calculated Ktrans')
         subPlotK.set_xlabel('Patches\' number, concatenated row by row')
         subPlotK.set_ylabel('Calculated values in patches')
-        subPlotK.set_yticks(referValueK, minor = True)
-        subPlotK.grid(True, which = 'minor')
 
+        # subPlotK.set_yticks(referValueK, minor = True)
+        # locator = MultipleLocator(base = 5)
+        # subPlotK.xaxis.set_major_locator(locator)
+        # subPlotK.set_xticks([5.5, 10.5, 15.5, 20.5, 25.5, 30.5], minor = True)
+        # subPlotK.grid(True, which = 'minor')
 
         subPlotV = self.figureBoxPlot.add_subplot(2, 1, 2)
         subPlotV.clear()
@@ -349,8 +411,25 @@ class MainWindow(wx.Frame):
         subPlotV.set_title('Box plot of calculated Ve')
         subPlotV.set_xlabel('Patches\' number, concatenated column by column')
         subPlotV.set_ylabel('Calculated values in patches')
-        subPlotV.set_yticks(referValueV, minor = True)
-        subPlotV.grid(True, which = 'minor')
+        # subPlotV.set_yticks(referValueV, minor = True)
+        # subPlotV.set_xticks([6.5, 12.5, 18.5, 24.5, 30.5], minor = True)
+        # subPlotV.grid(True, which = 'minor')
+
+
+        subPlotK.xaxis.set_major_formatter(ticker.NullFormatter())
+        subPlotK.xaxis.set_minor_locator(ticker.FixedLocator([3, 8, 13, 18, 23, 28]))
+        subPlotK.xaxis.set_minor_formatter(ticker.FixedFormatter(['Ktrans = ' + str(referValueK[0]), 'Ktrans = ' + str(referValueK[1]), 'Ktrans = ' + str(referValueK[2]), 'Ktrans = ' + str(referValueK[3]), 'Ktrans = ' + str(referValueK[4]), 'Ktrans = ' + str(referValueK[5])]))
+        for i in range(self.newModel.nrOfRows):
+            subPlotK.axvline(x = self.newModel.nrOfColumns * i + 0.5, color = 'green', linestyle = 'dashed')
+
+
+        subPlotV.xaxis.set_major_formatter(ticker.NullFormatter())
+        subPlotV.xaxis.set_minor_locator(ticker.FixedLocator([3.5, 9.5, 15.5, 21.5, 27.5]))
+        subPlotV.xaxis.set_minor_formatter(ticker.FixedFormatter(['Ve = ' + str(referValueV[0]), 'Ve = ' + str(referValueV[1]), 'Ve = ' + str(referValueV[2]), 'Ve = ' + str(referValueV[3]), 'Ve = ' + str(referValueV[4])]))
+        for i in range(self.newModel.nrOfColumns):
+            subPlotV.axvline(x = self.newModel.nrOfRows * i + 0.5, color = 'green', linestyle = 'dashed')
+
+
 
         self.canvasBoxPlot.draw()
         self.rightPanel.Layout()
@@ -358,15 +437,15 @@ class MainWindow(wx.Frame):
     def DrawHistograms(self):
         # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
 
-        self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans')
-        self.figureHist_Ve.suptitle('The histogram of the calculated Ve')
+        self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans',) # fontsize = 18)
+        self.figureHist_Ve.suptitle('The histogram of the calculated Ve') # , fontsize = 18)
 
         pixelCountInPatch = self.newModel.patchLen ** 2
         nrOfBins = 10
 
         for i in range(self.newModel.nrOfRows):
             for j in range(self.newModel.nrOfColumns):
-                subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + (j * 1) )
+                subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
                 # subPlot_K.clear()
                 subPlot_K.hist(self.newModel.Ktrans_cal_inPatch[i][j], nrOfBins)
                 minPatch_K = numpy.min(self.newModel.Ktrans_cal_inPatch[i][j])
@@ -377,10 +456,13 @@ class MainWindow(wx.Frame):
                 subPlot_K.axvline(meanPatch_K, color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
                 subPlot_K.set_ylim([0, pixelCountInPatch])
                 subPlot_K.text(meanPatch_K + 0.01 * meanPatch_K, 0.9 * pixelCountInPatch, str(meanPatch_K), size = 'x-small') # parameters: location_x, location_y, text, size
+                if i == 0:
+                    subPlot_K.set_xlabel('Ve = ' + str(self.newModel.Ve_ref_inPatch[i][j][0]))
+                    subPlot_K.xaxis.set_label_position('top')
+                if j == 0:
+                    subPlot_K.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref_inPatch[i][j][0]))
 
-
-
-                subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + (j * 1) )
+                subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1 )
                 # subPlot_V.clear()
                 subPlot_V.hist(self.newModel.Ve_cal_inPatch[i][j], nrOfBins)
                 minPatch_V = numpy.min(self.newModel.Ve_cal_inPatch[i][j])
@@ -391,12 +473,18 @@ class MainWindow(wx.Frame):
                 subPlot_V.axvline(meanPatch_V, color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
                 subPlot_V.set_ylim([0, pixelCountInPatch])
                 subPlot_V.text(meanPatch_V + 0.01 * meanPatch_V, 0.9 * pixelCountInPatch, str(meanPatch_V), size = 'x-small') # parameters: location_x, location_y, text, size
+                if i == 0:
+                    subPlot_V.set_xlabel('Ve = ' + str(self.newModel.Ve_ref_inPatch[i][j][0]))
+                    subPlot_V.xaxis.set_label_position('top')
+                if j == 0:
+                    subPlot_V.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref_inPatch[i][j][0]))
+
 
         self.figureHist_Ve.tight_layout()
         self.figureHist_Ktrans.tight_layout()
 
-        self.figureHist_Ktrans.subplots_adjust(top = 0.95)
-        self.figureHist_Ve.subplots_adjust(top = 0.95)
+        self.figureHist_Ktrans.subplots_adjust(top = 0.94, right = 0.95)
+        self.figureHist_Ve.subplots_adjust(top = 0.94, right = 0.95)
 
         self.canvasHist_Ktrans.draw()
         self.canvasHist_Ve.draw()
@@ -521,6 +609,12 @@ class ModelEvaluated:
         self.Ktrans_cal_raw = []
         self.Ve_cal_raw = []
 
+        # the error map between calculated and reference file
+        self.Ktrans_error = []
+        self.Ve_error = []
+        self.Ktrans_error_normalized = []
+        self.Ve_error_normalized = []
+
         # the rescaled image data
         self.Ktrans_ref_rescaled = []
         self.Ve_ref_rescaled = []
@@ -549,13 +643,14 @@ class ModelEvaluated:
     def Evaluate(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # do evaluation
         # pre-process for the imported DICOMs
-        self.ImportDICOMS(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
-        self.RescaleImportedDICOMS()
-        self.RearrangeImportedDICOMS()
-        self.EstimatePatchForImportedDICOMS('MEAN')
+        self.ImportDICOMs(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
+        self.RescaleImportedDICOMs()
+        self.CalculateErrorForImportedDICOMs()
+        self.RearrangeImportedDICOMs()
+        self.EstimatePatchForImportedDICOMs('MEAN')
 
         # evaluation operations
-        self.FittingPlanarForImportedDICOMS()
+        self.FittingPlanarForImportedDICOMs()
         self.CalculateCorrelation()
 
         # write the result to the result text
@@ -600,35 +695,43 @@ class ModelEvaluated:
         # getter for the result text.
         return self.resultText
 
-    def ImportDICOMS(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
+    def ImportDICOMs(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # import the DICOM files for evaluation.
         self.Ktrans_ref_raw = self.ImportDICOM(path_K_ref)
         self.Ve_ref_raw = self.ImportDICOM(path_V_ref)
         self.Ktrans_cal_raw = self.ImportDICOM(path_K_cal)
         self.Ve_cal_raw = self.ImportDICOM(path_V_cal)
 
-    def RescaleImportedDICOMS(self):
+    def RescaleImportedDICOMs(self):
         # rescale the imported DICOM files
         self.Ktrans_ref_rescaled = self.Rescale(self.Ktrans_ref_raw)
         self.Ve_ref_rescaled = self.Rescale(self.Ve_ref_raw)
         self.Ktrans_cal_rescaled = self.Rescale(self.Ktrans_cal_raw)
         self.Ve_cal_rescaled = self.Rescale(self.Ve_cal_raw)
 
-    def RearrangeImportedDICOMS(self):
+    def CalculateErrorForImportedDICOMs(self):
+        # calculate the error between calculated and reference files
+        self.Ktrans_error = self.CalculateError(self.Ktrans_ref_rescaled, self.Ktrans_cal_rescaled)
+        self.Ve_error = self.CalculateError(self.Ve_ref_rescaled, self.Ve_cal_rescaled)
+
+        self.Ktrans_error_normalized = self.CalculateNormalizedError(self.Ktrans_ref_rescaled, self.Ktrans_cal_rescaled)
+        self.Ve_error_normalized = self.CalculateNormalizedError(self.Ve_ref_rescaled, self.Ve_cal_rescaled)
+
+    def RearrangeImportedDICOMs(self):
         # rearrange the patched for each the imported DICOM
         self.Ktrans_ref_inPatch = self.Rearrange(self.Ktrans_ref_rescaled)
         self.Ve_ref_inPatch = self.Rearrange(self.Ve_ref_rescaled)
         self.Ktrans_cal_inPatch = self.Rearrange(self.Ktrans_cal_rescaled)
         self.Ve_cal_inPatch = self.Rearrange(self.Ve_cal_rescaled)
 
-    def EstimatePatchForImportedDICOMS(self, patchValueMethod):
+    def EstimatePatchForImportedDICOMs(self, patchValueMethod):
         # estimate the value to represent the patches for each imported DICOM
         self.Ktrans_ref_patchValue = self.EstimatePatch(self.Ktrans_ref_inPatch, patchValueMethod)
         self.Ve_ref_patchValue = self.EstimatePatch(self.Ve_ref_inPatch, patchValueMethod)
         self.Ktrans_cal_patchValue = self.EstimatePatch(self.Ktrans_cal_inPatch, patchValueMethod)
         self.Ve_cal_patchValue = self.EstimatePatch(self.Ve_cal_inPatch, patchValueMethod)
 
-    def FittingPlanarForImportedDICOMS(self):
+    def FittingPlanarForImportedDICOMs(self):
         # fit a planar for the calculated Ktrans and Ve maps
         self.a_Ktrans, self.b_Ktrans, self.c_Ktrans = self.FittingPlanar(self.Ktrans_cal_patchValue)
         self.a_Ve, self.b_Ve, self.c_Ve = self.FittingPlanar(self.Ve_cal_patchValue)
@@ -669,17 +772,44 @@ class ModelEvaluated:
             for pixel in row:
                 temp.append(pixel * self.rescaleSlope + self.rescaleIntercept)
             pixelFlow.append(temp)
+
+        # remove the first and last row which do not contain valid data
+        pixelFlow = pixelFlow[self.patchLen:-self.patchLen]
+
         return pixelFlow
 
+    def CalculateError(self, cal, ref):
+        # compare the calculated and reference files, and return the error
+        errorCalRef = []
+
+        for row_cal, row_ref in zip(cal, ref):
+            temp = []
+            for pixel_cal, pixel_ref in zip(row_cal, row_ref):
+                temp.append(pixel_cal - pixel_ref)
+            errorCalRef.append(temp)
+        return errorCalRef
+
+    def CalculateNormalizedError(self, cal, ref):
+        # compare the calculated and reference files, and return the error
+        errorNormalized = []
+        delta = 0.0001 # to avoid dividing zero
+
+        for row_cal, row_ref in zip(cal, ref):
+            temp = []
+            for pixel_cal, pixel_ref in zip(row_cal, row_ref):
+                temp.append((pixel_cal - pixel_ref) / (pixel_ref + delta))
+            errorNormalized.append(temp)
+        return errorNormalized
+
     def Rearrange(self, pixelFlow):
-        # rearrange the DICOM file so that the file can be accessed in patches and the top and bottom strips are removed as they are not meaningful here.
+        # rearrange the DICOM file so that the file can be accessed in patches and the top and bottom strips are removed as they are not used here.
         tempAll = []
         tempPatch = []
         tempRow = []
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
                 for k in range(self.patchLen):
-                    tempPatch.extend(pixelFlow[(i + 1) * self.patchLen + k][j * self.patchLen : (j + 1) * self.patchLen])
+                    tempPatch.extend(pixelFlow[i * self.patchLen + k][j * self.patchLen : (j + 1) * self.patchLen])
                 tempRow.append(tempPatch)
                 tempPatch = []
             tempAll.append(tempRow)
