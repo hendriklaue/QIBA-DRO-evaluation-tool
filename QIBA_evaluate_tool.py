@@ -374,6 +374,7 @@ class MainWindow(wx.Frame):
         subPlotV.set_ylabel('Calculated Ve')
         subPlotV.set_title('Distribution plot of Ve')
 
+        self.figureScatter.tight_layout()
         self.canvasScatter.draw()
         self.rightPanel.Layout()
 
@@ -388,12 +389,8 @@ class MainWindow(wx.Frame):
         referValueK = []
         for i in range(self.newModel.nrOfRows):
             temp.extend(self.newModel.Ktrans_cal_inPatch[i])
-            referValueK.append(self.newModel.Ktrans_ref_inPatch[i][0][0])
+            referValueK.append(float('{0:.2f}'.format(self.newModel.Ktrans_ref_inPatch[i][0][0])))
         subPlotK.boxplot(temp)
-
-        subPlotK.set_title('Box plot of calculated Ktrans')
-        subPlotK.set_xlabel('Patches\' number, concatenated row by row')
-        subPlotK.set_ylabel('Calculated values in patches')
 
         # subPlotK.set_yticks(referValueK, minor = True)
         # locator = MultipleLocator(base = 5)
@@ -408,16 +405,13 @@ class MainWindow(wx.Frame):
         for j in range(self.newModel.nrOfColumns):
             for i in range(self.newModel.nrOfRows):
                 temp.append(self.newModel.Ve_cal_inPatch[i][j])
-            referValueV.append(zip(*self.newModel.Ve_ref_inPatch)[j][0][0])
+            referValueV.append(float('{0:.2f}'.format(zip(*self.newModel.Ve_ref_inPatch)[j][0][0])))
         subPlotV.boxplot(temp)
 
-        subPlotV.set_title('Box plot of calculated Ve')
-        subPlotV.set_xlabel('Patches\' number, concatenated column by column')
-        subPlotV.set_ylabel('Calculated values in patches')
-        # subPlotV.set_yticks(referValueV, minor = True)
-        # subPlotV.set_xticks([6.5, 12.5, 18.5, 24.5, 30.5], minor = True)
-        # subPlotV.grid(True, which = 'minor')
-
+        # decorate Ktrans plot
+        subPlotK.set_title('Box plot of calculated Ktrans')
+        subPlotK.set_xlabel('In each column, each box plot denotes Ve = ' + str(referValueV) + ' respectively')
+        subPlotK.set_ylabel('Calculated values in patches')
 
         subPlotK.xaxis.set_major_formatter(ticker.NullFormatter())
         subPlotK.xaxis.set_minor_locator(ticker.FixedLocator([3, 8, 13, 18, 23, 28]))
@@ -425,6 +419,10 @@ class MainWindow(wx.Frame):
         for i in range(self.newModel.nrOfRows):
             subPlotK.axvline(x = self.newModel.nrOfColumns * i + 0.5, color = 'green', linestyle = 'dashed')
 
+        # decorate Ve plot
+        subPlotV.set_title('Box plot of calculated Ve')
+        subPlotV.set_xlabel('In each column, each box plot denotes Ktrans = ' + str(referValueK) + ' respectively')
+        subPlotV.set_ylabel('Calculated values in patches')
 
         subPlotV.xaxis.set_major_formatter(ticker.NullFormatter())
         subPlotV.xaxis.set_minor_locator(ticker.FixedLocator([3.5, 9.5, 15.5, 21.5, 27.5]))
@@ -433,7 +431,7 @@ class MainWindow(wx.Frame):
             subPlotV.axvline(x = self.newModel.nrOfRows * i + 0.5, color = 'green', linestyle = 'dashed')
 
 
-
+        self.figureBoxPlot.tight_layout()
         self.canvasBoxPlot.draw()
         self.rightPanel.Layout()
 
