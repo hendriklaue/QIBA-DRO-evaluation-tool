@@ -27,7 +27,7 @@ class MainWindow(wx.Frame):
     path_Ve_cal = ''
 
     def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title = self.applicationName, size = wx.DisplaySize()) #size = (900, 600)
+        wx.Frame.__init__(self, parent, title = self.applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
 
         self.CenterOnScreen()
 
@@ -77,7 +77,7 @@ class MainWindow(wx.Frame):
         '''
         self.selectedFilePath = ''
         # setup the tree control widget for file viewing and selection
-        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = '', style=wx.DIRCTRL_SHOW_FILTERS,
+        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.dirname(__file__), style=wx.DIRCTRL_SHOW_FILTERS,
                                 filter="DICOM files (*.dcm)|*.dcm")
         self.fileBrowser.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.GetFilePath)
 
@@ -327,14 +327,14 @@ class MainWindow(wx.Frame):
         handler = subplotV_Cal.imshow(self.newModel.Ve_cal_rescaled, cmap = 'bone', interpolation='nearest')
         divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
         cax = divider.append_axes("right", "5%", pad="3%")
-        subplotV_Cal.get_figure().colorbar(handler, cax = cax).set_label('ve[1/mm^3]')
+        subplotV_Cal.get_figure().colorbar(handler, cax = cax).set_label('ve[]')
         subplotV_Cal.set_title('Preview of Calculated Ve')
 
         subplotV_Err = self.figureImagePreview.add_subplot(2,3,5)
         handler = subplotV_Err.imshow(self.newModel.Ve_error, cmap = 'rainbow', interpolation='nearest')
         divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
         cax = divider.append_axes("right", "5%", pad="3%")
-        subplotV_Err.get_figure().colorbar(handler, cax = cax).set_label('Delta ve[1/mm^3]')
+        subplotV_Err.get_figure().colorbar(handler, cax = cax).set_label('Delta ve[]')
         subplotV_Err.set_title('Error map of Ve')
 
         subplotV_Err_Normalized = self.figureImagePreview.add_subplot(2,3,6)
@@ -965,10 +965,29 @@ class WindowShowHistogram(wx.Frame, ModelEvaluated):
         self.figureHistogram_K.tight_layout()
         self.figureHistogram_V.tight_layout()
 
+class MySplashScreen(wx.SplashScreen):
+    '''
+    show the splash screen when the application is launched.
+    '''
+    def  __init__(self, parent=None):
+        # This is a recipe to a the screen.
+        # Modify the following variables as necessary.
+        aBitmap = wx.Image(name = "splashImage.jpg").ConvertToBitmap()
+        splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
+        splashDuration = 3000 # milliseconds
+        # Call the constructor with the above arguments in exactly the
+        # following order.
+        wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
+
+
+
 if __name__ == "__main__":
     # show the application's main window
 
     Application = wx.App()
+    QIBASplashWindow = MySplashScreen()
+    QIBASplashWindow.Show()
+
     window = MainWindow(None)
     window.Show()
     window.Maximize(True)
