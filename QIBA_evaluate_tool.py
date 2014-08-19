@@ -258,6 +258,9 @@ class MainWindow(wx.Frame):
         '''
         process the imported DICOM,and display
         '''
+        # clear the interface if they were used before
+        self.ClearInterface()
+
         self.SetStatusText('Evaluating...')
 
         # create new model object to evaluated on
@@ -533,15 +536,21 @@ class MainWindow(wx.Frame):
 
     def ClearInterface(self):
         # clear the plots in the interface, so that when the evaluated models are cleared, the interface will also be cleaned.
-        self.figureScatter.clear() # page 1
+        self.figureImagePreview.clear()
+        self.canvasImagePreview.draw()
+
+        self.figureScatter.clear()
         self.canvasScatter.draw()
-        self.figureBoxPlot.clear() # page 3
+
+        self.figureBoxPlot.clear()
         self.canvasBoxPlot.draw()
-        self.figureHist_Ktrans.clear() # page 2
+
+        self.figureHist_Ktrans.clear()
         self.canvasHist_Ktrans.draw()
         self.figureHist_Ve.clear()
         self.canvasHist_Ve.draw()
-        self.resultPage.SetValue('') # page 4
+
+        self.resultPage.SetValue('')
 
     def ClearPanel(self, panel):
         # clear a panel object(from wxPython)
