@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
+import time
 
 class MainWindow(wx.Frame):
     '''
@@ -981,7 +982,7 @@ class MySplashScreen(wx.SplashScreen):
         # Modify the following variables as necessary.
         aBitmap = wx.Image(name = "splashImage.jpg").ConvertToBitmap()
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
-        splashDuration = 3000 # milliseconds
+        splashDuration = 2000 # milliseconds
         # Call the constructor with the above arguments in exactly the
         # following order.
         wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
@@ -995,6 +996,7 @@ if __name__ == "__main__":
     QIBASplashWindow = MySplashScreen()
     QIBASplashWindow.Show()
 
+    time.sleep(2)
     window = MainWindow(None)
     window.Show()
     window.Maximize(True)
