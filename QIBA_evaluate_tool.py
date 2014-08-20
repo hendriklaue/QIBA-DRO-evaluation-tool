@@ -270,20 +270,28 @@ class MainWindow(wx.Frame):
         self.newModel = ModelEvaluated()
 
         # call the method to execute evaluation
-        if self.path_Ktrans_ref == '':
+        try:
+            self.newModel.ImportDICOM(self.path_Ktrans_ref)
+        except:
             self.SetStatusText('Please load a proper DICOM file as reference Ktrans.')
             return 0
-        elif self.path_Ve_ref == '':
+        try:
+            self.newModel.ImportDICOM(self.path_Ve_ref)
+        except:
             self.SetStatusText('Please load a proper DICOM file as reference Ve.')
             return 0
-        elif self.path_Ktrans_cal == '':
+        try:
+            self.newModel.ImportDICOM(self.path_Ktrans_cal)
+        except:
             self.SetStatusText('Please load a proper DICOM file as calculated Ktrans.')
             return 0
-        elif self.path_Ve_cal == '':
+        try:
+            self.newModel.ImportDICOM(self.path_Ve_cal)
+        except:
             self.SetStatusText('Please load a proper DICOM file as calculated Ve.')
             return 0
-        else:
-            self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
+
+        self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
 
         # show the results in the main window
         #print self.newModel.GetEvaluationResultText()
