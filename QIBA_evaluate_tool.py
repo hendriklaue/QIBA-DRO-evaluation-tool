@@ -707,7 +707,7 @@ class ModelEvaluated:
         tempResultKtrans = ''
         tempResultVe = ''
 
-        tableLen = 30
+        tableLen = 50
         statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile']
         statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile],
                           [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile]]
@@ -731,8 +731,8 @@ class ModelEvaluated:
             if i == 0:
                 tempResultKtrans +=  ' ' * (tableLen)
                 for j in range(self.nrOfColumns):
-                    tempResultKtrans += ('Ve = ' + '{:3.2f}'.format(self.Ve_ref_patchValue[0][j])).ljust(tableLen)
-                tempResultKtrans += '\n'
+                    tempResultKtrans += ('Ve = ' + '{:3.2f}'.format(self.Ve_ref_patchValue[0][j])).ljust(tableLen + 10)
+                tempResultKtrans += '\n\n'
             for k in range(len(statisticsNames)):
                 if k == 0:
                     tempResultKtrans += ('Ktrans = ' + str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))).ljust(tableLen)
@@ -741,6 +741,7 @@ class ModelEvaluated:
                 for j in range(self.nrOfColumns):
                     tempResultKtrans += (statisticsNames[k] + ': ' + str(statisticsData[0][k][i][j])).ljust(tableLen)
                 tempResultKtrans += '\n'
+            tempResultKtrans += '\n'
 
         tempResultKtrans += '\n'
 
@@ -762,8 +763,8 @@ class ModelEvaluated:
             if i == 0:
                 tempResultVe +=  ' ' * (tableLen)
                 for j in range(self.nrOfColumns):
-                    tempResultVe += ('Ve = ' + '{:3.2f}'.format(self.Ve_ref_patchValue[0][j])).ljust(tableLen)
-                tempResultVe += '\n'
+                    tempResultVe += ('Ve = ' + '{:3.2f}'.format(self.Ve_ref_patchValue[0][j])).ljust(tableLen + 10)
+                tempResultVe += '\n\n'
             for k in range(len(statisticsNames)):
                 if k == 0:
                     tempResultVe += ('Ktrans = ' + str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))).ljust(tableLen)
@@ -772,6 +773,7 @@ class ModelEvaluated:
                 for j in range(self.nrOfColumns):
                     tempResultVe += (statisticsNames[k] + ': ' + str(statisticsData[1][k][i][j])).ljust(tableLen)
                 tempResultVe += '\n'
+            tempResultVe += '\n'
 
 
         self.resultText += tempResultKtrans
