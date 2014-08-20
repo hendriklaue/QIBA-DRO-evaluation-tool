@@ -403,12 +403,6 @@ class MainWindow(wx.Frame):
             referValueK.append(float('{0:.2f}'.format(self.newModel.Ktrans_ref_inPatch[i][0][0])))
         subPlotK.boxplot(temp)
 
-        # subPlotK.set_yticks(referValueK, minor = True)
-        # locator = MultipleLocator(base = 5)
-        # subPlotK.xaxis.set_major_locator(locator)
-        # subPlotK.set_xticks([5.5, 10.5, 15.5, 20.5, 25.5, 30.5], minor = True)
-        # subPlotK.grid(True, which = 'minor')
-
         subPlotV = self.figureBoxPlot.add_subplot(2, 1, 2)
         subPlotV.clear()
         temp = []
@@ -651,6 +645,36 @@ class ModelEvaluated:
         self.Ktrans_cal_patchValue = [[]for i in range(self.nrOfRows)]
         self.Ve_cal_patchValue = [[]for i in range(self.nrOfRows)]
 
+        # the mean value
+        self.Ktrans_ref_patch_mean = [[]for i in range(self.nrOfRows)]
+        self.Ve_ref_patch_mean = [[]for i in range(self.nrOfRows)]
+        self.Ktrans_cal_patch_mean = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_mean = [[]for i in range(self.nrOfRows)]
+
+        # the median value
+        self.Ktrans_ref_patch_median = [[]for i in range(self.nrOfRows)]
+        self.Ve_ref_patch_median = [[]for i in range(self.nrOfRows)]
+        self.Ktrans_cal_patch_median = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_median = [[]for i in range(self.nrOfRows)]
+
+        # the deviation
+        self.Ktrans_ref_patch_deviation = [[]for i in range(self.nrOfRows)]
+        self.Ve_ref_patch_deviation = [[]for i in range(self.nrOfRows)]
+        self.Ktrans_cal_patch_deviation = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_deviation = [[]for i in range(self.nrOfRows)]
+
+        # the first quartile
+        self.Ktrans_ref_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
+        self.Ve_ref_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
+        self.Ktrans_cal_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
+
+        # the third quartile
+        self.Ktrans_ref_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
+        self.Ve_ref_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
+        self.Ktrans_cal_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
+
         # planar fitting parameters
         self.Ktrans_fittingParameter = []
         self.Ve_fittingParameter = []
@@ -669,7 +693,11 @@ class ModelEvaluated:
 
         # evaluation operations
         self.FittingPlanarForImportedDICOMs()
-        self.CalculateCorrelation()
+        self.CalculateCorrelationForImportedDICOMs()
+        self.CalculateMeanForImportedDICOMs()
+        self.CalculateMedianForImportedDICOMs()
+        self.CalculateSTDDeviationForImportedDICOMs()
+        self.Calculate1stAnd3rdQuartileForImportedDICOMs()
 
         # write the result to the result text
         self.TextResult()
@@ -678,6 +706,11 @@ class ModelEvaluated:
         # write the results into text form
         tempResultKtrans = ''
         tempResultVe = ''
+
+        tableLen = 30
+        statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile']
+        statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile],
+                          [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile]]
 
         tempResultKtrans += '********************************************\n' \
                             'The result for calculated Ktrans map: \n' \
@@ -690,6 +723,25 @@ class ModelEvaluated:
         tempResultKtrans += '\n'
         for i in range(self.nrOfRows):
             tempResultKtrans += 'The correlation between ' + str(i + 1) + 'th row of calculated Ktrans and reference Ve is: ' + str(self.Corre_KV[i]) + '\n'
+
+        tempResultKtrans += '\nStatistics table:\n'
+
+
+        for i in range(self.nrOfRows):
+            if i == 0:
+                tempResultKtrans +=  ' ' * (tableLen)
+                for j in range(self.nrOfColumns):
+                    tempResultKtrans += ('Ve = ' + '{:3.2f}'.format(self.Ve_ref_patchValue[0][j])).ljust(tableLen)
+                tempResultKtrans += '\n'
+            for k in range(len(statisticsNames)):
+                if k == 0:
+                    tempResultKtrans += ('Ktrans = ' + str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))).ljust(tableLen)
+                else:
+                    tempResultKtrans += ' ' * (tableLen)
+                for j in range(self.nrOfColumns):
+                    tempResultKtrans += (statisticsNames[k] + ': ' + str(statisticsData[0][k][i][j])).ljust(tableLen)
+                tempResultKtrans += '\n'
+
         tempResultKtrans += '\n'
 
         tempResultVe += '********************************************\n' \
@@ -704,6 +756,22 @@ class ModelEvaluated:
         for j in range(self.nrOfColumns):
             tempResultVe += 'The correlation between ' + str(j + 1) + 'th column of calculated Ve and reference Ktrans is: ' + str(self.Corre_VK[j]) + '\n'
         tempResultVe += '\n'
+
+        tempResultVe += '\nStatistics table:\n'
+        for i in range(self.nrOfRows):
+            if i == 0:
+                tempResultVe +=  ' ' * (tableLen)
+                for j in range(self.nrOfColumns):
+                    tempResultVe += ('Ve = ' + '{:3.2f}'.format(self.Ve_ref_patchValue[0][j])).ljust(tableLen)
+                tempResultVe += '\n'
+            for k in range(len(statisticsNames)):
+                if k == 0:
+                    tempResultVe += ('Ktrans = ' + str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))).ljust(tableLen)
+                else:
+                    tempResultVe += ' ' * (tableLen)
+                for j in range(self.nrOfColumns):
+                    tempResultVe += (statisticsNames[k] + ': ' + str(statisticsData[1][k][i][j])).ljust(tableLen)
+                tempResultVe += '\n'
 
 
         self.resultText += tempResultKtrans
@@ -754,7 +822,7 @@ class ModelEvaluated:
         self.a_Ktrans, self.b_Ktrans, self.c_Ktrans = self.FittingPlanar(self.Ktrans_cal_patchValue)
         self.a_Ve, self.b_Ve, self.c_Ve = self.FittingPlanar(self.Ve_cal_patchValue)
 
-    def CalculateCorrelation(self):
+    def CalculateCorrelationForImportedDICOMs(self):
         # calculate the correlation between the calculated parameters and the reference parameters
         # 'Corre_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
         self.Corre_KK = []
@@ -768,6 +836,31 @@ class ModelEvaluated:
         for j in range(self.nrOfRows):
             self.Corre_VV.append(self.CalCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
             self.Corre_KV.append(self.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+
+    def CalculateMeanForImportedDICOMs(self):
+        # call the mean calculation function
+        self.Ktrans_cal_patch_mean = self.CalculateMean(self.Ktrans_cal_inPatch)
+        self.Ve_cal_patch_mean = self.CalculateMean(self.Ve_cal_inPatch)
+
+    def CalculateMedianForImportedDICOMs(self):
+        # call the median calculation function
+        self.Ktrans_cal_patch_median = self.CalculateMedian(self.Ktrans_cal_inPatch)
+        self.Ve_cal_patch_median = self.CalculateMedian(self.Ve_cal_inPatch)
+
+    def CalculateSTDDeviationForImportedDICOMs(self):
+        # call the std deviation calculation function
+        self.Ktrans_cal_patch_deviation = self.CalculateSTDDeviation(self.Ktrans_cal_inPatch)
+        self.Ve_cal_patch_deviation = self.CalculateSTDDeviation(self.Ve_cal_inPatch)
+
+    def Calculate1stAnd3rdQuartileForImportedDICOMs(self):
+        # call the 1st and 3rd quartile calculation function
+        self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ktrans_cal_inPatch)
+        self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ve_cal_inPatch)
+
+####### the unit functions
+    def formatting2decimalFloat(self, input):
+        # format the input value into a float with 2 decimals
+        return float('{:.2f}'.format(input))
 
     def ImportDICOM(self, path):
         # import a DICOM file(reference or calculated)
@@ -886,6 +979,40 @@ class ModelEvaluated:
         # calculate the correlation matrix of the calculated and reference DICOMs
         return numpy.corrcoef(calculatedPatchValue, referencePatchValue)
 
+    def CalculateMean(self, inPatch):
+        # calculate the mean value of each patch
+        temp = [[]for i in range(self.nrOfRows) ]
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                temp[i].append(float('{:.2f}'.format(numpy.mean(inPatch[i][j]))))
+        return temp
+
+    def CalculateMedian(self, inPatch):
+        # calculate the median value of each patch
+        temp = [[]for i in range(self.nrOfRows) ]
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                temp[i].append(float('{:.2f}'.format(numpy.median(inPatch[i][j]))))
+        return temp
+
+    def CalculateSTDDeviation(self, inPatch):
+        # calculate the std deviation of each patch
+        temp = [[]for i in range(self.nrOfRows) ]
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                temp[i].append(float('{:.2f}'.format(numpy.std(inPatch[i][j]))))
+        return temp
+
+    def Calculate1stAnd3rdQuartile(self, inPatch):
+        # calculate the 1st and 3rd quartile of each patch
+        temp1stQuartile = [[]for i in range(self.nrOfRows) ]
+        temp3rdQuartile = [[]for i in range(self.nrOfRows) ]
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                temp1stQuartile[i].append(float('{:.2f}'.format(float(stats.mstats.mquantiles(inPatch[i][j],prob = 0.25)))))
+                temp3rdQuartile[i].append(float('{:.2f}'.format(float(stats.mstats.mquantiles(inPatch[i][j],prob = 0.75)))))
+        return temp1stQuartile, temp3rdQuartile
+
     def Score(self):
         # give a score for evaluation according to the weighting factors.
         pass
@@ -897,7 +1024,7 @@ class MySplashScreen(wx.SplashScreen):
     def  __init__(self, parent=None):
         # This is a recipe to a the screen.
         # Modify the following variables as necessary.
-        aBitmap = wx.Image(name = "splashImage.jpg").ConvertToBitmap()
+        aBitmap = wx.Image(name = "splashImage_small.jpg").ConvertToBitmap()
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
         # Call the constructor with the above arguments in exactly the
