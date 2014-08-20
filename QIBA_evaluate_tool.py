@@ -80,8 +80,15 @@ class MainWindow(wx.Frame):
         # setup the tree control widget for file viewing and selection
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.dirname(os.path.abspath(__file__)), style=wx.DIRCTRL_SHOW_FILTERS,
                                 filter="DICOM files (*.dcm)|*.dcm")
+<<<<<<< HEAD
         self.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.GetFilePath, self.fileBrowser.GetTreeCtrl())
 
+=======
+        print "Hello"
+        print os.path.dirname(__file__)
+        self.fileBrowser.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.GetFilePath)
+        #self.fileBrowser.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
+>>>>>>> 1ecfe44be709b75d0f81067bfdc115b29c19070b
         # setup the right click function
         self.popupMenu = wx.Menu()
         itemLoadCalK = self.popupMenu.Append(-1, 'Load as calculated Ktrans')
