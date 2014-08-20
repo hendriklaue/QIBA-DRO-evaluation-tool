@@ -724,8 +724,8 @@ class ModelEvaluated:
         self.Ktrans_error = self.CalculateError(self.Ktrans_ref_rescaled, self.Ktrans_cal_rescaled)
         self.Ve_error = self.CalculateError(self.Ve_ref_rescaled, self.Ve_cal_rescaled)
 
-        self.Ktrans_error_normalized = self.CalculateNormalizedError(self.Ktrans_ref_rescaled, self.Ktrans_cal_rescaled)
-        self.Ve_error_normalized = self.CalculateNormalizedError(self.Ve_ref_rescaled, self.Ve_cal_rescaled)
+        self.Ktrans_error_normalized = self.CalculateNormalizedError(self.Ktrans_cal_rescaled, self.Ktrans_ref_rescaled)
+        self.Ve_error_normalized = self.CalculateNormalizedError(self.Ve_cal_rescaled, self.Ve_ref_rescaled)
 
     def RearrangeImportedDICOMs(self):
         # rearrange the patched for each the imported DICOM
@@ -802,11 +802,12 @@ class ModelEvaluated:
     def CalculateNormalizedError(self, cal, ref):
         # compare the calculated and reference files, and return the error
         errorNormalized = []
-        delta = 0.0001 # to avoid dividing zero
+        delta = 0.001 # to avoid dividing zero
 
         for row_cal, row_ref in zip(cal, ref):
             temp = []
             for pixel_cal, pixel_ref in zip(row_cal, row_ref):
+                print pixel_ref
                 temp.append((pixel_cal - pixel_ref) / (pixel_ref + delta))
             errorNormalized.append(temp)
         return errorNormalized
