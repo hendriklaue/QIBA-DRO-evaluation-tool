@@ -22,8 +22,8 @@ class MainWindow(wx.Frame):
     applicationName = "QIBA evaluate tool"
     # the list of evaluated models
     testedModels = []
-    path_Ktrans_ref = os.path.dirname(os.path.abspath(__file__)) + '/test_data/Reference/Ktrans.dcm'
-    path_Ve_ref = os.path.dirname(os.path.abspath(__file__)) + '/test_data/Reference/Ve.dcm'
+    path_Ktrans_ref = os.path.dirname(os.path.abspath(__file__)) + '/test data/Reference/Ktrans.dcm'
+    path_Ve_ref = os.path.dirname(os.path.abspath(__file__)) + '/test data/Reference/Ve.dcm'
     path_Ktrans_cal = ''
     path_Ve_cal = ''
 
@@ -1024,7 +1024,11 @@ class MySplashScreen(wx.SplashScreen):
     def  __init__(self, parent=None):
         # This is a recipe to a the screen.
         # Modify the following variables as necessary.
+<<<<<<< HEAD
         aBitmap = wx.Image(name = "splashImage_small.jpg").ConvertToBitmap()
+=======
+        aBitmap = wx.Image(name = "splashImage_smaller.jpg").ConvertToBitmap()
+>>>>>>> 093a838b4799c07c96f90b8669b94a36632f5681
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
         # Call the constructor with the above arguments in exactly the
