@@ -807,7 +807,6 @@ class ModelEvaluated:
         for row_cal, row_ref in zip(cal, ref):
             temp = []
             for pixel_cal, pixel_ref in zip(row_cal, row_ref):
-                print pixel_ref
                 temp.append((pixel_cal - pixel_ref) / (pixel_ref + delta))
             errorNormalized.append(temp)
         return errorNormalized
@@ -882,99 +881,6 @@ class ModelEvaluated:
     def Score(self):
         # give a score for evaluation according to the weighting factors.
         pass
-
-class WindowShowHistogram(wx.Frame, ModelEvaluated):
-    '''
-    the second window that shows up when the "process" button is pressed. In this window, the histogram of each patch will be shown,
-    so that the user can see the distribution of the patches and decide which one(mean or median value) to choose to represent
-    each patch.
-    '''
-
-    def __init__(self, parent, ModelEvaluated):
-        # initialize the second window
-        wx.Frame.__init__(self, parent, title = 'Mean value or median value...', size = wx.DisplaySize())
-        self.leftPanel = wx.Panel(self)
-        self.rightPanel = wx.Panel(self)
-
-        # figure for histogram, Ktrans cal.
-        self.figureHistogram_K = Figure()
-        self.figureCanvas_K = FigureCanvas(self, -1, self.figureHistogram_K)
-
-        # figure for histogram, Ktrans cal.
-        self.figureHistogram_V = Figure()
-        self.figureCanvas_V = FigureCanvas(self, -1, self.figureHistogram_V)
-
-        # set sizer for the figures
-        sizer = wx.BoxSizer()
-        sizer.Add(self.figureCanvas_K, 1, border = 5, flag =wx.EXPAND)
-        sizer.Add(self.figureCanvas_V, 1, border = 5, flag= wx.EXPAND)
-        #sizer.Add(self.figureCanvas_V, 1, wx.EXPAND)
-        self.leftPanel.SetSizer(sizer)
-
-        # instruction text for choosing method
-        #text = wx.StaticText(self.rightPanel, -1, 'You can choose one method, so that the corresponding value can represent the patch.' ) #, (100,10))
-
-        # button configuration
-        buttonMean = wx.Button(self.rightPanel, wx.ID_ANY, 'Mean value')
-        buttonMedian = wx.Button(self.rightPanel, wx.ID_ANY, 'Median value')
-
-        self.Bind(wx.EVT_BUTTON, self.OnClickMean, buttonMean)
-        self.Bind(wx.EVT_BUTTON, self.OnClickMedian, buttonMedian)
-
-        sizer = wx.GridSizer(cols = 1)
-        #sizer.Add(text)
-        sizer.Add(buttonMean)
-        sizer.Add(buttonMedian)
-        self.rightPanel.SetSizer(sizer)
-
-        # set sizer for the
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.leftPanel, 8, wx.EXPAND)
-        sizer.Add(self.rightPanel, 1, wx.EXPAND)
-        self.SetSizer(sizer)
-
-        self.K_ref = ModelEvaluated.Ktrans_ref_inPatch
-        self.K_cal = ModelEvaluated.Ktrans_cal_inPatch
-        self.V_ref = ModelEvaluated.Ve_ref_inPatch
-        self.V_cal = ModelEvaluated.Ve_cal_inPatch
-
-        self.nrOfRows = ModelEvaluated.nrOfRows
-        self.nrOfColumns = ModelEvaluated.nrOfColumns
-
-        self.PlotHistogram()
-
-    def OnClickMean(self, event):
-        # when click on 'mean' button
-        ModelEvaluated.METHOD = 'MEAN'
-        self.Close()
-
-    def OnClickMedian(self, event):
-        # when click on 'median' button
-        ModelEvaluated.METHOD = 'MEDIAN'
-        self.Close()
-
-    def PlotHistogram(self):
-        # plot the histogram to illustrate the value distribution of each patch, so that the user can choose the method accordingly.
-
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                subPlot_K = self.figureHistogram_K.add_subplot(self.nrOfRows, self.nrOfColumns, i * self.nrOfColumns + (j * 1) )
-                subPlot_K.clear()
-                nrOfBins = 10
-                subPlot_K.hist(self.K_cal[i][j], nrOfBins)
-
-                subPlot_V = self.figureHistogram_V.add_subplot(self.nrOfRows, self.nrOfColumns, i * self.nrOfColumns + (j * 1) )
-                subPlot_V.clear()
-                nrOfBins = 10
-                subPlot_V.hist(self.V_cal[i][j], nrOfBins)
-
-                #subPlotK.step(patches, 'facecolor', 'g', 'alpha', 0.75)
-                # subPlotK.set_title = 'Ktrans=' + str(self.K_ref[i][j][0]) + ', Ve=' + str(self.V_ref[i][j][0])
-                #subPlotK.set_xlabel('Calculated value')
-                #subPlotK.set_ylabel('Counting number')
-
-        self.figureHistogram_K.tight_layout()
-        self.figureHistogram_V.tight_layout()
 
 class MySplashScreen(wx.SplashScreen):
     '''
