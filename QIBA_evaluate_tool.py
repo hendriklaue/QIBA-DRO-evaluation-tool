@@ -897,7 +897,7 @@ class MySplashScreen(wx.SplashScreen):
     def  __init__(self, parent=None):
         # This is a recipe to a the screen.
         # Modify the following variables as necessary.
-        aBitmap = wx.Image(name = "splashImage_small.jpg").ConvertToBitmap()
+        aBitmap = wx.Image(name = "splashImage_smaller.jpg").ConvertToBitmap()
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
         # Call the constructor with the above arguments in exactly the
