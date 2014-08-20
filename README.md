@@ -11,7 +11,7 @@ A short manual could be found in file 'Manual.doc'(may be out of date, but I wil
 
 ========================
 
-For running the application with source code, the following libraries are required:
+For running the application with source code, the following libraries are required(all are in 32bit version):
 
 -- this tool is developed in Pyhton2.7: https://www.python.org/
 
