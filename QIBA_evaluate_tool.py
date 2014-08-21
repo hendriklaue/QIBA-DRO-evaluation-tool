@@ -1,6 +1,7 @@
  #!/usr/bin/env python
 
 import os.path
+import platform
 import wx
 import wx.richtext as rt
 import dicom
@@ -22,8 +23,12 @@ class MainWindow(wx.Frame):
     applicationName = "QIBA evaluate tool"
     # the list of evaluated models
     testedModels = []
-    path_Ktrans_ref = os.path.dirname(os.path.abspath(__file__)) + '/test data/Reference/Ktrans.dcm'
-    path_Ve_ref = os.path.dirname(os.path.abspath(__file__)) + '/test data/Reference/Ve.dcm'
+    if platform.system() == 'Windows':
+        path_Ktrans_ref = os.path.dirname(os.path.abspath(__file__)) + r'\test_data\Reference\Ktrans.dcm'
+        path_Ve_ref = os.path.dirname(os.path.abspath(__file__)) + r'\test_data\Reference\Ve.dcm'
+    else:
+        path_Ktrans_ref = os.path.dirname(os.path.abspath(__file__)) + '/test_data/Reference/Ktrans.dcm'
+        path_Ve_ref = os.path.dirname(os.path.abspath(__file__)) + '/test_data/Reference/Ve.dcm'
     path_Ktrans_cal = ''
     path_Ve_cal = ''
 
@@ -270,26 +275,21 @@ class MainWindow(wx.Frame):
         self.newModel = ModelEvaluated()
 
         # call the method to execute evaluation
-        try:
-            self.newModel.ImportDICOM(self.path_Ktrans_ref)
-        except:
+        if not self.newModel.ImportDICOM(self.path_Ktrans_ref):
             self.SetStatusText('Please load a proper DICOM file as reference Ktrans.')
-            return 0
-        try:
-            self.newModel.ImportDICOM(self.path_Ve_ref)
-        except:
+            return False
+
+        if not self.newModel.ImportDICOM(self.path_Ve_ref):
             self.SetStatusText('Please load a proper DICOM file as reference Ve.')
-            return 0
-        try:
-            self.newModel.ImportDICOM(self.path_Ktrans_cal)
-        except:
+            return False
+
+        if not self.newModel.ImportDICOM(self.path_Ktrans_cal):
             self.SetStatusText('Please load a proper DICOM file as calculated Ktrans.')
-            return 0
-        try:
-            self.newModel.ImportDICOM(self.path_Ve_cal)
-        except:
-            self.SetStatusText('Please load a proper DICOM file as calculated Ve.')
-            return 0
+            return False
+
+        if not self.newModel.ImportDICOM(self.path_Ve_cal):
+            self.SetStatusText('Please load a proper DICOM file as calculated ve.')
+            return False
 
         self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
 
@@ -871,6 +871,7 @@ class ModelEvaluated:
             return  dicom.read_file(path)
         except:
             wx.MessageBox('Invalid file path!\n' + '(' + path +')', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
+            return False
 
     def Rescale(self, ds):
         # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.
