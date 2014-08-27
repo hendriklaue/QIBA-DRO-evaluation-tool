@@ -38,34 +38,30 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os.path
-import platform
 import wx
-import wx.richtext as rt
+import wx.html
 import dicom
-import pylab
 import numpy
 from scipy import stats
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
+import sys
+
 
 class MainWindow(wx.Frame):
     '''
     this is the main window of the QIBA evaluate tool
     '''
     applicationName = "QIBA evaluate tool"
+
     # the list of evaluated models
     testedModels = []
-    if platform.system() == 'Windows':
-        path_Ktrans_ref = os.path.dirname(os.path.abspath(__file__)) + r'\test_data\Reference\Ktrans.dcm'
-        path_Ve_ref = os.path.dirname(os.path.abspath(__file__)) + r'\test_data\Reference\Ve.dcm'
-    else:
-        path_Ktrans_ref = os.path.dirname(os.path.abspath(__file__)) + '/test_data/Reference/Ktrans.dcm'
-        path_Ve_ref = os.path.dirname(os.path.abspath(__file__)) + '/test_data/Reference/Ve.dcm'
+
+    path_Ktrans_ref = os.path.dirname(sys.argv[0]) + '\Ktrans.dcm'
+    path_Ve_ref = os.path.dirname(sys.argv[0]) + '\Ve.dcm'
     path_Ktrans_cal = ''
     path_Ve_cal = ''
 
@@ -120,7 +116,7 @@ class MainWindow(wx.Frame):
         '''
         self.selectedFilePath = ''
         # setup the tree control widget for file viewing and selection
-        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.dirname(os.path.abspath(__file__)), style=wx.DIRCTRL_SHOW_FILTERS,
+        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.dirname(sys.argv[0]), style=wx.DIRCTRL_SHOW_FILTERS,
                                 filter="DICOM files (*.dcm)|*.dcm")
 
         # self.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.GetFilePath, self.fileBrowser.GetTreeCtrl())
@@ -178,12 +174,12 @@ class MainWindow(wx.Frame):
         self.pageScatter = wx.Panel(self.noteBookRight)
         self.pageHistogram = wx.Panel(self.noteBookRight)
         self.pageBoxPlot = wx.Panel(self.noteBookRight)
-        self.pageResult = wx.Panel(self.noteBookRight)
+        self.pageResultHTML = wx.Panel(self.noteBookRight)
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
         self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
         self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
         self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
-        self.noteBookRight.AddPage(self.pageResult, "Result Text Viewer")
+        self.noteBookRight.AddPage(self.pageResultHTML, "Result in HTML Viewer")
 
         # show the calculated images and error images
         self.figureImagePreview = Figure()
@@ -224,13 +220,12 @@ class MainWindow(wx.Frame):
         sizer.Add(self.canvasBoxPlot, 1, wx.EXPAND)
         self.pageBoxPlot.SetSizer(sizer)
 
-        # page evaluation results
-        # self.resultPage = rt.RichTextCtrl(self, style = wx.VSCROLL|wx.NO_BORDER)
-        self.resultPage = wx.TextCtrl(self.pageResult, -1, style = wx.TE_READONLY | wx.TE_MULTILINE | wx.TE_RICH)
+        # page evaluation results in HTML
+        self.resultInHTML = wx.html.HtmlWindow(self.pageResultHTML, -1)
 
         sizer = wx.BoxSizer()
-        sizer.Add(self.resultPage, 1, wx.EXPAND)
-        self.pageResult.SetSizer(sizer)
+        sizer.Add(self.resultInHTML, 1, wx.EXPAND)
+        self.pageResultHTML.SetSizer(sizer)
 
         # sizer for the right panel
         sizer = wx.BoxSizer()
@@ -306,10 +301,12 @@ class MainWindow(wx.Frame):
         # clear the interface if they were used before
         self.ClearInterface()
 
+
         self.SetStatusText('Evaluating...')
 
         # create new model object to evaluated on
         self.newModel = ModelEvaluated()
+        print self.newModel.GetEvaluationResultInHTML()
 
         # call the method to execute evaluation
         if not self.newModel.ImportDICOM(self.path_Ktrans_ref):
@@ -331,8 +328,7 @@ class MainWindow(wx.Frame):
         self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
 
         # show the results in the main window
-        #print self.newModel.GetEvaluationResultText()
-        self.resultPage.SetValue(self.newModel.GetEvaluationResultText())
+        self.resultInHTML.SetPage(self.newModel.GetEvaluationResultInHTML())
 
         # push the new tested model to the list
         self.testedModels.append(self.newModel)
@@ -590,7 +586,8 @@ class MainWindow(wx.Frame):
         self.figureHist_Ve.clear()
         self.canvasHist_Ve.draw()
 
-        self.resultPage.SetValue('')
+        self.resultInHTML.SetPage('')
+
 
     def ClearPanel(self, panel):
         # clear a panel object(from wxPython)
@@ -719,6 +716,9 @@ class ModelEvaluated:
         # the result text
         self.resultText = ''
 
+        # the result in HTML
+        self.resultInHTML = ''
+
     def Evaluate(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # do evaluation
         # pre-process for the imported DICOMs
@@ -736,89 +736,115 @@ class ModelEvaluated:
         self.CalculateSTDDeviationForImportedDICOMs()
         self.Calculate1stAnd3rdQuartileForImportedDICOMs()
 
-        # write the result to the result text
-        self.TextResult()
+        # write HTML resutl
+        self.HTMLResult()
 
-    def TextResult(self):
-        # write the results into text form
-        tempResultKtrans = ''
-        tempResultVe = ''
+    def HTMLResult(self):
+        # write the results into HTML form
+        self.resultInHTML = ''
 
-        tableLen = 50
         statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile']
         statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile],
                           [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile]]
 
-        tempResultKtrans += '********************************************\n' \
-                            'The result for calculated Ktrans map: \n' \
-                            '********************************************\n'
-        tempResultKtrans += 'Planar fitting:\n'
-        tempResultKtrans += 'Ktrans_cal = ' + str(self.a_Ktrans) + '  * Ktrans_ref + ' + str(self.b_Ktrans) + ' * Ve_ref + ' + str(self.c_Ktrans) + '\n\n'
-        tempResultKtrans += 'Correlation:\n'
-        for j in range(self.nrOfColumns):
-            tempResultKtrans += 'The correlation between ' + str(j + 1) + 'th column of calculated Ktrans and reference Ktrans is: ' + str(self.Corre_KK[j]) + '\n'
-        tempResultKtrans += '\n'
+        # Ktrans planar fitting
+        KtransFitting = \
+                        '<h2>The planar fitting:</h2>' \
+                            '<p>Ktrans_cal = ' + str(self.a_Ktrans) + '  * Ktrans_ref + ' + str(self.b_Ktrans) + ' * Ve_ref + ' + str(self.c_Ktrans) + '</p>'
+
+        KtransStatisticsTable = \
+                        '<h2>The statistics analysis of each patch:</h2>' \
+                            '<table border="1", style="width:300px">' \
+                            '<tr>'\
+                                '<th></th>'
+        # statistics table
+        # for the first line
+        for Ve in self.Ve_ref_patchValue[0]:
+            KtransStatisticsTable += \
+                                '<th>Ve = ' + '{:3.2f}'.format(Ve) + '</th>'
+
+        KtransStatisticsTable += \
+                            '</tr>'
+
+        # for the column headers and the table cells.
         for i in range(self.nrOfRows):
-            tempResultKtrans += 'The correlation between ' + str(i + 1) + 'th row of calculated Ktrans and reference Ve is: ' + str(self.Corre_KV[i]) + '\n'
+            KtransStatisticsTable += \
+                            '<tr>' \
+                                '<th>Ktrans = ' + '{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]) + '</th>'
+            for j in range(self.nrOfColumns):
+                KtransStatisticsTable += \
+                                '<td>'
+                for k in range(len(statisticsNames)):
+                    KtransStatisticsTable += \
+                                statisticsNames[k] + ' = ' + '{:3.2f}'.format(statisticsData[0][k][i][j]) + '<br>'
+                KtransStatisticsTable = KtransStatisticsTable[:-4]
+                KtransStatisticsTable += \
+                                '</td>'
+            KtransStatisticsTable += \
+                            '</tr>'
+        KtransStatisticsTable += \
+                            '</table>'
 
-        tempResultKtrans += '\nStatistics table:\n'
+        # Ve planar fitting
+        VeFitting = \
+                        '<h2>The planar fitting:</h2>' \
+                            '<p>Ve_cal = ' + str(self.a_Ve) + '  * Ktrans_ref + ' + str(self.b_Ve) + ' * Ve_ref + ' + str(self.c_Ve) + '</p>'
 
+        VeStatisticsTable = \
+                        '<h2>The statistics analysis of each patch:</h2>' \
+                            '<table border="1", style="width:300px">' \
+                            '<tr>'\
+                                '<th></th>'
+        # statistics table
+        # for the first line
+        for Ve in self.Ve_ref_patchValue[0]:
+            VeStatisticsTable += \
+                                '<th>Ve = ' + '{:3.2f}'.format(Ve) + '</th>'
 
+        VeStatisticsTable += \
+                            '</tr>'
+
+        # for the column headers and the table cells.
         for i in range(self.nrOfRows):
-            if i == 0:
-                tempResultKtrans +=  ' ' * (tableLen)
-                for j in range(self.nrOfColumns):
-                    tempResultKtrans += ('Ve = ' + '{:3.2f}'.format(self.Ve_ref_patchValue[0][j])).ljust(tableLen + 10)
-                tempResultKtrans += '\n\n'
-            for k in range(len(statisticsNames)):
-                if k == 0:
-                    tempResultKtrans += ('Ktrans = ' + str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))).ljust(tableLen)
-                else:
-                    tempResultKtrans += ' ' * (tableLen)
-                for j in range(self.nrOfColumns):
-                    tempResultKtrans += (statisticsNames[k] + ': ' + str(statisticsData[0][k][i][j])).ljust(tableLen)
-                tempResultKtrans += '\n'
-            tempResultKtrans += '\n'
+            VeStatisticsTable += \
+                            '<tr>' \
+                                '<th>Ktrans = ' + '{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]) + '</th>'
+            for j in range(self.nrOfColumns):
+                VeStatisticsTable += \
+                                '<td>'
+                for k in range(len(statisticsNames)):
+                    VeStatisticsTable += \
+                                statisticsNames[k] + ' = ' + '{:3.2f}'.format(statisticsData[1][k][i][j]) + '<br>'
+                VeStatisticsTable = VeStatisticsTable[:-4]
+                VeStatisticsTable += \
+                                '</td>'
+            VeStatisticsTable += \
+                            '</tr>'
+        VeStatisticsTable += \
+                            '</table>'
 
-        tempResultKtrans += '\n'
+        # put the text into html structure
+        self.resultInHTML += r'''<html>
+                                    <body>
+                                        <h1>The result for calculated Ktrans map:</h1>'''
 
-        tempResultVe += '********************************************\n' \
-                            'The result for calculated Ve map: \n' \
-                            '********************************************\n'
-        tempResultVe += 'Planar fitting:\n'
-        tempResultVe += 'Ve_cal = ' + str(self.a_Ve) + ' * Ktrans_ref + ' + str(self.b_Ve) + ' * Ve_ref + ' + str(self.c_Ve) + '\n\n'
-        tempResultVe += 'Correlation:\n'
-        for i in range(self.nrOfRows):
-            tempResultVe += 'The correlation between ' + str(i + 1) + 'th row of calculated Ktrans and reference Ve is: ' + str(self.Corre_VV[i]) + '\n'
-        tempResultVe += '\n'
-        for j in range(self.nrOfColumns):
-            tempResultVe += 'The correlation between ' + str(j + 1) + 'th column of calculated Ve and reference Ktrans is: ' + str(self.Corre_VK[j]) + '\n'
-        tempResultVe += '\n'
+        self.resultInHTML += KtransFitting
 
-        tempResultVe += '\nStatistics table:\n'
-        for i in range(self.nrOfRows):
-            if i == 0:
-                tempResultVe +=  ' ' * (tableLen)
-                for j in range(self.nrOfColumns):
-                    tempResultVe += ('Ve = ' + '{:3.2f}'.format(self.Ve_ref_patchValue[0][j])).ljust(tableLen + 10)
-                tempResultVe += '\n\n'
-            for k in range(len(statisticsNames)):
-                if k == 0:
-                    tempResultVe += ('Ktrans = ' + str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))).ljust(tableLen)
-                else:
-                    tempResultVe += ' ' * (tableLen)
-                for j in range(self.nrOfColumns):
-                    tempResultVe += (statisticsNames[k] + ': ' + str(statisticsData[1][k][i][j])).ljust(tableLen)
-                tempResultVe += '\n'
-            tempResultVe += '\n'
+        self.resultInHTML += KtransStatisticsTable
 
+        self.resultInHTML += r'''       <br>
+                                        <h1>The result for calculated Ve map:</h1>'''
 
-        self.resultText += tempResultKtrans
-        self.resultText += tempResultVe
+        self.resultInHTML += VeFitting
 
-    def GetEvaluationResultText(self):
-        # getter for the result text.
-        return self.resultText
+        self.resultInHTML += VeStatisticsTable
+
+        self.resultInHTML += r'''    </body>
+                                </html>'''
+
+    def GetEvaluationResultInHTML(self):
+        # getter for the result in HTML.
+        return self.resultInHTML
 
     def ImportDICOMs(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # import the DICOM files for evaluation.
@@ -1064,7 +1090,8 @@ class MySplashScreen(wx.SplashScreen):
     def  __init__(self, parent=None):
         # This is a recipe to a the screen.
         # Modify the following variables as necessary.
-        aBitmap = wx.Image(name = "splashImage_small.jpg").ConvertToBitmap()
+
+        aBitmap = wx.Image(name = os.path.dirname(sys.argv[0]) + "\splashImage_small.jpg").ConvertToBitmap()
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
         # Call the constructor with the above arguments in exactly the
