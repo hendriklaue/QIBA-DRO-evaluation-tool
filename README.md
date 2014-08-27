@@ -26,3 +26,15 @@ For running the application with source code, the following libraries are requir
 -- to use the statistics package, scipy is used: http://www.scipy.org/
 
 -- to manage the data in array form, numpy is used: http://www.scipy.org/
+
+========================
+
+The installer for Windows is built with cx_Freeze: http://cx-freeze.sourceforge.net/
+
+After installing this package, the documentation of cx_Freeze could be found here: http://cx-freeze.readthedocs.org/en/latest/
+
+Simply to say, the script setup.py is needed alongside the application script, in order to build the installer;
+
+with Window command line under the script folder, type 'python setup.py bdist_msi' to build, and resulting in to new folders created: 'built' and 'dist';
+
+the Windows installer shall be found under the folder 'dist', named as 'QIBA evaluate tool-0.1-win32.msi'.
