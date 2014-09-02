@@ -20,20 +20,6 @@ shortcut_table = [
      'TARGETDIR'               # WkDir
      ),
 	 
-	 ("StartupShortcut",        # Shortcut
-     "StartupFolder",          # Directory_
-     "QIBA evaluate tool",     # Name
-     "TARGETDIR",              # Component_
-     "[TARGETDIR]QIBA_evaluate_tool.exe",   # Target
-     None,                     # Arguments
-     None,                     # Description
-     None,                     # Hotkey
-     None,                     # Icon
-     None,                     # IconIndex
-     None,                     # ShowCmd
-     'TARGETDIR'               # WkDir
-     ),
-	 
 	 ("ProgramMenuShortcut",        # Shortcut
      "ProgramMenuFolder",          # Directory_
      "QIBA evaluate tool",     # Name
