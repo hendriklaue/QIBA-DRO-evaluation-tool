@@ -306,7 +306,6 @@ class MainWindow(wx.Frame):
 
         # create new model object to evaluated on
         self.newModel = ModelEvaluated()
-        print self.newModel.GetEvaluationResultInHTML()
 
         # call the method to execute evaluation
         if not self.newModel.ImportDICOM(self.path_Ktrans_ref):
@@ -709,6 +708,12 @@ class ModelEvaluated:
         self.Ktrans_cal_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
         self.Ve_cal_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
 
+         # the student-t test
+        self.Ktrans_cal_patch_ttest_t = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_ttest_t = [[]for i in range(self.nrOfRows)]
+        self.Ktrans_cal_patch_ttest_p = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_ttest_p = [[]for i in range(self.nrOfRows)]
+
         # planar fitting parameters
         self.Ktrans_fittingParameter = []
         self.Ve_fittingParameter = []
@@ -735,6 +740,7 @@ class ModelEvaluated:
         self.CalculateMedianForImportedDICOMs()
         self.CalculateSTDDeviationForImportedDICOMs()
         self.Calculate1stAnd3rdQuartileForImportedDICOMs()
+        self.TtestForImportedDICOMS()
 
         # write HTML resutl
         self.HTMLResult()
@@ -743,9 +749,9 @@ class ModelEvaluated:
         # write the results into HTML form
         self.resultInHTML = ''
 
-        statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile']
-        statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile],
-                          [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile]]
+        statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile', 't-test: t-statistic', 't-test: p-value']
+        statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p],
+                          [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p]]
 
         # Ktrans planar fitting
         KtransFitting = \
@@ -776,7 +782,7 @@ class ModelEvaluated:
                                 '<td>'
                 for k in range(len(statisticsNames)):
                     KtransStatisticsTable += \
-                                statisticsNames[k] + ' = ' + '{:3.2f}'.format(statisticsData[0][k][i][j]) + '<br>'
+                                statisticsNames[k] + ' = ' + str('{:3.2f}'.format(float(statisticsData[0][k][i][j]))) + '<br>'
                 KtransStatisticsTable = KtransStatisticsTable[:-4]
                 KtransStatisticsTable += \
                                 '</td>'
@@ -814,7 +820,7 @@ class ModelEvaluated:
                                 '<td>'
                 for k in range(len(statisticsNames)):
                     VeStatisticsTable += \
-                                statisticsNames[k] + ' = ' + '{:3.2f}'.format(statisticsData[1][k][i][j]) + '<br>'
+                                statisticsNames[k] + ' = ' + str('{:3.2f}'.format(float(statisticsData[1][k][i][j]))) + '<br>'
                 VeStatisticsTable = VeStatisticsTable[:-4]
                 VeStatisticsTable += \
                                 '</td>'
@@ -922,7 +928,12 @@ class ModelEvaluated:
         self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ktrans_cal_inPatch)
         self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ve_cal_inPatch)
 
-####### the unit functions
+    def TtestForImportedDICOMS(self):
+        # call the Ttest function
+        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = self.Ttest_1samp(self.Ktrans_cal_inPatch, self.Ktrans_ref_patchValue)
+        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = self.Ttest_1samp(self.Ve_cal_inPatch, self.Ve_ref_patchValue)
+
+############## ############## the unit functions ############## ##############
     def formatting2decimalFloat(self, input):
         # format the input value into a float with 2 decimals
         return float('{:.2f}'.format(input))
@@ -1050,7 +1061,7 @@ class ModelEvaluated:
         temp = [[]for i in range(self.nrOfRows) ]
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
-                temp[i].append(float('{:.2f}'.format(numpy.mean(inPatch[i][j]))))
+                temp[i].append(numpy.mean(inPatch[i][j]))
         return temp
 
     def CalculateMedian(self, inPatch):
@@ -1058,7 +1069,7 @@ class ModelEvaluated:
         temp = [[]for i in range(self.nrOfRows) ]
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
-                temp[i].append(float('{:.2f}'.format(numpy.median(inPatch[i][j]))))
+                temp[i].append(numpy.median(inPatch[i][j]))
         return temp
 
     def CalculateSTDDeviation(self, inPatch):
@@ -1066,7 +1077,7 @@ class ModelEvaluated:
         temp = [[]for i in range(self.nrOfRows) ]
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
-                temp[i].append(float('{:.2f}'.format(numpy.std(inPatch[i][j]))))
+                temp[i].append(numpy.std(inPatch[i][j]))
         return temp
 
     def Calculate1stAnd3rdQuartile(self, inPatch):
@@ -1075,9 +1086,20 @@ class ModelEvaluated:
         temp3rdQuartile = [[]for i in range(self.nrOfRows) ]
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
-                temp1stQuartile[i].append(float('{:.2f}'.format(float(stats.mstats.mquantiles(inPatch[i][j],prob = 0.25)))))
-                temp3rdQuartile[i].append(float('{:.2f}'.format(float(stats.mstats.mquantiles(inPatch[i][j],prob = 0.75)))))
+                temp1stQuartile[i].append(stats.mstats.mquantiles(inPatch[i][j],prob = 0.25))
+                temp3rdQuartile[i].append(stats.mstats.mquantiles(inPatch[i][j],prob = 0.75))
         return temp1stQuartile, temp3rdQuartile
+
+    def Ttest_1samp(self, dataToBeTested, expectedMean):
+        # do 1 sample t-test
+        temp_t = [[]for i in range(self.nrOfRows) ]
+        temp_p = [[]for i in range(self.nrOfRows) ]
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                temp_t[i].append(stats.ttest_1samp(dataToBeTested[i][j], expectedMean[i][j])[0])
+                temp_p[i].append(stats.ttest_1samp(dataToBeTested[i][j], expectedMean[i][j])[1])
+        return temp_t, temp_p
+
 
     def Score(self):
         # give a score for evaluation according to the weighting factors.
