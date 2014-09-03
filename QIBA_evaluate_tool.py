@@ -49,7 +49,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
 import sys
+import platform
 
+PLATFORM = platform.system()
 
 class MainWindow(wx.Frame):
     '''
@@ -60,8 +62,12 @@ class MainWindow(wx.Frame):
     # the list of evaluated models
     testedModels = []
 
-    path_Ktrans_ref = os.path.dirname(sys.argv[0]) + '\Ktrans.dcm'
-    path_Ve_ref = os.path.dirname(sys.argv[0]) + '\Ve.dcm'
+    if PLATFORM == 'Windows':
+        path_Ktrans_ref = os.path.join(os.path.dirname(sys.argv[0]) + r'\reference_data\Ktrans.dcm')
+        path_Ve_ref = os.path.join(os.path.dirname(sys.argv[0]) + r'\reference_data\Ve.dcm')
+    else:
+        path_Ktrans_ref = os.path.join(os.path.dirname(sys.argv[0]) + r'/reference_data/Ktrans.dcm')
+        path_Ve_ref = os.path.join(os.path.dirname(sys.argv[0]) + r'/reference_data/Ve.dcm')
     path_Ktrans_cal = ''
     path_Ve_cal = ''
 
@@ -116,8 +122,12 @@ class MainWindow(wx.Frame):
         '''
         self.selectedFilePath = ''
         # setup the tree control widget for file viewing and selection
-        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.dirname(sys.argv[0]), style=wx.DIRCTRL_SHOW_FILTERS,
-                                filter="DICOM files (*.dcm)|*.dcm")
+        if PLATFORM == 'Windows':
+            CALCULATED_DATA_PATH = r'\calculated_data'
+        else:
+            CALCULATED_DATA_PATH = r'/calculated_data'
+        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.dirname(sys.argv[0]) + CALCULATED_DATA_PATH, style=wx.DIRCTRL_SHOW_FILTERS,
+                                             filter="DICOM files (*.dcm)|*.dcm")
 
         # self.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.GetFilePath, self.fileBrowser.GetTreeCtrl())
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
@@ -1094,8 +1104,11 @@ class MySplashScreen(wx.SplashScreen):
     def  __init__(self, parent=None):
         # This is a recipe to a the screen.
         # Modify the following variables as necessary.
-
-        aBitmap = wx.Image(name = os.path.dirname(sys.argv[0]) + "\splashImage_small.jpg").ConvertToBitmap()
+        if PLATFORM == 'Windows':
+            SPLASHSCREEN_IMAGE_PATH = r'\splashImage_small.jpg'
+        else:
+            SPLASHSCREEN_IMAGE_PATH = r'/splashImage_small.jpg'
+        aBitmap = wx.Image(name = os.path.join(os.path.dirname(sys.argv[0]) + SPLASHSCREEN_IMAGE_PATH)).ConvertToBitmap()
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
         # Call the constructor with the above arguments in exactly the
