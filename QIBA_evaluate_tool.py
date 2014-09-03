@@ -701,22 +701,24 @@ class ModelEvaluated:
         self.Ve_cal_patch_median = [[]for i in range(self.nrOfRows)]
 
         # the deviation
-        self.Ktrans_ref_patch_deviation = [[]for i in range(self.nrOfRows)]
-        self.Ve_ref_patch_deviation = [[]for i in range(self.nrOfRows)]
         self.Ktrans_cal_patch_deviation = [[]for i in range(self.nrOfRows)]
         self.Ve_cal_patch_deviation = [[]for i in range(self.nrOfRows)]
 
         # the first quartile
-        self.Ktrans_ref_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
-        self.Ve_ref_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
         self.Ktrans_cal_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
         self.Ve_cal_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
 
         # the third quartile
-        self.Ktrans_ref_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
-        self.Ve_ref_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
         self.Ktrans_cal_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
         self.Ve_cal_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
+
+        # the min. value
+        self.Ktrans_cal_patch_min = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_min = [[]for i in range(self.nrOfRows)]
+
+        # the max. value
+        self.Ktrans_cal_patch_max = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_max = [[]for i in range(self.nrOfRows)]
 
          # the student-t test
         self.Ktrans_cal_patch_ttest_t = [[]for i in range(self.nrOfRows)]
@@ -750,6 +752,7 @@ class ModelEvaluated:
         self.CalculateMedianForImportedDICOMs()
         self.CalculateSTDDeviationForImportedDICOMs()
         self.Calculate1stAnd3rdQuartileForImportedDICOMs()
+        self.CalculateMinAndMaxForImportedDICOMs()
         self.TtestForImportedDICOMS()
 
         # write HTML resutl
@@ -759,9 +762,9 @@ class ModelEvaluated:
         # write the results into HTML form
         self.resultInHTML = ''
 
-        statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile', 't-test: t-statistic', 't-test: p-value']
-        statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p],
-                          [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p]]
+        statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile', 'min.', 'max.', 't-test: t-statistic', 't-test: p-value']
+        statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max, self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p],
+                          [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_min, self.Ve_cal_patch_max, self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p]]
 
         # Ktrans planar fitting
         KtransFitting = '<h2>The planar fitting:</h2>' \
@@ -774,6 +777,8 @@ class ModelEvaluated:
         KtransStatisticsTable += self.EditTable('the mean and median value', ['mean', 'median'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median])
 
         KtransStatisticsTable += self.EditTable('the std. deviation. 1st and 3rd quartile', ['std. deviation', '1st quartile', '3rd quartile'], [self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile])
+
+        KtransStatisticsTable += self.EditTable('the min. and max. value', ['min.', 'max.'], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max])
 
         KtransStatisticsTable += self.EditTable('the t-test', ['t-statistic', 'p-value'], [self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p])
 
@@ -789,6 +794,8 @@ class ModelEvaluated:
         VeStatisticsTable += self.EditTable('the mean and median value', ['mean', 'median'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_median])
 
         VeStatisticsTable += self.EditTable('the std. deviation. 1st and 3rd quartile', ['std. deviation', '1st quartile', '3rd quartile'], [self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile])
+
+        VeStatisticsTable += self.EditTable('the min. and max. value', ['min.', 'max.'], [self.Ve_cal_patch_min, self.Ve_cal_patch_max])
 
         VeStatisticsTable += self.EditTable('the t-test', ['t-statistic', 'p-value'], [self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p])
 
@@ -919,6 +926,10 @@ class ModelEvaluated:
         # call the 1st and 3rd quartile calculation function
         self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ktrans_cal_inPatch)
         self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ve_cal_inPatch)
+
+    def CalculateMinAndMaxForImportedDICOMs(self):
+        self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max = self.CalculateMinAndMax(self.Ktrans_cal_inPatch)
+        self.Ve_cal_patch_min, self.Ve_cal_patch_max = self.CalculateMinAndMax(self.Ve_cal_inPatch)
 
     def TtestForImportedDICOMS(self):
         # call the Ttest function
@@ -1081,6 +1092,16 @@ class ModelEvaluated:
                 temp1stQuartile[i].append(stats.mstats.mquantiles(inPatch[i][j],prob = 0.25))
                 temp3rdQuartile[i].append(stats.mstats.mquantiles(inPatch[i][j],prob = 0.75))
         return temp1stQuartile, temp3rdQuartile
+
+    def CalculateMinAndMax(self, inPatch):
+        # calculated the min. and max value of each patch
+        tempMin = [[]for i in range(self.nrOfRows) ]
+        tempMax = [[]for i in range(self.nrOfRows) ]
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                tempMin[i].append(numpy.min(inPatch[i][j]))
+                tempMax[i].append(numpy.max(inPatch[i][j]))
+        return tempMin, tempMax
 
     def Ttest_1samp(self, dataToBeTested, expectedMean):
         # do 1 sample t-test
