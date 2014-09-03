@@ -5,9 +5,11 @@ The QIBA-PDA-evaluation tool allows to compare the results from DCE-MRI analysis
 
 ========================
 
-The application is under development, and is available with source code. Later the stand alone version will be distributed. 
-The steady version could be found in 'QIBA_eveluate_tool.py', while the developing version(which may be buggy) could be found in 'QIBA_eveluate_tool_testing.py'.
-A short manual could be found in file 'Manual.doc'(may be out of date, but I will try to keep it up to date). The test data could be found in the pack 'test_data.zip'. 
+The application is under development, and is available with source code. Later the stand-alone version will be distributed. 
+The source code could be found in "QIBA_evaluate_tool.py". Under the condition that all required packages are available, run this file will launch the application.
+When the stand-alone installer is available, alternatively the user can run the installer and install the application on the computer.
+A short manual could be found in file 'Manual.doc'(may be out of date, but I will try to keep it up to date). 
+The reference and calculated data for demonstration could be found in the folder 'reference_data' and 'calculated_data'. 
 
 ========================
 
@@ -35,6 +37,6 @@ After installing this package, the documentation of cx_Freeze could be found her
 
 Simply to say, the script setup.py is needed alongside the application script, in order to build the installer;
 
-with Window command line under the script folder, type 'python setup.py bdist_msi' to build, and resulting in to new folders created: 'built' and 'dist';
+With Window command line under the script folder, type 'python setup.py bdist_msi' to build, and resulting in to new folders created: 'built' and 'dist';
 
-the Windows installer shall be found under the folder 'dist', named as 'QIBA evaluate tool-0.1-win32.msi'.
+The Windows installer shall be found under the folder 'dist', named as 'QIBA evaluate tool-0.1-win32.msi'.
