@@ -754,99 +754,81 @@ class ModelEvaluated:
                           [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p]]
 
         # Ktrans planar fitting
-        KtransFitting = \
-                        '<h2>The planar fitting:</h2>' \
+        KtransFitting = '<h2>The planar fitting:</h2>' \
                             '<p>Ktrans_cal = ' + str(self.a_Ktrans) + '  * Ktrans_ref + ' + str(self.b_Ktrans) + ' * Ve_ref + ' + str(self.c_Ktrans) + '</p>'
 
+        # Ktrans statistics tables
         KtransStatisticsTable = \
-                        '<h2>The statistics analysis of each patch:</h2>' \
-                            '<table border="1", style="width:300px">' \
-                            '<tr>'\
-                                '<th></th>'
-        # statistics table
-        # for the first line
-        for Ve in self.Ve_ref_patchValue[0]:
-            KtransStatisticsTable += \
-                                '<th>Ve = ' + '{:3.2f}'.format(Ve) + '</th>'
+                        '<h2>The statistics analysis of each patch:</h2>'
 
-        KtransStatisticsTable += \
-                            '</tr>'
+        KtransStatisticsTable += self.EditTable('the mean and median value', ['mean', 'median'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median])
 
-        # for the column headers and the table cells.
-        for i in range(self.nrOfRows):
-            KtransStatisticsTable += \
-                            '<tr>' \
-                                '<th>Ktrans = ' + '{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]) + '</th>'
-            for j in range(self.nrOfColumns):
-                KtransStatisticsTable += \
-                                '<td>'
-                for k in range(len(statisticsNames)):
-                    KtransStatisticsTable += \
-                                statisticsNames[k] + ' = ' + str('{:3.2f}'.format(float(statisticsData[0][k][i][j]))) + '<br>'
-                KtransStatisticsTable = KtransStatisticsTable[:-4]
-                KtransStatisticsTable += \
-                                '</td>'
-            KtransStatisticsTable += \
-                            '</tr>'
-        KtransStatisticsTable += \
-                            '</table>'
+        KtransStatisticsTable += self.EditTable('the std. deviation. 1st and 3rd quartile', ['std. deviation', '1st quartile', '3rd quartile'], [self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile])
+
+        KtransStatisticsTable += self.EditTable('the t-test', ['t-statistic', 'p-value'], [self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p])
 
         # Ve planar fitting
         VeFitting = \
                         '<h2>The planar fitting:</h2>' \
                             '<p>Ve_cal = ' + str(self.a_Ve) + '  * Ktrans_ref + ' + str(self.b_Ve) + ' * Ve_ref + ' + str(self.c_Ve) + '</p>'
 
+        # Ve statistics table
         VeStatisticsTable = \
-                        '<h2>The statistics analysis of each patch:</h2>' \
-                            '<table border="1", style="width:300px">' \
-                            '<tr>'\
-                                '<th></th>'
-        # statistics table
-        # for the first line
-        for Ve in self.Ve_ref_patchValue[0]:
-            VeStatisticsTable += \
-                                '<th>Ve = ' + '{:3.2f}'.format(Ve) + '</th>'
+                        '<h2>The statistics analysis of each patch:</h2>'
 
-        VeStatisticsTable += \
-                            '</tr>'
+        VeStatisticsTable += self.EditTable('the mean and median value', ['mean', 'median'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_median])
 
-        # for the column headers and the table cells.
-        for i in range(self.nrOfRows):
-            VeStatisticsTable += \
-                            '<tr>' \
-                                '<th>Ktrans = ' + '{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]) + '</th>'
-            for j in range(self.nrOfColumns):
-                VeStatisticsTable += \
-                                '<td>'
-                for k in range(len(statisticsNames)):
-                    VeStatisticsTable += \
-                                statisticsNames[k] + ' = ' + str('{:3.2f}'.format(float(statisticsData[1][k][i][j]))) + '<br>'
-                VeStatisticsTable = VeStatisticsTable[:-4]
-                VeStatisticsTable += \
-                                '</td>'
-            VeStatisticsTable += \
-                            '</tr>'
-        VeStatisticsTable += \
-                            '</table>'
+        VeStatisticsTable += self.EditTable('the std. deviation. 1st and 3rd quartile', ['std. deviation', '1st quartile', '3rd quartile'], [self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile])
+
+        VeStatisticsTable += self.EditTable('the t-test', ['t-statistic', 'p-value'], [self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p])
 
         # put the text into html structure
-        self.resultInHTML += r'''<html>
-                                    <body>
-                                        <h1>The result for calculated Ktrans map:</h1>'''
+        self.resultInHTML += '<html>'\
+                                 '<body>'\
+                                        '<h1>The result for calculated Ktrans map:</h1>'
 
         self.resultInHTML += KtransFitting
 
         self.resultInHTML += KtransStatisticsTable
 
-        self.resultInHTML += r'''       <br>
-                                        <h1>The result for calculated Ve map:</h1>'''
+        self.resultInHTML += '<br><br><br><br><br><br>'\
+                                        '<h1>The result for calculated Ve map:</h1>'
 
         self.resultInHTML += VeFitting
 
         self.resultInHTML += VeStatisticsTable
 
-        self.resultInHTML += r'''    </body>
-                                </html>'''
+        self.resultInHTML +=     '</body>'\
+                            '</html>'
+
+    def EditTable(self, caption, entryName, entryData):
+        # edit a table of certain scale in html. return the table part html
+        # for the first line
+        tableText = '<h3>' + caption + '</h3>'
+        tableText += '<table border="1", style="width:300px">'
+        # tableText += '<caption>' + caption + '</caption>'
+        tableText += '<tr>'
+        tableText +=     '<th></th>'
+        for Ve in self.Ve_ref_patchValue[0]:
+            tableText += '<th>Ve = ' + '{:3.2f}'.format(Ve) + '</th>'
+        tableText += '</tr>'
+
+        # for the column headers and the table cells.
+        for i in range(self.nrOfRows):
+            tableText += '<tr>'
+            tableText +=    '<th>Ktrans = ' + '{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]) + '</th>'
+            for j in range(self.nrOfColumns):
+                tableText += '<td>'
+                for name, data in zip(entryName, entryData):
+                    tableText += name + ' = ' + str('{:3.2f}'.format(float(data[i][j]))) + '<br>'
+                tableText = tableText[:-4]
+                tableText += '</td>'
+            tableText += '</tr>'
+
+        tableText += '</table>'
+        tableText += '<br><br><br>'
+
+        return tableText
 
     def GetEvaluationResultInHTML(self):
         # getter for the result in HTML.
@@ -1134,3 +1116,4 @@ if __name__ == "__main__":
     window.Show()
     window.Maximize(True)
     Application.MainLoop()
+
