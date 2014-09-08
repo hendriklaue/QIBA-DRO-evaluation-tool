@@ -184,12 +184,14 @@ class MainWindow(wx.Frame):
         self.pageScatter = wx.Panel(self.noteBookRight)
         self.pageHistogram = wx.Panel(self.noteBookRight)
         self.pageBoxPlot = wx.Panel(self.noteBookRight)
-        self.pageResultHTML = wx.Panel(self.noteBookRight)
+        self.pageStatistics = wx.Panel(self.noteBookRight)
+        self.pageT_Test = wx.Panel(self.noteBookRight)
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
         self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
         self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
         self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
-        self.noteBookRight.AddPage(self.pageResultHTML, "Result in HTML Viewer")
+        self.noteBookRight.AddPage(self.pageStatistics, "Statistics Viewer")
+        self.noteBookRight.AddPage(self.pageT_Test, "t-test results Viewer")
 
         # show the calculated images and error images
         self.figureImagePreview = Figure()
@@ -230,12 +232,19 @@ class MainWindow(wx.Frame):
         sizer.Add(self.canvasBoxPlot, 1, wx.EXPAND)
         self.pageBoxPlot.SetSizer(sizer)
 
-        # page evaluation results in HTML
-        self.resultInHTML = wx.html.HtmlWindow(self.pageResultHTML, -1)
+        # page statistics
+        self.statisticsViewer = wx.html.HtmlWindow(self.pageStatistics, -1)
 
         sizer = wx.BoxSizer()
-        sizer.Add(self.resultInHTML, 1, wx.EXPAND)
-        self.pageResultHTML.SetSizer(sizer)
+        sizer.Add(self.statisticsViewer, 1, wx.EXPAND)
+        self.pageStatistics.SetSizer(sizer)
+
+        # page t-test
+        self.t_testViewer = wx.html.HtmlWindow(self.pageT_Test, -1)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(self.t_testViewer, 1, wx.EXPAND)
+        self.pageT_Test.SetSizer(sizer)
 
         # sizer for the right panel
         sizer = wx.BoxSizer()
@@ -337,7 +346,8 @@ class MainWindow(wx.Frame):
         self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
 
         # show the results in the main window
-        self.resultInHTML.SetPage(self.newModel.GetEvaluationResultInHTML())
+        self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
+        self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
 
         # push the new tested model to the list
         self.testedModels.append(self.newModel)
@@ -537,36 +547,6 @@ class MainWindow(wx.Frame):
         self.canvasHist_Ktrans.draw()
         self.canvasHist_Ve.draw()
 
-    def Draw3DPlot(self):
-        '''
-        Not used now.
-        plot 3D bars, so that a distribution view of the standard deviation can be referred to for different K,V combination
-        '''
-        subPlotK3D = self.figure3D.add_subplot(2, 1, 1, projection = '3d')
-        subPlotK3D.clear()
-        for i in range(self.calK.nrOfRows):
-            xs = range(self.calK.nrOfColumns)
-            ys = self.deviationK[i]
-            subPlotK3D.bar(xs, ys, zs = i, zdir = 'x', alpha = 0.8)
-        subPlotK3D.set_xlabel('Ktrans')
-        subPlotK3D.set_ylabel('Ve')
-        subPlotK3D.set_zlabel('Standard deviation of calculated data')
-        subPlotK3D.set_title('Distribution of standard deviation of the calculated Ktrans')
-
-        subPlotV3D = self.figure3D.add_subplot(2, 1, 2, projection = '3d')
-        subPlotV3D.clear()
-        for i in range(self.calV.nrOfRows):
-            xs = range(self.calV.nrOfColumns)
-            ys = self.deviationV[i]
-            subPlotV3D.bar(xs, ys, zs = i, zdir = 'x', alpha = 0.8)
-        subPlotV3D.set_xlabel('Ktrans')
-        subPlotV3D.set_ylabel('Ve')
-        subPlotV3D.set_zlabel('Standard deviation of calculated data')
-        subPlotV3D.set_title('Distribution of standard deviation of the calculated Ve')
-
-        self.canvas3D.draw()
-        self.rightPanel.Layout()
-
     def OnClearModelList(self, event):
         # not used now
         # clear the list which holds all the models that have been evaluated.
@@ -595,7 +575,8 @@ class MainWindow(wx.Frame):
         self.figureHist_Ve.clear()
         self.canvasHist_Ve.draw()
 
-        self.resultInHTML.SetPage('')
+        self.statisticsViewer.SetPage('')
+        self.t_testViewer.SetPage('')
 
 
     def ClearPanel(self, panel):
@@ -753,18 +734,19 @@ class ModelEvaluated:
         self.CalculateSTDDeviationForImportedDICOMs()
         self.Calculate1stAnd3rdQuartileForImportedDICOMs()
         self.CalculateMinAndMaxForImportedDICOMs()
-        self.TtestForImportedDICOMS()
+        self.T_TestForImportedDICOMS()
 
-        # write HTML resutl
-        self.HTMLResult()
+        # write HTML result
+        self.htmlT_TestResults()
+        self.htmlStatistics()
 
-    def HTMLResult(self):
-        # write the results into HTML form
-        self.resultInHTML = ''
+    def htmlStatistics(self):
+        # write the statistics to html form
+        self.StatisticsInHTML = ''
 
-        statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile', 'min.', 'max.', 't-test: t-statistic', 't-test: p-value']
-        statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max, self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p],
-                          [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_min, self.Ve_cal_patch_max, self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p]]
+        statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile', 'min.', 'max.']
+        statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max],
+                          [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_min, self.Ve_cal_patch_max]]
 
         # Ktrans planar fitting
         KtransFitting = '<h2>The planar fitting:</h2>' \
@@ -779,8 +761,6 @@ class ModelEvaluated:
         KtransStatisticsTable += self.EditTable('the std. deviation. 1st and 3rd quartile', ['std. deviation', '1st quartile', '3rd quartile'], [self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile])
 
         KtransStatisticsTable += self.EditTable('the min. and max. value', ['min.', 'max.'], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max])
-
-        KtransStatisticsTable += self.EditTable('the t-test', ['t-statistic', 'p-value'], [self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p])
 
         # Ve planar fitting
         VeFitting = \
@@ -797,25 +777,58 @@ class ModelEvaluated:
 
         VeStatisticsTable += self.EditTable('the min. and max. value', ['min.', 'max.'], [self.Ve_cal_patch_min, self.Ve_cal_patch_max])
 
-        VeStatisticsTable += self.EditTable('the t-test', ['t-statistic', 'p-value'], [self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p])
-
         # put the text into html structure
-        self.resultInHTML += '<html>'\
+        self.StatisticsInHTML += '<html>'\
                                  '<body>'\
                                         '<h1>The result for calculated Ktrans map:</h1>'
 
-        self.resultInHTML += KtransFitting
+        self.StatisticsInHTML += KtransFitting
 
-        self.resultInHTML += KtransStatisticsTable
+        self.StatisticsInHTML += KtransStatisticsTable
 
-        self.resultInHTML += '<br><br><br><br><br><br>'\
+        self.StatisticsInHTML += '<br><br><br><br><br><br>'\
                                         '<h1>The result for calculated Ve map:</h1>'
 
-        self.resultInHTML += VeFitting
+        self.StatisticsInHTML += VeFitting
 
-        self.resultInHTML += VeStatisticsTable
+        self.StatisticsInHTML += VeStatisticsTable
 
-        self.resultInHTML +=     '</body>'\
+        self.StatisticsInHTML +=     '</body>'\
+                            '</html>'
+
+    def htmlT_TestResults(self):
+        # write the t-test results into HTML form
+        self.T_testResultInHTML = ''
+
+        statisticsNames = [ 't-test: t-statistic', 't-test: p-value']
+        statisticsData = [[self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p],
+                          [ self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p]]
+
+        # Ktrans statistics tables
+        KtransT_TestTable = \
+                        '<h2>The t-test result of each patch in calculated Ktrans map:</h2>'
+
+        KtransT_TestTable += self.EditTable('', ['t-statistic', 'p-value'], [self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p])
+
+        # Ktrans statistics tables
+        VeT_TestTable = \
+                        '<h2>The t-test result of each patch in calculated Ve map:</h2>'
+
+        VeT_TestTable += self.EditTable('', ['t-statistic', 'p-value'], [self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p])
+
+
+        # put the text into html structure
+        self.T_testResultInHTML += '<html>'\
+                                 '<body>'\
+                                        '<h1>The results of t-test:</h1>'
+
+        self.T_testResultInHTML += KtransT_TestTable
+
+        self.T_testResultInHTML += '<br><br><br><br><br><br>'
+
+        self.T_testResultInHTML += VeT_TestTable
+
+        self.T_testResultInHTML +=     '</body>'\
                             '</html>'
 
     def EditTable(self, caption, entryName, entryData):
@@ -847,9 +860,13 @@ class ModelEvaluated:
 
         return tableText
 
-    def GetEvaluationResultInHTML(self):
+    def GetStatisticsInHTML(self):
         # getter for the result in HTML.
-        return self.resultInHTML
+        return self.StatisticsInHTML
+
+    def GetT_TestResultsInHTML(self):
+        # getter for the result in HTML.
+        return self.T_testResultInHTML
 
     def ImportDICOMs(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # import the DICOM files for evaluation.
@@ -931,10 +948,10 @@ class ModelEvaluated:
         self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max = self.CalculateMinAndMax(self.Ktrans_cal_inPatch)
         self.Ve_cal_patch_min, self.Ve_cal_patch_max = self.CalculateMinAndMax(self.Ve_cal_inPatch)
 
-    def TtestForImportedDICOMS(self):
+    def T_TestForImportedDICOMS(self):
         # call the Ttest function
-        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = self.Ttest_1samp(self.Ktrans_cal_inPatch, self.Ktrans_ref_patchValue)
-        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = self.Ttest_1samp(self.Ve_cal_inPatch, self.Ve_ref_patchValue)
+        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = self.T_Test_1samp(self.Ktrans_cal_inPatch, self.Ktrans_ref_patchValue)
+        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = self.T_Test_1samp(self.Ve_cal_inPatch, self.Ve_ref_patchValue)
 
 ############## ############## the unit functions ############## ##############
     def formatting2decimalFloat(self, input):
@@ -1103,7 +1120,7 @@ class ModelEvaluated:
                 tempMax[i].append(numpy.max(inPatch[i][j]))
         return tempMin, tempMax
 
-    def Ttest_1samp(self, dataToBeTested, expectedMean):
+    def T_Test_1samp(self, dataToBeTested, expectedMean):
         # do 1 sample t-test
         temp_t = [[]for i in range(self.nrOfRows) ]
         temp_p = [[]for i in range(self.nrOfRows) ]
