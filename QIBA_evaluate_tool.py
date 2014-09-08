@@ -62,12 +62,10 @@ class MainWindow(wx.Frame):
     # the list of evaluated models
     testedModels = []
 
-    if PLATFORM == 'Windows':
-        path_Ktrans_ref = os.path.join(os.path.dirname(sys.argv[0]) + r'\reference_data\Ktrans.dcm')
-        path_Ve_ref = os.path.join(os.path.dirname(sys.argv[0]) + r'\reference_data\Ve.dcm')
-    else:
-        path_Ktrans_ref = os.path.join(os.path.dirname(sys.argv[0]) + r'/reference_data/Ktrans.dcm')
-        path_Ve_ref = os.path.join(os.path.dirname(sys.argv[0]) + r'/reference_data/Ve.dcm')
+    # path_Ktrans_ref = os.path.join(os.path.dirname(sys.argv[0]), 'reference_data', 'Ktrans.dcm')
+    # path_Ve_ref = os.path.join(os.path.dirname(sys.argv[0]), 'reference_data', 'Ve.dcm')
+    path_Ktrans_ref = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
+    path_Ve_ref = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
     path_Ktrans_cal = ''
     path_Ve_cal = ''
 
@@ -1142,11 +1140,9 @@ class MySplashScreen(wx.SplashScreen):
     def  __init__(self, parent=None):
         # This is a recipe to a the screen.
         # Modify the following variables as necessary.
-        if PLATFORM == 'Windows':
-            SPLASHSCREEN_IMAGE_PATH = r'\splashImage_small.jpg'
-        else:
-            SPLASHSCREEN_IMAGE_PATH = r'/splashImage_small.jpg'
-        aBitmap = wx.Image(name = os.path.join(os.path.dirname(sys.argv[0]) + SPLASHSCREEN_IMAGE_PATH)).ConvertToBitmap()
+
+        # aBitmap = wx.Image(name = os.path.join(os.path.dirname(sys.argv[0]), 'splashImage_small.jpg')).ConvertToBitmap()
+        aBitmap = wx.Image(name = os.path.join(os.getcwd(), 'splashImage_small.jpg')).ConvertToBitmap()
         splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
         splashDuration = 2000 # milliseconds
         # Call the constructor with the above arguments in exactly the
