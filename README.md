@@ -1,19 +1,26 @@
+================================================
 QIBA-PDF-evaluation-tool
-========================
+================================================
 
 The QIBA-PDA-evaluation tool allows to compare the results from DCE-MRI analysis software applied to digital phantom data with the initial parameters.
 
-========================
+================================================
+Organization of the source folder
+================================================
 
-The application is under development, and is available with source code. Later the stand-alone version will be distributed. 
-The source code could be found in "QIBA_evaluate_tool.py". Under the condition that all required packages are available, run this file will launch the application.
-When the stand-alone installer is available, alternatively the user can run the installer and install the application on the computer.
+The application is till under development. Till now it is available in source code and Windows installer.
+
+The source code could be found in "QIBA_evaluate_tool.py". Under the condition that all required packages are available, run this file in Python will launch the application.
+
+Alternatively the user can run the installer and install the application on the computer.
+
 A short manual could be found in file 'Manual.doc'(may be out of date, but I will try to keep it up to date). 
+
 The reference and calculated data for demonstration could be found in the folder 'reference_data' and 'calculated_data'. 
 
-========================
-
-For running the application with source code, the following libraries are required(all are in 32bit version):
+================================================
+Required packages or tools(all are in 32bit version)
+================================================
 
 -- this tool is developed in Pyhton2.7: https://www.python.org/
 
@@ -29,7 +36,11 @@ For running the application with source code, the following libraries are requir
 
 -- to manage the data in array form, numpy is used: http://www.scipy.org/
 
-========================
+-- to export the results to PDF file, the tool "wkhtmltopdf" is used: http://wkhtmltopdf.org/
+
+================================================
+To Build installer
+================================================
 
 The installer for Windows is built with cx_Freeze: http://cx-freeze.sourceforge.net/
 

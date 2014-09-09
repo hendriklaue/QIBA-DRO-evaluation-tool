@@ -50,8 +50,7 @@ import matplotlib.ticker as ticker
 import time
 import sys
 import platform
-
-PLATFORM = platform.system()
+import subprocess
 
 class MainWindow(wx.Frame):
     '''
@@ -86,7 +85,7 @@ class MainWindow(wx.Frame):
         '''
         set up the menu bar
         '''
-        menubar = wx.MenuBar()
+        self.menubar = wx.MenuBar()
 
         fileMenu = wx.Menu()
         OnExport = fileMenu.Append(wx.ID_ANY, "&Export the results...\tCtrl+E", "Export the result as PDF/EXCEL file.")
@@ -101,17 +100,16 @@ class MainWindow(wx.Frame):
         aboutMenu = wx.Menu()
         OnAboutApp = aboutMenu.Append(wx.ID_ANY, "About this application")
 
-        menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
+        self.menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
         # menubar.Bind(wx.EVT_MENU, self.OnClearModelList, OnClearModelList)
-        menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceKtrans, OnLoadKtransRef)
-        menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceVe, OnLoadVeRef)
-        menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
-        menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
+        self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceKtrans, OnLoadKtransRef)
+        self.menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
+        self.menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
 
-        menubar.Append(fileMenu, "&File")
-        menubar.Append(editMenu, "&Edit")
-        menubar.Append(aboutMenu, "&About")
-        self.SetMenuBar(menubar)
+        self.menubar.Append(fileMenu, "&File")
+        self.menubar.Append(editMenu, "&Edit")
+        self.menubar.Append(aboutMenu, "&About")
+        self.SetMenuBar(self.menubar)
 
     def SetupLeft(self):
         '''
@@ -120,14 +118,10 @@ class MainWindow(wx.Frame):
         '''
         self.selectedFilePath = ''
         # setup the tree control widget for file viewing and selection
-        if PLATFORM == 'Windows':
-            CALCULATED_DATA_PATH = r'\calculated_data'
-        else:
-            CALCULATED_DATA_PATH = r'/calculated_data'
-        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.dirname(sys.argv[0]) + CALCULATED_DATA_PATH, style=wx.DIRCTRL_SHOW_FILTERS,
+
+        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'),# style=wx.DIRCTRL_SHOW_FILTERS,
                                              filter="DICOM files (*.dcm)|*.dcm")
 
-        # self.Bind(wx.EVT_TREE_ITEM_RIGHT_CLICK, self.GetFilePath, self.fileBrowser.GetTreeCtrl())
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
 
         # setup the right click function
@@ -140,19 +134,22 @@ class MainWindow(wx.Frame):
         self.leftPanel.Bind(wx.EVT_CONTEXT_MENU, self.OnShowPopup)
 
         # setup 'evaluate' and 'export result' buttons
-        buttonEvaluate = wx.Button(self.leftPanel, wx.ID_ANY, 'Evaluate')
-        buttonExport = wx.Button(self.leftPanel, wx.ID_ANY, 'Export result')
-        self.Bind(wx.EVT_BUTTON, self.OnEvaluate, buttonEvaluate)
-        self.Bind(wx.EVT_BUTTON, self.OnExport, buttonExport)
+        self.buttonEvaluate = wx.Button(self.leftPanel, wx.ID_ANY, 'Evaluate')
+        self.buttonExport = wx.Button(self.leftPanel, wx.ID_ANY, 'Export result')
+        self.Bind(wx.EVT_BUTTON, self.OnEvaluate, self.buttonEvaluate)
+        self.Bind(wx.EVT_BUTTON, self.OnExport, self.buttonExport)
 
         sizerButton = wx.BoxSizer(wx.HORIZONTAL)
-        sizerButton.Add(buttonEvaluate, 1, wx.ALIGN_LEFT)
-        sizerButton.Add(buttonExport, 1, wx.ALIGN_RIGHT)
+        sizerButton.Add(self.buttonEvaluate, 1, wx.ALIGN_LEFT)
+        sizerButton.Add(self.buttonExport, 1, wx.ALIGN_RIGHT)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.fileBrowser, 1, wx.EXPAND)
         sizer.Add(sizerButton)
         self.leftPanel.SetSizer(sizer)
+
+        # disable the export button in start up
+        self.buttonExport.Disable()
 
     def OnShowPopup(self, event):
         # show the popup menu
@@ -318,13 +315,20 @@ class MainWindow(wx.Frame):
         # clear the interface if they were used before
         self.ClearInterface()
 
+        # disable some widgets
+        self.buttonEvaluate.Disable()
+        self.buttonExport.Disable()
+        self.menubar.EnableTop(0, False)
+        self.menubar.EnableTop(1, False)
+        self.menubar.EnableTop(2, False)
 
+        # status bar
         self.SetStatusText('Evaluating...')
 
         # create new model object to evaluated on
         self.newModel = ModelEvaluated()
 
-        # call the method to execute evaluation
+        # make sure the import path is valid
         if not self.newModel.ImportDICOM(self.path_Ktrans_ref):
             self.SetStatusText('Please load a proper DICOM file as reference Ktrans.')
             return False
@@ -341,6 +345,7 @@ class MainWindow(wx.Frame):
             self.SetStatusText('Please load a proper DICOM file as calculated ve.')
             return False
 
+        # call the method to execute evaluation
         self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
 
         # show the results in the main window
@@ -355,14 +360,16 @@ class MainWindow(wx.Frame):
         self.DrawScatterPlot()
         self.DrawHistograms()
         self.DrawBoxPlot()
+
+        # status bar
         self.SetStatusText('Evaluation finished.')
 
-
-
-    def OnSave(self, event):
-        # Save the statistic data for recording
-        print 'save result function needed to be added.'
-        pass
+        # enable some widgets
+        self.buttonEvaluate.Enable()
+        self.buttonExport.Enable()
+        self.menubar.EnableTop(0, True)
+        self.menubar.EnableTop(1, True)
+        self.menubar.EnableTop(2, True)
 
     def ShowImagePreview(self):
         # show calculated images and the error images
@@ -586,8 +593,35 @@ class MainWindow(wx.Frame):
                 pass
 
     def OnExport(self, event):
-        # export the evaluation result to pdf file.
-        print "TODO: add export function"
+        # export the evaluation results to PDF
+
+        # save file path dialog
+        savePath = ''
+        dlg = wx.FileDialog(self, 'Export the results as PDF file...', '', '', "PDF file(*.pdf)|*.pdf", wx.SAVE)
+        if dlg.ShowModal() == wx.ID_OK:
+            savePath = dlg.GetPath()
+        else:
+            return False
+
+
+        # save to temp html file
+        textToSaveInHtml = 'test text'
+        temp_html = open(os.path.join(os.getcwd(), 'temp', 'temp.html'), 'w+')
+        temp_html.write(textToSaveInHtml)
+        temp_html.close()
+
+        # due to the Python wrapper of wkhtmltopdf "python_wkhtmltopdf" pre-requires xvfb is not available for Windows, here use commandline to call the tool
+        cmd=['wkhtmltopdf', os.path.join(os.getcwd(), 'temp', 'temp.html'), savePath]
+        process = subprocess.Popen(cmd) #, stdout=subprocess.PIPE)
+        process.wait()
+
+        #    wx.MessageBox('Invalid file path!\n' + '(' + path +')', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
+
+        # remove the temp file
+        os.remove(os.path.join(os.getcwd(), 'temp', 'temp.html'))
+
+        # show in status bar when export finishes
+        self.SetStatusText('Results exported as PDF file.')
 
     def OnQuit(self, event):
         # quit the application

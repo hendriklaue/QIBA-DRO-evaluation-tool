@@ -44,7 +44,7 @@ bdist_msi_options = {'data': msi_data}
 # Declare the packages that will be loaded in the main script, and the files that should be packed with the installer
 build_exe_options = {"packages": ["os", "platform", "wx", "dicom", "pylab","numpy","scipy","matplotlib", "time"], 
 		"excludes": ["tkinter"],
-		'include_files': ["reference_data", "calculated_data", "splashImage_small.jpg"]}
+		'include_files': ["reference_data", "calculated_data", "splashImage_small.jpg", "temp"]}
 
 # GUI applications require a different base on Windows (the default is for a console application).
 base = None
