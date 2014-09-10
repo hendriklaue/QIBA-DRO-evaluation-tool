@@ -323,6 +323,11 @@ class MainWindow(wx.Frame):
         '''
         process the imported DICOM,and display
         '''
+
+        # initialize one progress bar
+        max = 100
+        EvaluateProgressDialog = wx.ProgressDialog('Evaluating...', 'The progress of evaluation:', maximum = max)
+
         # clear the interface if they were used before
         self.ClearInterface()
 
@@ -335,9 +340,11 @@ class MainWindow(wx.Frame):
 
         # status bar
         self.SetStatusText('Evaluating...')
+        EvaluateProgressDialog.Update(5)
 
         # create new model object to evaluated on
         self.newModel = ModelEvaluated()
+        EvaluateProgressDialog.Update(10)
 
         # make sure the import path is valid
         if not self.newModel.ImportDICOM(self.path_Ktrans_ref):
@@ -355,25 +362,35 @@ class MainWindow(wx.Frame):
         if not self.newModel.ImportDICOM(self.path_Ve_cal):
             self.SetStatusText('Please load a proper DICOM file as calculated ve.')
             return False
+        EvaluateProgressDialog.Update(15)
 
         # call the method to execute evaluation
         self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
+        EvaluateProgressDialog.Update(20)
 
         # show the results in the main window
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
+        EvaluateProgressDialog.Update(25)
 
         # push the new tested model to the list
         self.testedModels.append(self.newModel)
+        EvaluateProgressDialog.Update(30)
 
         # draw the figures
         self.ShowImagePreview()
+        EvaluateProgressDialog.Update(35)
         self.DrawScatterPlot()
+        EvaluateProgressDialog.Update(50)
         self.DrawHistograms()
+        EvaluateProgressDialog.Update(90)
         self.DrawBoxPlot()
+        EvaluateProgressDialog.Update(95)
 
         # status bar
         self.SetStatusText('Evaluation finished.')
+        EvaluateProgressDialog.Update(100)
+        EvaluateProgressDialog.Destroy()
 
         # enable some widgets
         self.buttonEvaluate.Enable()
