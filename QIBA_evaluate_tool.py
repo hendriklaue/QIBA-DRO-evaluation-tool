@@ -48,8 +48,7 @@ from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
-import sys
-import platform
+import pylab
 import subprocess
 
 class MainWindow(wx.Frame):
@@ -148,8 +147,9 @@ class MainWindow(wx.Frame):
         sizer.Add(sizerButton)
         self.leftPanel.SetSizer(sizer)
 
-        # disable the export button in start up
+        # disable the export/evaluate button in start up
         self.buttonExport.Disable()
+        self.buttonEvaluate.Disable()
 
     def OnShowPopup(self, event):
         # show the popup menu
@@ -268,6 +268,8 @@ class MainWindow(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ktrans_ref = dlg.GetPath()
             self.SetStatusText('Reference Ktrans loaded.')
+        else:
+            self.SetStatusText('Reference Ktrans is not loaded!')
 
     def OnLoadReferenceVe(self, event):
         # Import the reference Ve
@@ -275,6 +277,8 @@ class MainWindow(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ve_ref = dlg.GetPath()
             self.SetStatusText('Reference Ve loaded.')
+        else:
+            self.SetStatusText('Reference Ve is not loaded!')
 
     def OnLoadCalculatedKtrans(self):
         # load the selected DICOM as calculated Ktrans
@@ -284,6 +288,10 @@ class MainWindow(wx.Frame):
         else:
             self.SetStatusText('Invalid file chosen.')
 
+        # enable the evaluate button when the paths are valid
+        if self.path_Ktrans_cal and self.path_Ve_cal:
+            self.buttonEvaluate.Enable()
+
     def OnLoadCalculatedVe(self):
         # load the selected DICOM as calculated Ve
         if os.path.splitext(self.selectedFilePath)[1] == '.dcm':
@@ -292,6 +300,9 @@ class MainWindow(wx.Frame):
         else:
             self.SetStatusText('Invalid file chosen.')
 
+        # enable the evaluate button when the paths are valid
+        if self.path_Ktrans_cal and self.path_Ve_cal:
+            self.buttonEvaluate.Enable()
     def OnImportCalK(self, event):
         '''
         Import the calculated Ktrans
@@ -318,9 +329,9 @@ class MainWindow(wx.Frame):
         # disable some widgets
         self.buttonEvaluate.Disable()
         self.buttonExport.Disable()
-        self.menubar.EnableTop(0, False)
-        self.menubar.EnableTop(1, False)
-        self.menubar.EnableTop(2, False)
+        # self.menubar.EnableTop(0, False)
+        # self.menubar.EnableTop(1, False)
+        # self.menubar.EnableTop(2, False)
 
         # status bar
         self.SetStatusText('Evaluating...')
@@ -367,9 +378,9 @@ class MainWindow(wx.Frame):
         # enable some widgets
         self.buttonEvaluate.Enable()
         self.buttonExport.Enable()
-        self.menubar.EnableTop(0, True)
-        self.menubar.EnableTop(1, True)
-        self.menubar.EnableTop(2, True)
+        # self.menubar.EnableTop(0, True)
+        # self.menubar.EnableTop(1, True)
+        # self.menubar.EnableTop(2, True)
 
     def ShowImagePreview(self):
         # show calculated images and the error images
@@ -552,6 +563,69 @@ class MainWindow(wx.Frame):
         self.canvasHist_Ktrans.draw()
         self.canvasHist_Ve.draw()
 
+    def GetResultInHtml(self):
+        # render the figures, tables into html, for exporting to pdf
+        htmlContent = ''
+        self.figureImagePreview.savefig(os.path.join(os.getcwd(), 'temp', 'figureImages.png'))
+        self.figureScatter.savefig(os.path.join(os.getcwd(), 'temp', 'figureScatters.png'))
+        self.figureHist_Ktrans.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_K.png'))
+        self.figureHist_Ve.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_V.png'))
+        self.figureBoxPlot.savefig(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
+
+        htmlContent += '''
+        <!DOCTYPE html>
+        <html>
+        <body>
+        <h1 align="center">QIBA DRO Evaluation Tool Results Report</h1>
+        <br>
+        '''
+        htmlContent += '''
+        <h2 align="center">The image view of calculated Ktrans and Ve</h2>
+        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureImages.png') + ''' style="width:100%"> <br>'''+\
+        '''<p><font face="verdana">* The first column shows the calculated Ktrans and Ve in black and white. You can have a general impression of the value distribution according to the changing of the parameters. Generally the brighter the pixel is, the higher the calculated value is.<br>
+        <br>The Second column shows the error map between calculated and reference data. Each pixel is the result of corresponding pixel in calculated data being subtracted with that in the reference data. Generally the more the color approaches to the red direction, the larger the error is.<br>
+        <br>The third column shows the normalized error. This is out of the consideration that the error could be related with the original value itself. Therefore normalized error may give a more uniformed standard of the error level. Each pixel's value comes from the division of the error by the reference pixel value. Similarly as the error map, the more the color approaches to the red direction, the larger the normalized error is.
+        </p>''' +\
+        '''<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
+
+        htmlContent += '''
+        <h2 align="center">The scatter plots of calculated Ktrans and Ve</h2>
+        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureScatters.png') + ''' style="width:100%"> <br>'''+\
+        '''<p><font face="verdana">* For the reference data, the pixel values in one row (for Ktrans) or column (for Ve) share the same constant value. Therefore in the scatter plot it shows that all green dots of a row (or column) overlap to each other. For the calculated data, as they share the same parameter, the blue dots align to the same x-axis. But they may scatter vertically, showing there's variance of the value in a row (or column).<br>
+        <br>From these plots you can see the trend of the values, which offer some information of which model (e.g. linear or logarithmic) the calculated parameter may fit. For example, with the artificial calculated data which were generated from the reference data by adding Gaussian noise, scaling by two and adding 0.5, it can be easily read from the plots that the calculated data follow the linear model, and have scaling factor and extra bias value.
+        </p>''' +\
+        ''' <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
+
+        htmlContent += '''
+        <h2 align="center">The histograms of calculated Ktrans and Ve</h2>
+        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureHist_K.png') + ''' style="width:50%" align="left">''' + '''
+        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureHist_V.png') + ''' style="width:50%" align="right"> <br>'''+\
+        '''<p><font face="verdana">* All histograms have the uniformed y-axis limits, so that the comparison among different patched is easier.  The minimum and maximum values of a patch are denoted on the x-axis for reference.
+        </p>''' +\
+        ''' <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
+
+        htmlContent += '''
+        <h2 align="center">The box plots of calculated Ktrans and Ve</h2>
+        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png') + ''' style="width:100%"> <br>'''+\
+        '''<p><font face="verdana">* The vertical dash lines are used to separate the rows (or columns), as each box plot is responsible for one patch. From these plots you could see (roughly) the statistics of each patch, like the mean value, the 1st and 3rd quartile, the minimum and maximum value. The more precise value of those statistics could be found in the tab "Result in HTML viewer".
+        </p>'''+\
+            ''' <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
+
+        htmlContent +='''<br>'''
+
+        htmlContent += self.newModel.StatisticsInHTML
+
+        htmlContent +=''' <br><br><br><br><br><br><br><br><br><br><br><br>'''
+
+        htmlContent += self.newModel.T_testResultInHTML
+
+        htmlContent += '''
+        </body>
+        </html>
+        '''
+        return htmlContent
+
+
     def OnClearModelList(self, event):
         # not used now
         # clear the list which holds all the models that have been evaluated.
@@ -595,9 +669,16 @@ class MainWindow(wx.Frame):
     def OnExport(self, event):
         # export the evaluation results to PDF
 
+        # disable some widgets
+        self.buttonEvaluate.Disable()
+        self.buttonExport.Disable()
+
+        # show in status bar when export finishes
+        self.SetStatusText('Exporting results...')
+
         # save file path dialog
         savePath = ''
-        dlg = wx.FileDialog(self, 'Export the results as PDF file...', '', '', "PDF file(*.pdf)|*.pdf", wx.SAVE)
+        dlg = wx.FileDialog(self, 'Export the results as PDF file...', '', '', "PDF file(*.pdf)|*.pdf", wx.SAVE | wx.OVERWRITE_PROMPT)
         if dlg.ShowModal() == wx.ID_OK:
             savePath = dlg.GetPath()
         else:
@@ -605,9 +686,9 @@ class MainWindow(wx.Frame):
 
 
         # save to temp html file
-        textToSaveInHtml = 'test text'
+        resultToSaveInHtml = self.GetResultInHtml()
         temp_html = open(os.path.join(os.getcwd(), 'temp', 'temp.html'), 'w+')
-        temp_html.write(textToSaveInHtml)
+        temp_html.write(resultToSaveInHtml)
         temp_html.close()
 
         # due to the Python wrapper of wkhtmltopdf "python_wkhtmltopdf" pre-requires xvfb is not available for Windows, here use commandline to call the tool
@@ -615,13 +696,20 @@ class MainWindow(wx.Frame):
         process = subprocess.Popen(cmd) #, stdout=subprocess.PIPE)
         process.wait()
 
-        #    wx.MessageBox('Invalid file path!\n' + '(' + path +')', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
-
         # remove the temp file
         os.remove(os.path.join(os.getcwd(), 'temp', 'temp.html'))
+        os.remove(os.path.join(os.getcwd(), 'temp', 'figureImages.png'))
+        os.remove(os.path.join(os.getcwd(), 'temp', 'figureScatters.png'))
+        os.remove(os.path.join(os.getcwd(), 'temp', 'figureHist_K.png'))
+        os.remove(os.path.join(os.getcwd(), 'temp', 'figureHist_V.png'))
+        os.remove(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
 
         # show in status bar when export finishes
         self.SetStatusText('Results exported as PDF file.')
+
+        # enable some widgets
+        self.buttonEvaluate.Enable()
+        self.buttonExport.Enable()
 
     def OnQuit(self, event):
         # quit the application
@@ -781,12 +869,12 @@ class ModelEvaluated:
                           [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_min, self.Ve_cal_patch_max]]
 
         # Ktrans planar fitting
-        KtransFitting = '<h2>The planar fitting:</h2>' \
+        KtransFitting = '<h2>The planar fitting for calculated Ktrans:</h2>' \
                             '<p>Ktrans_cal = ' + str(self.a_Ktrans) + '  * Ktrans_ref + ' + str(self.b_Ktrans) + ' * Ve_ref + ' + str(self.c_Ktrans) + '</p>'
 
         # Ktrans statistics tables
         KtransStatisticsTable = \
-                        '<h2>The statistics analysis of each patch:</h2>'
+                        '<h2>The statistics analysis of each patch in calculated Ktrans:</h2>'
 
         KtransStatisticsTable += self.EditTable('the mean and median value', ['mean', 'median'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median])
 
@@ -796,12 +884,12 @@ class ModelEvaluated:
 
         # Ve planar fitting
         VeFitting = \
-                        '<h2>The planar fitting:</h2>' \
+                        '<h2>The planar fitting for calculated Ve:</h2>' \
                             '<p>Ve_cal = ' + str(self.a_Ve) + '  * Ktrans_ref + ' + str(self.b_Ve) + ' * Ve_ref + ' + str(self.c_Ve) + '</p>'
 
         # Ve statistics table
         VeStatisticsTable = \
-                        '<h2>The statistics analysis of each patch:</h2>'
+                        '<h2>The statistics analysis of each patch in calculated Ve:</h2>'
 
         VeStatisticsTable += self.EditTable('the mean and median value', ['mean', 'median'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_median])
 
@@ -812,14 +900,14 @@ class ModelEvaluated:
         # put the text into html structure
         self.StatisticsInHTML += '<html>'\
                                  '<body>'\
-                                        '<h1>The result for calculated Ktrans map:</h1>'
+                                        '<h1>The statistic in tables</h1>'
 
         self.StatisticsInHTML += KtransFitting
 
         self.StatisticsInHTML += KtransStatisticsTable
 
-        self.StatisticsInHTML += '<br><br><br><br><br><br>'\
-                                        '<h1>The result for calculated Ve map:</h1>'
+        self.StatisticsInHTML += '<br><br><br><br><br><br>'
+                                        #'<h1>The result for calculated Ve map:</h1>'
 
         self.StatisticsInHTML += VeFitting
 
@@ -852,7 +940,7 @@ class ModelEvaluated:
         # put the text into html structure
         self.T_testResultInHTML += '<html>'\
                                  '<body>'\
-                                        '<h1>The results of t-test:</h1>'
+                                        '<h1>The t-test results</h1>'
 
         self.T_testResultInHTML += KtransT_TestTable
 
@@ -867,7 +955,7 @@ class ModelEvaluated:
         # edit a table of certain scale in html. return the table part html
         # for the first line
         tableText = '<h3>' + caption + '</h3>'
-        tableText += '<table border="1", style="width:300px">'
+        tableText += '<table border="1">'
         # tableText += '<caption>' + caption + '</caption>'
         tableText += '<tr>'
         tableText +=     '<th></th>'
