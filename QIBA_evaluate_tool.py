@@ -580,8 +580,8 @@ class MainWindow(wx.Frame):
         <br>
         '''
         htmlContent += '''
-        <h2 align="center">The image view of calculated Ktrans and Ve</h2>
-        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureImages.png') + ''' style="width:100%"> <br>'''+\
+        <h2 align="center">The image view of calculated Ktrans and Ve</h2>''' +\
+        '''<img src="''' + os.path.join(os.getcwd(), 'temp', 'figureImages.png') + '''" style="width:100%"> <br>'''+\
         '''<p><font face="verdana">* The first column shows the calculated Ktrans and Ve in black and white. You can have a general impression of the value distribution according to the changing of the parameters. Generally the brighter the pixel is, the higher the calculated value is.<br>
         <br>The Second column shows the error map between calculated and reference data. Each pixel is the result of corresponding pixel in calculated data being subtracted with that in the reference data. Generally the more the color approaches to the red direction, the larger the error is.<br>
         <br>The third column shows the normalized error. This is out of the consideration that the error could be related with the original value itself. Therefore normalized error may give a more uniformed standard of the error level. Each pixel's value comes from the division of the error by the reference pixel value. Similarly as the error map, the more the color approaches to the red direction, the larger the normalized error is.
@@ -590,7 +590,7 @@ class MainWindow(wx.Frame):
 
         htmlContent += '''
         <h2 align="center">The scatter plots of calculated Ktrans and Ve</h2>
-        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureScatters.png') + ''' style="width:100%"> <br>'''+\
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureScatters.png') + '''" style="width:100%"> <br>'''+\
         '''<p><font face="verdana">* For the reference data, the pixel values in one row (for Ktrans) or column (for Ve) share the same constant value. Therefore in the scatter plot it shows that all green dots of a row (or column) overlap to each other. For the calculated data, as they share the same parameter, the blue dots align to the same x-axis. But they may scatter vertically, showing there's variance of the value in a row (or column).<br>
         <br>From these plots you can see the trend of the values, which offer some information of which model (e.g. linear or logarithmic) the calculated parameter may fit. For example, with the artificial calculated data which were generated from the reference data by adding Gaussian noise, scaling by two and adding 0.5, it can be easily read from the plots that the calculated data follow the linear model, and have scaling factor and extra bias value.
         </p>''' +\
@@ -598,15 +598,15 @@ class MainWindow(wx.Frame):
 
         htmlContent += '''
         <h2 align="center">The histograms of calculated Ktrans and Ve</h2>
-        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureHist_K.png') + ''' style="width:50%" align="left">''' + '''
-        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureHist_V.png') + ''' style="width:50%" align="right"> <br>'''+\
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_K.png') + '''" style="width:50%" align="left">''' + '''
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_V.png') + '''" style="width:50%" align="right"> <br>'''+\
         '''<p><font face="verdana">* All histograms have the uniformed y-axis limits, so that the comparison among different patched is easier.  The minimum and maximum values of a patch are denoted on the x-axis for reference.
         </p>''' +\
         ''' <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
 
         htmlContent += '''
         <h2 align="center">The box plots of calculated Ktrans and Ve</h2>
-        <img src=''' + os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png') + ''' style="width:100%"> <br>'''+\
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png') + '''" style="width:100%"> <br>'''+\
         '''<p><font face="verdana">* The vertical dash lines are used to separate the rows (or columns), as each box plot is responsible for one patch. From these plots you could see (roughly) the statistics of each patch, like the mean value, the 1st and 3rd quartile, the minimum and maximum value. The more precise value of those statistics could be found in the tab "Result in HTML viewer".
         </p>'''+\
             ''' <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
@@ -684,7 +684,6 @@ class MainWindow(wx.Frame):
         else:
             return False
 
-
         # save to temp html file
         resultToSaveInHtml = self.GetResultInHtml()
         temp_html = open(os.path.join(os.getcwd(), 'temp', 'temp.html'), 'w+')
@@ -697,7 +696,7 @@ class MainWindow(wx.Frame):
         process.wait()
 
         # remove the temp file
-        os.remove(os.path.join(os.getcwd(), 'temp', 'temp.html'))
+        # os.remove(os.path.join(os.getcwd(), 'temp', 'temp.html'))
         os.remove(os.path.join(os.getcwd(), 'temp', 'figureImages.png'))
         os.remove(os.path.join(os.getcwd(), 'temp', 'figureScatters.png'))
         os.remove(os.path.join(os.getcwd(), 'temp', 'figureHist_K.png'))
