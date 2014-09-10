@@ -18,6 +18,8 @@ A short manual could be found in file 'Manual.doc'(may be out of date, but I wil
 
 The reference and calculated data for demonstration could be found in the folder 'reference_data' and 'calculated_data'. 
 
+The 'temp' folder is used during the exporting results to PDF file.
+
 ================================================
 Required packages or tools(all are in 32bit version)
 ================================================
@@ -46,7 +48,7 @@ The installer for Windows is built with cx_Freeze: http://cx-freeze.sourceforge.
 
 After installing this package, the documentation of cx_Freeze could be found here: http://cx-freeze.readthedocs.org/en/latest/
 
-Simply to say, the script setup.py is needed alongside the application script, in order to build the installer;
+Simply to say, the script 'setup.py' is needed alongside the application script, in order to build the installer;
 
 With Window command line under the script folder, type 'python setup.py bdist_msi' to build, and resulting in to new folders created: 'built' and 'dist';
 
