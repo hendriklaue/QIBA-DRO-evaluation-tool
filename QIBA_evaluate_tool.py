@@ -181,12 +181,14 @@ class MainWindow(wx.Frame):
         self.pageBoxPlot = wx.Panel(self.noteBookRight)
         self.pageStatistics = wx.Panel(self.noteBookRight)
         self.pageT_Test = wx.Panel(self.noteBookRight)
+        self.pageANOVA = wx.Panel(self.noteBookRight)
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
         self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
         self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
         self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
         self.noteBookRight.AddPage(self.pageStatistics, "Statistics Viewer")
         self.noteBookRight.AddPage(self.pageT_Test, "t-test results Viewer")
+        self.noteBookRight.AddPage(self.pageANOVA, "ANOVA results Viewer")
 
         # show the calculated images and error images
         self.figureImagePreview = Figure()
@@ -240,6 +242,13 @@ class MainWindow(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(self.t_testViewer, 1, wx.EXPAND)
         self.pageT_Test.SetSizer(sizer)
+
+        # page ANOVA
+        self.ANOVAViewer = wx.html.HtmlWindow(self.pageANOVA, -1)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(self.ANOVAViewer, 1, wx.EXPAND)
+        self.pageANOVA.SetSizer(sizer)
 
         # sizer for the right panel
         sizer = wx.BoxSizer()
@@ -371,6 +380,7 @@ class MainWindow(wx.Frame):
         # show the results in the main window
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
+        self.ANOVAViewer.SetPage(self.newModel.GetANOVAReusltsInHTML())
         EvaluateProgressDialog.Update(25)
 
         # push the new tested model to the list
@@ -636,6 +646,10 @@ class MainWindow(wx.Frame):
 
         htmlContent += self.newModel.T_testResultInHTML
 
+        htmlContent +='''<br><br><br><br><br><br><br><br><br>'''
+
+        htmlContent += self.newModel.ANOVAResultInHTML
+
         htmlContent += '''
         </body>
         </html>
@@ -673,6 +687,7 @@ class MainWindow(wx.Frame):
 
         self.statisticsViewer.SetPage('')
         self.t_testViewer.SetPage('')
+        self.ANOVAViewer.SetPage('')
 
 
     def ClearPanel(self, panel):
@@ -843,6 +858,12 @@ class ModelEvaluated:
         self.Ktrans_cal_patch_ttest_p = [[]for i in range(self.nrOfRows)]
         self.Ve_cal_patch_ttest_p = [[]for i in range(self.nrOfRows)]
 
+        # ANOVA
+        self.Ktrans_cal_patch_ANOVA_f = []
+        self.Ktrans_cal_patch_ANOVA_p = []
+        self.Ve_cal_patch_ANOVA_f = []
+        self.Ve_cal_patch_ANOVA_p = []
+
         # planar fitting parameters
         self.Ktrans_fittingParameter = []
         self.Ve_fittingParameter = []
@@ -871,10 +892,12 @@ class ModelEvaluated:
         self.Calculate1stAnd3rdQuartileForImportedDICOMs()
         self.CalculateMinAndMaxForImportedDICOMs()
         self.T_TestForImportedDICOMS()
+        self.ANOVAForImportedDICOMS()
 
         # write HTML result
         self.htmlT_TestResults()
         self.htmlStatistics()
+        self.htmlANOVAResults()
 
     def htmlStatistics(self):
         # write the statistics to html form
@@ -967,6 +990,71 @@ class ModelEvaluated:
         self.T_testResultInHTML +=     '</body>'\
                             '</html>'
 
+    def htmlANOVAResults(self):
+        # write the ANOVA results into HTML form
+        self.ANOVAResultInHTML = ''
+
+        statisticsNames = [ 'ANOVA: f-value', 'ANOVA: p-value']
+        statisticsData = [[self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p],
+                          [ self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p]]
+
+        # Ktrans ANOVA tables
+        KtransANOVATable = \
+                        '<h2>The ANOVA result of each patch in calculated Ktrans map:</h2>'\
+                        '<table border="1">'\
+                            '<tr>'
+        for i in range(self.nrOfRows):
+            KtransANOVATable += '<th>Ktrans = '
+            KtransANOVATable += str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))
+            KtransANOVATable += '</th>'
+        KtransANOVATable += '</tr>'
+
+        KtransANOVATable += '<tr>'
+        for i in range(self.nrOfRows):
+            KtransANOVATable += '<td>f-value: '
+            KtransANOVATable += str('{:3.2f}'.format(self.Ktrans_cal_patch_ANOVA_f[i]))
+            KtransANOVATable += '<br>p-value: '
+            KtransANOVATable += str('{:3.2f}'.format(self.Ktrans_cal_patch_ANOVA_p[i]))
+            KtransANOVATable += '</td>'
+        KtransANOVATable += '</tr>'
+        KtransANOVATable += '</table>'
+
+        # Ve ANOVA tables
+        VeANOVATable = \
+                        '<h2>The ANOVA result of each patch in calculated Ve map:</h2>'\
+                        '<table border="1">'\
+                            '<tr>'
+        for j in range(self.nrOfColumns):
+            VeANOVATable += '<th>Ve = '
+            VeANOVATable += str('{:3.2f}'.format(self.Ve_ref_patchValue[j][0]))
+            VeANOVATable += '</th>'
+        VeANOVATable += '</tr>'
+
+        VeANOVATable += '<tr>'
+        for j in range(self.nrOfColumns):
+            VeANOVATable += '<td>f-value: '
+            VeANOVATable += str('{:3.2f}'.format(self.Ve_cal_patch_ANOVA_f[j]))
+            VeANOVATable += '<br>'
+            VeANOVATable += str('{:3.2f}'.format(self.Ve_cal_patch_ANOVA_p[j]))
+            VeANOVATable += '</td>'
+        VeANOVATable += '</tr>'
+        VeANOVATable += '</table>'
+
+
+        # put the text into html structure
+        self.ANOVAResultInHTML += '<html>'\
+                                 '<body>'\
+                                        '<h1>The ANOVA results</h1>'
+
+        self.ANOVAResultInHTML += KtransANOVATable
+
+        self.ANOVAResultInHTML += '<br><br><br><br><br><br>'
+
+        self.ANOVAResultInHTML += VeANOVATable
+
+        self.ANOVAResultInHTML +=     '</body>'\
+                            '</html>'
+
     def EditTable(self, caption, entryName, entryData):
         # edit a table of certain scale in html. return the table part html
         # for the first line
@@ -1003,6 +1091,10 @@ class ModelEvaluated:
     def GetT_TestResultsInHTML(self):
         # getter for the result in HTML.
         return self.T_testResultInHTML
+
+    def GetANOVAReusltsInHTML(self):
+        # getter for the result in HTML.
+        return self.ANOVAResultInHTML
 
     def ImportDICOMs(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # import the DICOM files for evaluation.
@@ -1088,6 +1180,11 @@ class ModelEvaluated:
         # call the Ttest function
         self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = self.T_Test_1samp(self.Ktrans_cal_inPatch, self.Ktrans_ref_patchValue)
         self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = self.T_Test_1samp(self.Ve_cal_inPatch, self.Ve_ref_patchValue)
+
+    def ANOVAForImportedDICOMS(self):
+        # call the ANOVA function
+        self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = self.ANOVA_oneway_K(self.Ktrans_cal_inPatch)
+        self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = self.ANOVA_oneway_V(self.Ve_cal_inPatch)
 
 ############## ############## the unit functions ############## ##############
     def formatting2decimalFloat(self, input):
@@ -1266,6 +1363,24 @@ class ModelEvaluated:
                 temp_p[i].append(stats.ttest_1samp(dataToBeTested[i][j], expectedMean[i][j])[1])
         return temp_t, temp_p
 
+    def ANOVA_oneway_K(self, inPatch_K):
+        # do ANOVA for each row of calculated Ktrans, to see if there is significant difference with regarding to Ve
+        tempf = []
+        tempp = []
+        for i in range(self.nrOfRows):
+            tempf.append(stats.f_oneway(inPatch_K[i][0], inPatch_K[i][1], inPatch_K[i][2], inPatch_K[i][3], inPatch_K[i][4])[0])
+            tempp.append(stats.f_oneway(inPatch_K[i][0], inPatch_K[i][1], inPatch_K[i][2], inPatch_K[i][3], inPatch_K[i][4])[1])
+        return tempf, tempp
+
+    def ANOVA_oneway_V(self, inPatch_V):
+        # do ANOVA for each column of calculated Ve, to see if there is significant difference with regarding to Ktrans
+        tempf = []
+        tempp = []
+        for j in range(self.nrOfColumns):
+            tempf.append(stats.f_oneway(zip(*inPatch_V)[j][0], zip(*inPatch_V)[j][1], zip(*inPatch_V)[j][2], zip(*inPatch_V)[j][3], zip(*inPatch_V)[j][4], zip(*inPatch_V)[j][5])[0])
+            tempp.append(stats.f_oneway(zip(*inPatch_V)[j][0], zip(*inPatch_V)[j][1], zip(*inPatch_V)[j][2], zip(*inPatch_V)[j][3], zip(*inPatch_V)[j][4], zip(*inPatch_V)[j][5])[1])
+
+        return tempf, tempp
 
     def Score(self):
         # give a score for evaluation according to the weighting factors.
