@@ -180,6 +180,8 @@ class MainWindow(wx.Frame):
         self.pageHistogram = wx.Panel(self.noteBookRight)
         self.pageBoxPlot = wx.Panel(self.noteBookRight)
         self.pageStatistics = wx.Panel(self.noteBookRight)
+        self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
+        self.pageModelFitting = wx.Panel(self.noteBookRight)
         self.pageT_Test = wx.Panel(self.noteBookRight)
         self.pageANOVA = wx.Panel(self.noteBookRight)
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
@@ -187,6 +189,8 @@ class MainWindow(wx.Frame):
         self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
         self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
         self.noteBookRight.AddPage(self.pageStatistics, "Statistics Viewer")
+        self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance And Correlation")
+        self.noteBookRight.AddPage(self.pageModelFitting, "Model fitting")
         self.noteBookRight.AddPage(self.pageT_Test, "t-test results Viewer")
         self.noteBookRight.AddPage(self.pageANOVA, "ANOVA results Viewer")
 
@@ -235,6 +239,20 @@ class MainWindow(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(self.statisticsViewer, 1, wx.EXPAND)
         self.pageStatistics.SetSizer(sizer)
+
+        # page covariance and correlation
+        self.covCorrViewer = wx.html.HtmlWindow(self.pageCovarianceCorrelation, -1)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(self.covCorrViewer, 1, wx.EXPAND)
+        self.pageCovarianceCorrelation.SetSizer(sizer)
+
+        # page model fitting
+        self.modelFittingViewer = wx.html.HtmlWindow(self.pageModelFitting, -1)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(self.modelFittingViewer, 1, wx.EXPAND)
+        self.pageModelFitting.SetSizer(sizer)
 
         # page t-test
         self.t_testViewer = wx.html.HtmlWindow(self.pageT_Test, -1)
@@ -343,9 +361,6 @@ class MainWindow(wx.Frame):
         # disable some widgets
         self.buttonEvaluate.Disable()
         self.buttonExport.Disable()
-        # self.menubar.EnableTop(0, False)
-        # self.menubar.EnableTop(1, False)
-        # self.menubar.EnableTop(2, False)
 
         # status bar
         self.SetStatusText('Evaluating...')
@@ -379,8 +394,10 @@ class MainWindow(wx.Frame):
 
         # show the results in the main window
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
+        self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
+        self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
-        self.ANOVAViewer.SetPage(self.newModel.GetANOVAReusltsInHTML())
+        self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
         EvaluateProgressDialog.Update(25)
 
         # push the new tested model to the list
@@ -405,9 +422,6 @@ class MainWindow(wx.Frame):
         # enable some widgets
         self.buttonEvaluate.Enable()
         self.buttonExport.Enable()
-        # self.menubar.EnableTop(0, True)
-        # self.menubar.EnableTop(1, True)
-        # self.menubar.EnableTop(2, True)
 
     def ShowImagePreview(self):
         # show calculated images and the error images
@@ -599,63 +613,43 @@ class MainWindow(wx.Frame):
         self.figureHist_Ve.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_V.png'))
         self.figureBoxPlot.savefig(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
 
-        htmlContent += '''
-        <!DOCTYPE html>
-        <html>
-        <body>
-        <h1 align="center">QIBA DRO Evaluation Tool Results Report</h1>
-        <br>
-        '''
-        htmlContent += '''
+        htmlContent += self.newModel.packInHtml('<h1 align="center">QIBA DRO Evaluation Tool Results Report</h1>')
+
+        htmlContent += self.newModel.packInHtml('''
         <h2 align="center">The image view of calculated Ktrans and Ve</h2>''' +\
         '''<img src="''' + os.path.join(os.getcwd(), 'temp', 'figureImages.png') + '''" style="width:100%"> <br>'''+\
         '''<p><font face="verdana">* The first column shows the calculated Ktrans and Ve in black and white. You can have a general impression of the value distribution according to the changing of the parameters. Generally the brighter the pixel is, the higher the calculated value is.<br>
         <br>The Second column shows the error map between calculated and reference data. Each pixel is the result of corresponding pixel in calculated data being subtracted with that in the reference data. Generally the more the color approaches to the red direction, the larger the error is.<br>
         <br>The third column shows the normalized error. This is out of the consideration that the error could be related with the original value itself. Therefore normalized error may give a more uniformed standard of the error level. Each pixel's value comes from the division of the error by the reference pixel value. Similarly as the error map, the more the color approaches to the red direction, the larger the normalized error is.
-        </p>''' +\
-        '''<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
+        </p>''' )
 
-        htmlContent += '''
+        htmlContent += self.newModel.packInHtml( '''
         <h2 align="center">The scatter plots of calculated Ktrans and Ve</h2>
         <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureScatters.png') + '''" style="width:100%"> <br>'''+\
         '''<p><font face="verdana">* For the reference data, the pixel values in one row (for Ktrans) or column (for Ve) share the same constant value. Therefore in the scatter plot it shows that all green dots of a row (or column) overlap to each other. For the calculated data, as they share the same parameter, the blue dots align to the same x-axis. But they may scatter vertically, showing there's variance of the value in a row (or column).<br>
         <br>From these plots you can see the trend of the values, which offer some information of which model (e.g. linear or logarithmic) the calculated parameter may fit. For example, with the artificial calculated data which were generated from the reference data by adding Gaussian noise, scaling by two and adding 0.5, it can be easily read from the plots that the calculated data follow the linear model, and have scaling factor and extra bias value.
-        </p>''' +\
-        ''' <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
+        </p>''' )
 
-        htmlContent += '''
+        htmlContent += self.newModel.packInHtml('''
         <h2 align="center">The histograms of calculated Ktrans and Ve</h2>
         <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_K.png') + '''" style="width:50%" align="left">''' + '''
         <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_V.png') + '''" style="width:50%" align="right"> <br>'''+\
         '''<p><font face="verdana">* All histograms have the uniformed y-axis limits, so that the comparison among different patched is easier.  The minimum and maximum values of a patch are denoted on the x-axis for reference.
-        </p>''' +\
-        ''' <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
+        </p>''')
 
-        htmlContent += '''
+        htmlContent += self.newModel.packInHtml('''
         <h2 align="center">The box plots of calculated Ktrans and Ve</h2>
         <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png') + '''" style="width:100%"> <br>'''+\
         '''<p><font face="verdana">* The vertical dash lines are used to separate the rows (or columns), as each box plot is responsible for one patch. From these plots you could see (roughly) the statistics of each patch, like the mean value, the 1st and 3rd quartile, the minimum and maximum value. The more precise value of those statistics could be found in the tab "Result in HTML viewer".
-        </p>'''+\
-            ''' <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>'''
-
-        htmlContent +='''<br>'''
+        </p>''')
 
         htmlContent += self.newModel.StatisticsInHTML
 
-        htmlContent +=''' <br><br><br><br><br><br><br><br><br><br><br><br>'''
-
         htmlContent += self.newModel.T_testResultInHTML
-
-        htmlContent +='''<br><br><br><br><br><br><br><br><br>'''
 
         htmlContent += self.newModel.ANOVAResultInHTML
 
-        htmlContent += '''
-        </body>
-        </html>
-        '''
         return htmlContent
-
 
     def OnClearModelList(self, event):
         # not used now
@@ -686,9 +680,10 @@ class MainWindow(wx.Frame):
         self.canvasHist_Ve.draw()
 
         self.statisticsViewer.SetPage('')
+        self.covCorrViewer.SetPage('')
+        self.modelFittingViewer.SetPage('')
         self.t_testViewer.SetPage('')
         self.ANOVAViewer.SetPage('')
-
 
     def ClearPanel(self, panel):
         # clear a panel object(from wxPython)
@@ -864,6 +859,18 @@ class ModelEvaluated:
         self.Ve_cal_patch_ANOVA_f = []
         self.Ve_cal_patch_ANOVA_p = []
 
+        # covarinace
+        self.cov_KK = []
+        self.cov_VK = []
+        self.cov_KV = []
+        self.cov_VV = []
+
+        # covarinace
+        self.corr_KK = []
+        self.corr_VK = []
+        self.corr_KV = []
+        self.corr_VV = []
+
         # planar fitting parameters
         self.Ktrans_fittingParameter = []
         self.Ve_fittingParameter = []
@@ -886,6 +893,7 @@ class ModelEvaluated:
         # evaluation operations
         self.FittingPlanarForImportedDICOMs()
         self.CalculateCorrelationForImportedDICOMs()
+        self.CalculateCovarianceForImportedDICOMs()
         self.CalculateMeanForImportedDICOMs()
         self.CalculateMedianForImportedDICOMs()
         self.CalculateSTDDeviationForImportedDICOMs()
@@ -895,13 +903,13 @@ class ModelEvaluated:
         self.ANOVAForImportedDICOMS()
 
         # write HTML result
+        self.htmlCovCorrResults()
         self.htmlT_TestResults()
         self.htmlStatistics()
         self.htmlANOVAResults()
 
     def htmlStatistics(self):
         # write the statistics to html form
-        self.StatisticsInHTML = ''
 
         statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile', 'min.', 'max.']
         statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max],
@@ -909,55 +917,120 @@ class ModelEvaluated:
 
         # Ktrans planar fitting
         KtransFitting = '<h2>The planar fitting for calculated Ktrans:</h2>' \
-                            '<p>Ktrans_cal = ' + str(self.a_Ktrans) + '  * Ktrans_ref + ' + str(self.b_Ktrans) + ' * Ve_ref + ' + str(self.c_Ktrans) + '</p>'
+                            '<p>Ktrans_cal = ' + self.formatFloatTo4DigitsString(self.a_Ktrans) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_Ktrans) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_Ktrans) + '</p>'
 
         # Ktrans statistics tables
         KtransStatisticsTable = \
                         '<h2>The statistics analysis of each patch in calculated Ktrans:</h2>'
 
-        KtransStatisticsTable += self.EditTable('the mean and median value', ['mean', 'median'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median])
+        KtransStatisticsTable += self.EditTable('the mean and standard deviation value', ['mean', 'std. deviation'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_deviation])
 
-        KtransStatisticsTable += self.EditTable('the std. deviation. 1st and 3rd quartile', ['std. deviation', '1st quartile', '3rd quartile'], [self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile])
+        KtransStatisticsTable += self.EditTable('the median, 1st and 3rd quartile, min. and max. values', ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_max])
 
-        KtransStatisticsTable += self.EditTable('the min. and max. value', ['min.', 'max.'], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max])
 
         # Ve planar fitting
         VeFitting = \
                         '<h2>The planar fitting for calculated Ve:</h2>' \
-                            '<p>Ve_cal = ' + str(self.a_Ve) + '  * Ktrans_ref + ' + str(self.b_Ve) + ' * Ve_ref + ' + str(self.c_Ve) + '</p>'
+                            '<p>Ve_cal = ' + self.formatFloatTo4DigitsString(self.a_Ve) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_Ve) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_Ve) + '</p>'
 
         # Ve statistics table
         VeStatisticsTable = \
                         '<h2>The statistics analysis of each patch in calculated Ve:</h2>'
 
-        VeStatisticsTable += self.EditTable('the mean and median value', ['mean', 'median'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_median])
+        VeStatisticsTable += self.EditTable('the mean and standard deviation value', ['mean', 'std. deviation'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_deviation])
 
-        VeStatisticsTable += self.EditTable('the std. deviation. 1st and 3rd quartile', ['std. deviation', '1st quartile', '3rd quartile'], [self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile])
-
-        VeStatisticsTable += self.EditTable('the min. and max. value', ['min.', 'max.'], [self.Ve_cal_patch_min, self.Ve_cal_patch_max])
+        VeStatisticsTable += self.EditTable('the median, 1st and 3rd quartile, min. and max. values', ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ve_cal_patch_min, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_median, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_max])
 
         # put the text into html structure
-        self.StatisticsInHTML += '<html>'\
-                                 '<body>'\
-                                        '<h1>The statistic in tables</h1>'
+        self.StatisticsInHTML = self.packInHtml(KtransStatisticsTable + '<br>' + VeStatisticsTable)
 
-        self.StatisticsInHTML += KtransFitting
+    def htmlCovCorrResults(self):
+        # write the correlation and covariance results into html
 
-        self.StatisticsInHTML += KtransStatisticsTable
+        # relation between cal. K and ref. K
+        KK_Table = '<h2>The correlation and covariance of each column in calculated Ktrans map with reference Ktrans map:</h2>'\
+                        '<table border="1" cellspacing="10">'\
+                            '<tr>'
+        for j in range(self.nrOfColumns):
+            KK_Table += '<th>Ref. Ve = '
+            KK_Table += str('{:3.2f}'.format(self.Ve_ref_patchValue[j][0]))
+            KK_Table += '</th>'
+        KK_Table += '</tr>'
 
-        self.StatisticsInHTML += '<br><br><br><br><br><br>'
-                                        #'<h1>The result for calculated Ve map:</h1>'
+        KK_Table += '<tr>'
+        for j in range(self.nrOfColumns):
+            KK_Table += '<td align="right">cov.: '
+            KK_Table += self.formatFloatTo4DigitsString(self.cov_KK[j])
+            KK_Table += '<br>corr.: '
+            KK_Table += self.formatFloatTo4DigitsString(self.corr_KK[j])
+            KK_Table += '</td>'
+        KK_Table += '</tr>'
+        KK_Table += '</table>'
 
-        self.StatisticsInHTML += VeFitting
+        # relation between cal. K and ref. V
+        KV_Table = '<h2>The correlation and covariance of each row in calculated Ktrans map with reference Ve map:</h2>'\
+                        '<table border="1" cellspacing="10">'\
+                            '<tr>'
+        for i in range(self.nrOfRows):
+            KV_Table += '<th>Ref. Ktrans = '
+            KV_Table += str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))
+            KV_Table += '</th>'
+        KV_Table += '</tr>'
 
-        self.StatisticsInHTML += VeStatisticsTable
+        KV_Table += '<tr>'
+        for i in range(self.nrOfRows):
+            KV_Table += '<td align="right">cov.: '
+            KV_Table += self.formatFloatTo4DigitsString(self.cov_KV[i])
+            KV_Table += '<br>corr.: '
+            KV_Table += self.formatFloatTo4DigitsString(self.corr_KV[i])
+            KV_Table += '</td>'
+        KV_Table += '</tr>'
+        KV_Table += '</table>'
 
-        self.StatisticsInHTML +=     '</body>'\
-                            '</html>'
+        # relation between cal. V and ref. K
+        VK_Table = '<h2>The correlation and covariance of each column in calculated Ve map with reference Ktrans map:</h2>'\
+                        '<table border="1" cellspacing="10">'\
+                            '<tr>'
+        for j in range(self.nrOfColumns):
+            VK_Table += '<th>Ref. Ve = '
+            VK_Table += str('{:3.2f}'.format(self.Ve_ref_patchValue[j][0]))
+            VK_Table += '</th>'
+        VK_Table += '</tr>'
+
+        VK_Table += '<tr>'
+        for j in range(self.nrOfColumns):
+            VK_Table += '<td align="right">cov.: '
+            VK_Table += self.formatFloatTo4DigitsString(self.cov_VK[j])
+            VK_Table += '<br>corr.: '
+            VK_Table += self.formatFloatTo4DigitsString(self.corr_VK[j])
+            VK_Table += '</td>'
+        VK_Table += '</tr>'
+        VK_Table += '</table>'
+
+        # relation between cal. V and ref. V
+        VV_Table = '<h2>The correlation and covariance of each row in calculated Ve map with reference Ve map:</h2>'\
+                        '<table border="1" cellspacing="10">'\
+                            '<tr>'
+        for i in range(self.nrOfRows):
+            VV_Table += '<th>Ref. Ktrans = '
+            VV_Table += str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))
+            VV_Table += '</th>'
+        VV_Table += '</tr>'
+
+        VV_Table += '<tr>'
+        for i in range(self.nrOfRows):
+            VV_Table += '<td align="right">cov.: '
+            VV_Table += self.formatFloatTo4DigitsString(self.cov_VV[i])
+            VV_Table += '<br>corr.: '
+            VV_Table += self.formatFloatTo4DigitsString(self.corr_VV[i])
+            VV_Table += '</td>'
+        VV_Table += '</tr>'
+        VV_Table += '</table>'
+
+        self.covCorrResultsInHtml = self.packInHtml(KK_Table + '<br>' + KV_Table + '<br>' + VK_Table + '<br>' + VV_Table)
 
     def htmlT_TestResults(self):
         # write the t-test results into HTML form
-        self.T_testResultInHTML = ''
 
         statisticsNames = [ 't-test: t-statistic', 't-test: p-value']
         statisticsData = [[self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p],
@@ -977,22 +1050,10 @@ class ModelEvaluated:
 
 
         # put the text into html structure
-        self.T_testResultInHTML += '<html>'\
-                                 '<body>'\
-                                        '<h1>The t-test results</h1>'
-
-        self.T_testResultInHTML += KtransT_TestTable
-
-        self.T_testResultInHTML += '<br><br><br><br><br><br>'
-
-        self.T_testResultInHTML += VeT_TestTable
-
-        self.T_testResultInHTML +=     '</body>'\
-                            '</html>'
+        self.T_testResultInHTML = self.packInHtml(KtransT_TestTable + '<br>' + VeT_TestTable)
 
     def htmlANOVAResults(self):
         # write the ANOVA results into HTML form
-        self.ANOVAResultInHTML = ''
 
         statisticsNames = [ 'ANOVA: f-value', 'ANOVA: p-value']
         statisticsData = [[self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p],
@@ -1000,8 +1061,8 @@ class ModelEvaluated:
 
         # Ktrans ANOVA tables
         KtransANOVATable = \
-                        '<h2>The ANOVA result of each patch in calculated Ktrans map:</h2>'\
-                        '<table border="1">'\
+                        '<h2>The ANOVA result of each row in calculated Ktrans map:</h2>'\
+                        '<table border="1" cellspacing="10">'\
                             '<tr>'
         for i in range(self.nrOfRows):
             KtransANOVATable += '<th>Ktrans = '
@@ -1011,18 +1072,18 @@ class ModelEvaluated:
 
         KtransANOVATable += '<tr>'
         for i in range(self.nrOfRows):
-            KtransANOVATable += '<td>f-value: '
-            KtransANOVATable += str('{:3.2f}'.format(self.Ktrans_cal_patch_ANOVA_f[i]))
+            KtransANOVATable += '<td align="right">f-value: '
+            KtransANOVATable += self.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_f[i])
             KtransANOVATable += '<br>p-value: '
-            KtransANOVATable += str('{:3.2f}'.format(self.Ktrans_cal_patch_ANOVA_p[i]))
+            KtransANOVATable += self.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_p[i])
             KtransANOVATable += '</td>'
         KtransANOVATable += '</tr>'
         KtransANOVATable += '</table>'
 
         # Ve ANOVA tables
         VeANOVATable = \
-                        '<h2>The ANOVA result of each patch in calculated Ve map:</h2>'\
-                        '<table border="1">'\
+                        '<h2>The ANOVA result of each column in calculated Ve map:</h2>'\
+                        '<table border="1" cellspacing="10">'\
                             '<tr>'
         for j in range(self.nrOfColumns):
             VeANOVATable += '<th>Ve = '
@@ -1032,34 +1093,38 @@ class ModelEvaluated:
 
         VeANOVATable += '<tr>'
         for j in range(self.nrOfColumns):
-            VeANOVATable += '<td>f-value: '
-            VeANOVATable += str('{:3.2f}'.format(self.Ve_cal_patch_ANOVA_f[j]))
+            VeANOVATable += '<td align="right">f-value: '
+            VeANOVATable += self.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_f[j])
             VeANOVATable += '<br>p-value: '
-            VeANOVATable += str('{:3.2f}'.format(self.Ve_cal_patch_ANOVA_p[j]))
+            VeANOVATable += self.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_p[j])
             VeANOVATable += '</td>'
         VeANOVATable += '</tr>'
         VeANOVATable += '</table>'
 
-
         # put the text into html structure
-        self.ANOVAResultInHTML += '<html>'\
-                                 '<body>'\
-                                        '<h1>The ANOVA results</h1>'
+        self.ANOVAResultInHTML = self.packInHtml(KtransANOVATable + '<br>' + VeANOVATable)
 
-        self.ANOVAResultInHTML += KtransANOVATable
+    def packInHtml(self, content):
+        # pack the content into html, so that the exported pdf can start a new page.
+        htmlText = ''
+        htmlText += '''
+        <!DOCTYPE html>
+        <html>
+        <body>
+        '''
+        htmlText += content
 
-        self.ANOVAResultInHTML += '<br><br><br><br><br><br>'
-
-        self.ANOVAResultInHTML += VeANOVATable
-
-        self.ANOVAResultInHTML +=     '</body>'\
-                            '</html>'
+        htmlText += '''
+        </body>
+        </html>
+        '''
+        return htmlText
 
     def EditTable(self, caption, entryName, entryData):
         # edit a table of certain scale in html. return the table part html
         # for the first line
         tableText = '<h3>' + caption + '</h3>'
-        tableText += '<table border="1">'
+        tableText += '<table border="1" cellspacing="10">'
         # tableText += '<caption>' + caption + '</caption>'
         tableText += '<tr>'
         tableText +=     '<th></th>'
@@ -1072,15 +1137,15 @@ class ModelEvaluated:
             tableText += '<tr>'
             tableText +=    '<th>Ktrans = ' + '{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]) + '</th>'
             for j in range(self.nrOfColumns):
-                tableText += '<td>'
+                tableText += '<td align="right">'
                 for name, data in zip(entryName, entryData):
-                    tableText += name + ' = ' + str('{:3.2f}'.format(float(data[i][j]))) + '<br>'
+                    tableText += name + ' = ' + self.formatFloatTo4DigitsString(data[i][j]) + '<br>'
                 tableText = tableText[:-4]
                 tableText += '</td>'
             tableText += '</tr>'
 
         tableText += '</table>'
-        tableText += '<br><br><br>'
+        tableText += '<br>'
 
         return tableText
 
@@ -1088,11 +1153,15 @@ class ModelEvaluated:
         # getter for the result in HTML.
         return self.StatisticsInHTML
 
+    def GetCovarianceCorrelationInHTML(self):
+        # getter for the result in HTML.
+        return self.covCorrResultsInHtml
+
     def GetT_TestResultsInHTML(self):
         # getter for the result in HTML.
         return self.T_testResultInHTML
 
-    def GetANOVAReusltsInHTML(self):
+    def GetANOVAResultsInHTML(self):
         # getter for the result in HTML.
         return self.ANOVAResultInHTML
 
@@ -1140,17 +1209,25 @@ class ModelEvaluated:
     def CalculateCorrelationForImportedDICOMs(self):
         # calculate the correlation between the calculated parameters and the reference parameters
         # 'Corre_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
-        self.Corre_KK = []
-        self.Corre_VV = []
-        self.Corre_KV = []
-        self.Corre_VK = []
 
         for i in range(self.nrOfColumns):
-            self.Corre_KK.append(self.CalCorrMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-            self.Corre_VK.append(self.CalCorrMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.corr_KK.append(self.CalCorrMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.corr_VK.append(self.CalCorrMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
         for j in range(self.nrOfRows):
-            self.Corre_VV.append(self.CalCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-            self.Corre_KV.append(self.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.corr_VV.append(self.CalCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.corr_KV.append(self.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+
+    def CalculateCovarianceForImportedDICOMs(self):
+        # calculate the covariance between the calculated parameters and the reference parameters
+        # e.g. 'cov_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
+
+        for i in range(self.nrOfColumns):
+            self.cov_KK.append(self.CalCovMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.cov_VK.append(self.CalCovMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+        for j in range(self.nrOfRows):
+            self.cov_VV.append(self.CalCovMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.cov_KV.append(self.CalCovMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+
 
     def CalculateMeanForImportedDICOMs(self):
         # call the mean calculation function
@@ -1187,9 +1264,12 @@ class ModelEvaluated:
         self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = self.ANOVA_oneway_V(self.Ve_cal_inPatch)
 
 ############## ############## the unit functions ############## ##############
-    def formatting2decimalFloat(self, input):
-        # format the input value into a float with 2 decimals
-        return float('{:.2f}'.format(input))
+    def formatFloatTo4DigitsString(self, input):
+        # format the input value into a string with 2 digits
+        if abs(input) < 0.0001:
+            return  str('{:5.4e}'.format(float(input)))
+        else:
+            return  str('{:5.4f}'.format(float(input)))
 
     def ImportDICOM(self, path):
         # import a DICOM file(reference or calculated)
@@ -1308,6 +1388,10 @@ class ModelEvaluated:
     def CalCorrMatrix(self, calculatedPatchValue, referencePatchValue):
         # calculate the correlation matrix of the calculated and reference DICOMs
         return numpy.corrcoef(calculatedPatchValue, referencePatchValue)
+
+    def CalCovMatrix(self, calculatedPatchValue, referencePatchValue):
+        # calculate the covariance matrix of the calculated and reference DICOMs
+        return  numpy.cov(calculatedPatchValue, referencePatchValue)
 
     def CalculateMean(self, inPatch):
         # calculate the mean value of each patch
