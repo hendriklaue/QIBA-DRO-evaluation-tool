@@ -39,6 +39,7 @@ Required packages or tools(all are in 32bit version)
 -- to manage the data in array form, numpy is used: http://www.scipy.org/
 
 -- to export the results to PDF file, the tool "wkhtmltopdf" is used: http://wkhtmltopdf.org/
+	-> this tools goes along with the Windows installer and the course code, therefore no need to install separately.
 
 ================================================
 To Build installer

@@ -723,7 +723,7 @@ class MainWindow(wx.Frame):
         temp_html.close()
 
         # due to the Python wrapper of wkhtmltopdf "python_wkhtmltopdf" pre-requires xvfb is not available for Windows, here use commandline to call the tool
-        cmd=['wkhtmltopdf', os.path.join(os.getcwd(), 'temp', 'temp.html'), savePath]
+        cmd=[os.path.join(os.getcwd(), 'tools', 'wkhtmltopdf', 'bin', 'wkhtmltopdf'), os.path.join(os.getcwd(), 'temp', 'temp.html'), savePath]
         process = subprocess.Popen(cmd) #, stdout=subprocess.PIPE)
         process.wait()
 
@@ -1034,7 +1034,7 @@ class ModelEvaluated:
         for j in range(self.nrOfColumns):
             VeANOVATable += '<td>f-value: '
             VeANOVATable += str('{:3.2f}'.format(self.Ve_cal_patch_ANOVA_f[j]))
-            VeANOVATable += '<br>'
+            VeANOVATable += '<br>p-value: '
             VeANOVATable += str('{:3.2f}'.format(self.Ve_cal_patch_ANOVA_p[j]))
             VeANOVATable += '</td>'
         VeANOVATable += '</tr>'
