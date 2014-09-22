@@ -183,6 +183,7 @@ class MainWindow(wx.Frame):
         self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
         self.pageModelFitting = wx.Panel(self.noteBookRight)
         self.pageT_Test = wx.Panel(self.noteBookRight)
+        self.pageU_Test = wx.Panel(self.noteBookRight)
         self.pageANOVA = wx.Panel(self.noteBookRight)
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
         self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
@@ -192,6 +193,7 @@ class MainWindow(wx.Frame):
         self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance And Correlation")
         self.noteBookRight.AddPage(self.pageModelFitting, "Model fitting")
         self.noteBookRight.AddPage(self.pageT_Test, "t-test results Viewer")
+        self.noteBookRight.AddPage(self.pageU_Test, "U-test results Viewer")
         self.noteBookRight.AddPage(self.pageANOVA, "ANOVA results Viewer")
 
         # show the calculated images and error images
@@ -260,6 +262,13 @@ class MainWindow(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(self.t_testViewer, 1, wx.EXPAND)
         self.pageT_Test.SetSizer(sizer)
+
+        # page U-test
+        self.U_testViewer = wx.html.HtmlWindow(self.pageU_Test, -1)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(self.U_testViewer, 1, wx.EXPAND)
+        self.pageU_Test.SetSizer(sizer)
 
         # page ANOVA
         self.ANOVAViewer = wx.html.HtmlWindow(self.pageANOVA, -1)
@@ -397,6 +406,7 @@ class MainWindow(wx.Frame):
         self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
         self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
+        self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
         self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
         EvaluateProgressDialog.Update(25)
 
@@ -645,7 +655,11 @@ class MainWindow(wx.Frame):
 
         htmlContent += self.newModel.StatisticsInHTML
 
+        htmlContent += self.newModel.ModelFittingInHtml
+
         htmlContent += self.newModel.T_testResultInHTML
+
+        htmlContent += self.newModel.U_testResultInHTML
 
         htmlContent += self.newModel.ANOVAResultInHTML
 
@@ -683,6 +697,7 @@ class MainWindow(wx.Frame):
         self.covCorrViewer.SetPage('')
         self.modelFittingViewer.SetPage('')
         self.t_testViewer.SetPage('')
+        self.U_testViewer.SetPage('')
         self.ANOVAViewer.SetPage('')
 
     def ClearPanel(self, panel):
@@ -853,6 +868,12 @@ class ModelEvaluated:
         self.Ktrans_cal_patch_ttest_p = [[]for i in range(self.nrOfRows)]
         self.Ve_cal_patch_ttest_p = [[]for i in range(self.nrOfRows)]
 
+        # the U test
+        self.Ktrans_cal_patch_Utest_u = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_Utest_u = [[]for i in range(self.nrOfRows)]
+        self.Ktrans_cal_patch_Utest_p = [[]for i in range(self.nrOfRows)]
+        self.Ve_cal_patch_Utest_p = [[]for i in range(self.nrOfRows)]
+
         # ANOVA
         self.Ktrans_cal_patch_ANOVA_f = []
         self.Ktrans_cal_patch_ANOVA_p = []
@@ -900,11 +921,14 @@ class ModelEvaluated:
         self.Calculate1stAnd3rdQuartileForImportedDICOMs()
         self.CalculateMinAndMaxForImportedDICOMs()
         self.T_TestForImportedDICOMS()
+        self.U_TestForImportedDICOMS()
         self.ANOVAForImportedDICOMS()
 
         # write HTML result
         self.htmlCovCorrResults()
+        self.htmlModelFitting()
         self.htmlT_TestResults()
+        self.htmlU_TestResults()
         self.htmlStatistics()
         self.htmlANOVAResults()
 
@@ -915,9 +939,7 @@ class ModelEvaluated:
         statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max],
                           [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_min, self.Ve_cal_patch_max]]
 
-        # Ktrans planar fitting
-        KtransFitting = '<h2>The planar fitting for calculated Ktrans:</h2>' \
-                            '<p>Ktrans_cal = ' + self.formatFloatTo4DigitsString(self.a_Ktrans) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_Ktrans) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_Ktrans) + '</p>'
+
 
         # Ktrans statistics tables
         KtransStatisticsTable = \
@@ -928,10 +950,7 @@ class ModelEvaluated:
         KtransStatisticsTable += self.EditTable('the median, 1st and 3rd quartile, min. and max. values', ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_max])
 
 
-        # Ve planar fitting
-        VeFitting = \
-                        '<h2>The planar fitting for calculated Ve:</h2>' \
-                            '<p>Ve_cal = ' + self.formatFloatTo4DigitsString(self.a_Ve) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_Ve) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_Ve) + '</p>'
+
 
         # Ve statistics table
         VeStatisticsTable = \
@@ -943,6 +962,20 @@ class ModelEvaluated:
 
         # put the text into html structure
         self.StatisticsInHTML = self.packInHtml(KtransStatisticsTable + '<br>' + VeStatisticsTable)
+
+    def htmlModelFitting(self):
+        # write the model fitting results to html
+
+        # Ktrans planar fitting
+        KtransLinearFitting = '<h2>The linear model fitting for calculated Ktrans:</h2>' \
+                            '<p>Ktrans_cal = ' + self.formatFloatTo4DigitsString(self.a_Ktrans) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_Ktrans) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_Ktrans) + '</p>'
+
+        # Ve planar fitting
+        VeLinearFitting = \
+                        '<h2>The linear model fitting for calculated Ve:</h2>' \
+                            '<p>Ve_cal = ' + self.formatFloatTo4DigitsString(self.a_Ve) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_Ve) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_Ve) + '</p>'
+        self.ModelFittingInHtml = self.packInHtml(KtransLinearFitting + '<br>' + VeLinearFitting)
+
 
     def htmlCovCorrResults(self):
         # write the correlation and covariance results into html
@@ -1052,6 +1085,25 @@ class ModelEvaluated:
         # put the text into html structure
         self.T_testResultInHTML = self.packInHtml(KtransT_TestTable + '<br>' + VeT_TestTable)
 
+    def htmlU_TestResults(self):
+        # write the U-test results into HTML form
+
+        # Ktrans statistics tables
+        KtransU_TestTable = \
+                        '<h2>The Mann-Whitney U test result of each patch in calculated Ktrans map:</h2>'
+
+        KtransU_TestTable += self.EditTable('', ['U-value', 'p-value'], [self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p])
+
+        # Ktrans statistics tables
+        VeU_TestTable = \
+                        '<h2>The Mann-Whitney test result of each patch in calculated Ve map:</h2>'
+
+        VeU_TestTable += self.EditTable('', ['U-value', 'p-value'], [self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p])
+
+
+        # put the text into html structure
+        self.U_testResultInHTML = self.packInHtml(KtransU_TestTable + '<br>' + VeU_TestTable)
+
     def htmlANOVAResults(self):
         # write the ANOVA results into HTML form
 
@@ -1157,9 +1209,17 @@ class ModelEvaluated:
         # getter for the result in HTML.
         return self.covCorrResultsInHtml
 
+    def GetModelFittingInHTML(self):
+        # getter for the result in HTML
+        return self.ModelFittingInHtml
+
     def GetT_TestResultsInHTML(self):
         # getter for the result in HTML.
         return self.T_testResultInHTML
+
+    def GetU_TestResultsInHTML(self):
+        # getter for the result in HTML.
+        return self.U_testResultInHTML
 
     def GetANOVAResultsInHTML(self):
         # getter for the result in HTML.
@@ -1257,6 +1317,11 @@ class ModelEvaluated:
         # call the Ttest function
         self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = self.T_Test_1samp(self.Ktrans_cal_inPatch, self.Ktrans_ref_patchValue)
         self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = self.T_Test_1samp(self.Ve_cal_inPatch, self.Ve_ref_patchValue)
+
+    def U_TestForImportedDICOMS(self):
+        # call the U test function
+        self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p = self.U_Test(self.Ktrans_cal_inPatch, self.Ktrans_ref_inPatch)
+        self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p = self.U_Test(self.Ve_cal_inPatch, self.Ve_ref_inPatch)
 
     def ANOVAForImportedDICOMS(self):
         # call the ANOVA function
@@ -1446,6 +1511,16 @@ class ModelEvaluated:
                 temp_t[i].append(stats.ttest_1samp(dataToBeTested[i][j], expectedMean[i][j])[0])
                 temp_p[i].append(stats.ttest_1samp(dataToBeTested[i][j], expectedMean[i][j])[1])
         return temp_t, temp_p
+
+    def U_Test(self, dataToBeTested, referenceData):
+        # do Mann-Whitney U test
+        temp_u = [[]for i in range(self.nrOfRows) ]
+        temp_p = [[]for i in range(self.nrOfRows) ]
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                temp_u[i].append(stats.mannwhitneyu(dataToBeTested[i][j], referenceData[i][j])[0])
+                temp_p[i].append(stats.mannwhitneyu(dataToBeTested[i][j], referenceData[i][j])[1])
+        return temp_u, temp_p
 
     def ANOVA_oneway_K(self, inPatch_K):
         # do ANOVA for each row of calculated Ktrans, to see if there is significant difference with regarding to Ve

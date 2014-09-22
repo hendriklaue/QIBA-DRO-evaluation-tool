@@ -39,7 +39,7 @@ shortcut_table = [
 msi_data = {"Shortcut": shortcut_table}
 
 # Change some default MSI options and specify the use of the above defined tables
-bdist_msi_options = {'data': msi_data}
+bdist_msi_options = {'data': msi_data, "upgrade_code": "{96a85bac-52af-4019-9e94-3afcc9e1ad0c}"}
 
 # Declare the packages that will be loaded in the main script, and the files that should be packed with the installer
 build_exe_options = {"packages": ["os", "platform", "wx", "dicom", "pylab","numpy","scipy","matplotlib", "time"], 
