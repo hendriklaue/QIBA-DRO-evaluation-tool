@@ -42,13 +42,13 @@ import wx
 import wx.html
 import dicom
 import numpy
-from scipy import stats
+from scipy import stats, optimize
+from math import log10
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
-import pylab
 import subprocess
 
 class MainWindow(wx.Frame):
@@ -118,8 +118,8 @@ class MainWindow(wx.Frame):
         self.selectedFilePath = ''
         # setup the tree control widget for file viewing and selection
 
-        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'),# style=wx.DIRCTRL_SHOW_FILTERS,
-                                             filter="DICOM files (*.dcm)|*.dcm")
+        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
+                                             filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin)|*.bin")
 
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
 
@@ -380,20 +380,20 @@ class MainWindow(wx.Frame):
         EvaluateProgressDialog.Update(10)
 
         # make sure the import path is valid
-        if not self.newModel.ImportDICOM(self.path_Ktrans_ref):
-            self.SetStatusText('Please load a proper DICOM file as reference Ktrans.')
+        if not self.newModel.ImportFile(self.path_Ktrans_ref):
+            self.SetStatusText('Please load a proper file as reference Ktrans.')
             return False
 
-        if not self.newModel.ImportDICOM(self.path_Ve_ref):
-            self.SetStatusText('Please load a proper DICOM file as reference Ve.')
+        if not self.newModel.ImportFile(self.path_Ve_ref):
+            self.SetStatusText('Please load a proper file as reference Ve.')
             return False
 
-        if not self.newModel.ImportDICOM(self.path_Ktrans_cal):
-            self.SetStatusText('Please load a proper DICOM file as calculated Ktrans.')
+        if not self.newModel.ImportFile(self.path_Ktrans_cal):
+            self.SetStatusText('Please load a proper file as calculated Ktrans.')
             return False
 
-        if not self.newModel.ImportDICOM(self.path_Ve_cal):
-            self.SetStatusText('Please load a proper DICOM file as calculated ve.')
+        if not self.newModel.ImportFile(self.path_Ve_cal):
+            self.SetStatusText('Please load a proper file as calculated ve.')
             return False
         EvaluateProgressDialog.Update(15)
 
@@ -905,14 +905,15 @@ class ModelEvaluated:
     def Evaluate(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # do evaluation
         # pre-process for the imported DICOMs
-        self.ImportDICOMs(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
+        self.ImportFiles(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
         self.RescaleImportedDICOMs()
         self.CalculateErrorForImportedDICOMs()
         self.RearrangeImportedDICOMs()
         self.EstimatePatchForImportedDICOMs('MEAN')
 
         # evaluation operations
-        self.FittingPlanarForImportedDICOMs()
+        self.FittingLinearModelForImportedDICOMs()
+        self.FittingLogarithmicModelForImportedDICOMs()
         self.CalculateCorrelationForImportedDICOMs()
         self.CalculateCovarianceForImportedDICOMs()
         self.CalculateMeanForImportedDICOMs()
@@ -968,13 +969,55 @@ class ModelEvaluated:
 
         # Ktrans planar fitting
         KtransLinearFitting = '<h2>The linear model fitting for calculated Ktrans:</h2>' \
-                            '<p>Ktrans_cal = ' + self.formatFloatTo4DigitsString(self.a_Ktrans) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_Ktrans) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_Ktrans) + '</p>'
+                            '<p>Ktrans_cal = ' + self.formatFloatTo4DigitsString(self.a_lin_Ktrans) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_lin_Ktrans) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_lin_Ktrans) + '</p>'
+
+        # Ktrans logarithmic fitting
+        KtransLogarithmicFitting = '<h2>The logarithmic model fitting for calculated Ktrans:</h2>' \
+                                        '<table border="1" cellspacing="10">'
+
+        for j in range(self.nrOfColumns):
+            KtransLogarithmicFitting += '<tr>'
+            KtransLogarithmicFitting += '<th>Ref. Ve = '
+            KtransLogarithmicFitting += str('{:3.2f}'.format(zip(*self.Ve_ref_patchValue)[j][0]))
+            KtransLogarithmicFitting += '</th>'
+
+            KtransLogarithmicFitting += '<td align="right">Ktrans_cal = '
+            KtransLogarithmicFitting += self.formatFloatTo4DigitsString(self.a_log_Ktrans[j])
+            KtransLogarithmicFitting += ' + '
+            KtransLogarithmicFitting += self.formatFloatTo4DigitsString(self.corr_KK[j])
+            KtransLogarithmicFitting += ' * log10(Ktrans_ref)'
+            KtransLogarithmicFitting += '</td>'
+            KtransLogarithmicFitting += '</tr>'
+
+        KtransLogarithmicFitting += '</table>'
+
 
         # Ve planar fitting
         VeLinearFitting = \
                         '<h2>The linear model fitting for calculated Ve:</h2>' \
-                            '<p>Ve_cal = ' + self.formatFloatTo4DigitsString(self.a_Ve) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_Ve) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_Ve) + '</p>'
-        self.ModelFittingInHtml = self.packInHtml(KtransLinearFitting + '<br>' + VeLinearFitting)
+                            '<p>Ve_cal = ' + self.formatFloatTo4DigitsString(self.a_lin_Ve) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_lin_Ve) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_lin_Ve) + '</p>'
+
+        # Ve logarithmic fitting
+        VeLogarithmicFitting = '<h2>The logarithmic model fitting for calculated Ve:</h2>'\
+                        '<table border="1" cellspacing="10">'
+
+        for i in range(self.nrOfRows):
+            VeLogarithmicFitting += '<tr>'
+            VeLogarithmicFitting += '<th>Ref. Ktrans = '
+            VeLogarithmicFitting += str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))
+            VeLogarithmicFitting += '</th>'
+
+            VeLogarithmicFitting += '<td align="right">Ve_cal = '
+            VeLogarithmicFitting += self.formatFloatTo4DigitsString(self.a_log_Ve[i])
+            VeLogarithmicFitting += ' + '
+            VeLogarithmicFitting += self.formatFloatTo4DigitsString(self.corr_KV[i])
+            VeLogarithmicFitting += ' * log10(Ve_ref)'
+            VeLogarithmicFitting += '</td>'
+            VeLogarithmicFitting += '</tr>'
+        VeLogarithmicFitting += '</table>'
+
+
+        self.ModelFittingInHtml = self.packInHtml(KtransLinearFitting + '<br>' + KtransLogarithmicFitting + '<br>' + VeLinearFitting + '<br>' + VeLogarithmicFitting)
 
 
     def htmlCovCorrResults(self):
@@ -986,7 +1029,7 @@ class ModelEvaluated:
                             '<tr>'
         for j in range(self.nrOfColumns):
             KK_Table += '<th>Ref. Ve = '
-            KK_Table += str('{:3.2f}'.format(self.Ve_ref_patchValue[j][0]))
+            KK_Table += str('{:3.2f}'.format(zip(*self.Ve_ref_patchValue)[j][0]))
             KK_Table += '</th>'
         KK_Table += '</tr>'
 
@@ -1026,7 +1069,7 @@ class ModelEvaluated:
                             '<tr>'
         for j in range(self.nrOfColumns):
             VK_Table += '<th>Ref. Ve = '
-            VK_Table += str('{:3.2f}'.format(self.Ve_ref_patchValue[j][0]))
+            VK_Table += str('{:3.2f}'.format(zip(*self.Ve_ref_patchValue)[j][0]))
             VK_Table += '</th>'
         VK_Table += '</tr>'
 
@@ -1139,7 +1182,7 @@ class ModelEvaluated:
                             '<tr>'
         for j in range(self.nrOfColumns):
             VeANOVATable += '<th>Ve = '
-            VeANOVATable += str('{:3.2f}'.format(self.Ve_ref_patchValue[j][0]))
+            VeANOVATable += str('{:3.2f}'.format(zip(*self.Ve_ref_patchValue)[j][0]))
             VeANOVATable += '</th>'
         VeANOVATable += '</tr>'
 
@@ -1225,12 +1268,12 @@ class ModelEvaluated:
         # getter for the result in HTML.
         return self.ANOVAResultInHTML
 
-    def ImportDICOMs(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
+    def ImportFiles(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # import the DICOM files for evaluation.
-        self.Ktrans_ref_raw = self.ImportDICOM(path_K_ref)
-        self.Ve_ref_raw = self.ImportDICOM(path_V_ref)
-        self.Ktrans_cal_raw = self.ImportDICOM(path_K_cal)
-        self.Ve_cal_raw = self.ImportDICOM(path_V_cal)
+        self.Ktrans_ref_raw = self.ImportFile(path_K_ref)
+        self.Ve_ref_raw = self.ImportFile(path_V_ref)
+        self.Ktrans_cal_raw = self.ImportFile(path_K_cal)
+        self.Ve_cal_raw = self.ImportFile(path_V_cal)
 
     def RescaleImportedDICOMs(self):
         # rescale the imported DICOM files
@@ -1261,10 +1304,15 @@ class ModelEvaluated:
         self.Ktrans_cal_patchValue = self.EstimatePatch(self.Ktrans_cal_inPatch, patchValueMethod)
         self.Ve_cal_patchValue = self.EstimatePatch(self.Ve_cal_inPatch, patchValueMethod)
 
-    def FittingPlanarForImportedDICOMs(self):
+    def FittingLinearModelForImportedDICOMs(self):
         # fit a planar for the calculated Ktrans and Ve maps
-        self.a_Ktrans, self.b_Ktrans, self.c_Ktrans = self.FittingPlanar(self.Ktrans_cal_patchValue)
-        self.a_Ve, self.b_Ve, self.c_Ve = self.FittingPlanar(self.Ve_cal_patchValue)
+        self.a_lin_Ktrans, self.b_lin_Ktrans, self.c_lin_Ktrans = self.FittingLinearModel(self.Ktrans_cal_patchValue)
+        self.a_lin_Ve, self.b_lin_Ve, self.c_lin_Ve = self.FittingLinearModel(self.Ve_cal_patchValue)
+
+    def FittingLogarithmicModelForImportedDICOMs(self):
+        # fitting logarithmic model
+        self.a_log_Ktrans,self.b_log_Ktrans = self.FittingLogarithmicModel_K(self.Ktrans_cal_patchValue, self.Ktrans_ref_patchValue) # , self.c_log_Ktrans
+        self.a_log_Ve,self.b_log_Ve = self.FittingLogarithmicModel_V(self.Ve_cal_patchValue, self.Ve_ref_patchValue) # , self.c_log_Ve
 
     def CalculateCorrelationForImportedDICOMs(self):
         # calculate the correlation between the calculated parameters and the reference parameters
@@ -1287,7 +1335,6 @@ class ModelEvaluated:
         for j in range(self.nrOfRows):
             self.cov_VV.append(self.CalCovMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
             self.cov_KV.append(self.CalCovMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-
 
     def CalculateMeanForImportedDICOMs(self):
         # call the mean calculation function
@@ -1336,14 +1383,20 @@ class ModelEvaluated:
         else:
             return  str('{:5.4f}'.format(float(input)))
 
-    def ImportDICOM(self, path):
-        # import a DICOM file(reference or calculated)
-        # it should be able to deal with different data type like DICOM, binary and so on. right now it's possible for DICOM
-        try:
-            return  dicom.read_file(path)
-        except:
-            wx.MessageBox('Invalid file path!\n' + '(' + path +')', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
-            return False
+    def ImportFile(self, path):
+        # import a file(reference or calculated)
+        # it should be able to deal with different data type like DICOM, binary and so on.
+
+        fileName, fileExtension = os.path.splitext(path)
+        if fileExtension == '.dcm':
+            try:
+                return  dicom.read_file(path)
+            except:
+                wx.MessageBox('Invalid file path!\n' + '(' + path +')', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
+                return False
+        elif fileExtension == '.bin':
+            pass
+
 
     def Rescale(self, ds):
         # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.
@@ -1418,8 +1471,8 @@ class ModelEvaluated:
                     temp[i].append(numpy.median(dataInPatch[i][j]))
         return temp
 
-    def FittingPlanar(self, calculatedPatchValue):
-        # fitting the planar with 3D data, i.e. Ktrans_ref, Ve_ref, Ktrans_cal(Ve_cal). So that the parameter dependency could be seen
+    def FittingLinearModel(self, calculatedPatchValue):
+        # fitting the linear model, i.e. Ktrans_ref, Ve_ref, Ktrans_cal(Ve_cal). So that the parameter dependency could be seen
         # the fitting algorithm relies on the paper 'least squares fitting of data', David Eberly, Geometric tools, LLC
         # assume x, y, z denote Ktrans_ref, Ve_ref and Ktrans_cal(Ve_cal) respectively.
         x = []
@@ -1449,6 +1502,38 @@ class ModelEvaluated:
 
         [a, b ,c] = numpy.squeeze(numpy.array( numpy.linalg.inv(left) * right ))
         return a, b, c
+
+    def func_for_log_calculation(self,x, a, b):
+        # assistant function for calculating logarithmic model fitting
+        return a + b * numpy.log10(x)
+
+    def FittingLogarithmicModel_K(self, calculated, reference):
+        # fit the calculated Ktrans with reference data in logarithmic model
+        temp_a = []
+        temp_b = []
+        temp_c = []
+
+        for j in range(self.nrOfColumns):
+            popt, pcov = optimize.curve_fit(self.func_for_log_calculation, zip(*reference)[j], zip(*calculated)[j])
+            temp_a.append(popt[0])
+            temp_b.append(popt[1])
+            #temp_c.append(popt[2])
+
+        return temp_a, temp_b#, temp_c
+
+    def FittingLogarithmicModel_V(self, calculated, reference):
+        # fit the calculated Ve with reference data in logarithmic model
+        temp_a = []
+        temp_b = []
+        temp_c = []
+
+        for i in range(self.nrOfRows):
+            popt, pcov = optimize.curve_fit(self.func_for_log_calculation, reference[i], calculated[i])
+            temp_a.append(popt[0])
+            temp_b.append(popt[1])
+            # temp_c.append(popt[2])
+
+        return temp_a, temp_b#, temp_c
 
     def CalCorrMatrix(self, calculatedPatchValue, referencePatchValue):
         # calculate the correlation matrix of the calculated and reference DICOMs
