@@ -50,6 +50,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
 import subprocess
+import struct
 
 class MainWindow(wx.Frame):
     '''
@@ -102,6 +103,7 @@ class MainWindow(wx.Frame):
         self.menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
         # menubar.Bind(wx.EVT_MENU, self.OnClearModelList, OnClearModelList)
         self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceKtrans, OnLoadKtransRef)
+        self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceVe, OnLoadVeRef)
         self.menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
         self.menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
 
@@ -119,7 +121,7 @@ class MainWindow(wx.Frame):
         # setup the tree control widget for file viewing and selection
 
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
-                                             filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin)|*.bin")
+                                             filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw")
 
         self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
 
@@ -223,7 +225,7 @@ class MainWindow(wx.Frame):
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
-        sizer.Add(self.verticalLine, 1, wx.EXPAND)
+        sizer.Add(self.verticalLine, 2, wx.EXPAND)
         sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
         self.pageHistogram.SetSizer(sizer)
 
@@ -300,25 +302,25 @@ class MainWindow(wx.Frame):
 
     def OnLoadReferenceKtrans(self, event):
         # Import the reference Ktrans
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ktrans_ref = dlg.GetPath()
             self.SetStatusText('Reference Ktrans loaded.')
         else:
-            self.SetStatusText('Reference Ktrans is not loaded!')
+            self.SetStatusText('Reference Ktrans was NOT loaded!')
 
     def OnLoadReferenceVe(self, event):
         # Import the reference Ve
-        dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_Ve_ref = dlg.GetPath()
             self.SetStatusText('Reference Ve loaded.')
         else:
-            self.SetStatusText('Reference Ve is not loaded!')
+            self.SetStatusText('Reference Ve was NOT loaded!')
 
     def OnLoadCalculatedKtrans(self):
         # load the selected DICOM as calculated Ktrans
-        if os.path.splitext(self.selectedFilePath)[1] == '.dcm':
+        if os.path.splitext(self.selectedFilePath)[1] == '.dcm' or '.bin' or '.raw':
             self.path_Ktrans_cal = self.selectedFilePath
             self.SetStatusText('Calculated Ktrans loaded.')
         else:
@@ -330,7 +332,7 @@ class MainWindow(wx.Frame):
 
     def OnLoadCalculatedVe(self):
         # load the selected DICOM as calculated Ve
-        if os.path.splitext(self.selectedFilePath)[1] == '.dcm':
+        if os.path.splitext(self.selectedFilePath)[1] == '.dcm' or '.bin' or '.raw':
             self.path_Ve_cal = self.selectedFilePath
             self.SetStatusText('Calculated Ve loaded.')
         else:
@@ -361,8 +363,8 @@ class MainWindow(wx.Frame):
         '''
 
         # initialize one progress bar
-        max = 100
-        EvaluateProgressDialog = wx.ProgressDialog('Evaluating...', 'The progress of evaluation:', maximum = max)
+       # max = 100
+        #EvaluateProgressDialog = wx.ProgressDialog('Evaluating...', 'The progress of evaluation:', maximum = max)
 
         # clear the interface if they were used before
         self.ClearInterface()
@@ -373,11 +375,11 @@ class MainWindow(wx.Frame):
 
         # status bar
         self.SetStatusText('Evaluating...')
-        EvaluateProgressDialog.Update(5)
+        #EvaluateProgressDialog.Update(5)
 
         # create new model object to evaluated on
         self.newModel = ModelEvaluated()
-        EvaluateProgressDialog.Update(10)
+        #EvaluateProgressDialog.Update(10)
 
         # make sure the import path is valid
         if not self.newModel.ImportFile(self.path_Ktrans_ref):
@@ -395,11 +397,11 @@ class MainWindow(wx.Frame):
         if not self.newModel.ImportFile(self.path_Ve_cal):
             self.SetStatusText('Please load a proper file as calculated ve.')
             return False
-        EvaluateProgressDialog.Update(15)
+        #EvaluateProgressDialog.Update(15)
 
         # call the method to execute evaluation
         self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
-        EvaluateProgressDialog.Update(20)
+        #EvaluateProgressDialog.Update(20)
 
         # show the results in the main window
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
@@ -408,26 +410,26 @@ class MainWindow(wx.Frame):
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
         self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
-        EvaluateProgressDialog.Update(25)
+        #EvaluateProgressDialog.Update(25)
 
         # push the new tested model to the list
         self.testedModels.append(self.newModel)
-        EvaluateProgressDialog.Update(30)
+        #EvaluateProgressDialog.Update(30)
 
         # draw the figures
         self.ShowImagePreview()
-        EvaluateProgressDialog.Update(35)
+        #EvaluateProgressDialog.Update(35)
         self.DrawScatterPlot()
-        EvaluateProgressDialog.Update(50)
+        #EvaluateProgressDialog.Update(50)
         self.DrawHistograms()
-        EvaluateProgressDialog.Update(90)
+        #EvaluateProgressDialog.Update(90)
         self.DrawBoxPlot()
-        EvaluateProgressDialog.Update(95)
+        #EvaluateProgressDialog.Update(95)
 
         # status bar
         self.SetStatusText('Evaluation finished.')
-        EvaluateProgressDialog.Update(100)
-        EvaluateProgressDialog.Destroy()
+        #EvaluateProgressDialog.Update(100)
+        #EvaluateProgressDialog.Destroy()
 
         # enable some widgets
         self.buttonEvaluate.Enable()
@@ -436,7 +438,7 @@ class MainWindow(wx.Frame):
     def ShowImagePreview(self):
         # show calculated images and the error images
         subplotK_Cal = self.figureImagePreview.add_subplot(2,3,1)
-        handler = subplotK_Cal.imshow(self.newModel.Ktrans_cal_rescaled, cmap = 'bone', interpolation='nearest')
+        handler = subplotK_Cal.imshow(self.newModel.Ktrans_cal_inRow, cmap = 'bone', interpolation='nearest')
         divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
         cax = divider.append_axes("right", "5%", pad="3%")
         subplotK_Cal.get_figure().colorbar(handler, cax = cax).set_label('Ktrans[1/min]') # show color bar and the label
@@ -457,7 +459,7 @@ class MainWindow(wx.Frame):
         subplotK_Err_Normalized.set_title('Normalized error map of Ktrans')
 
         subplotV_Cal = self.figureImagePreview.add_subplot(2,3,4)
-        handler = subplotV_Cal.imshow(self.newModel.Ve_cal_rescaled, cmap = 'bone', interpolation='nearest')
+        handler = subplotV_Cal.imshow(self.newModel.Ve_cal_inRow, cmap = 'bone', interpolation='nearest')
         divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
         cax = divider.append_axes("right", "5%", pad="3%")
         subplotV_Cal.get_figure().colorbar(handler, cax = cax).set_label('ve[]')
@@ -486,8 +488,8 @@ class MainWindow(wx.Frame):
         '''
         subPlotK = self.figureScatter.add_subplot(2, 1, 1)
         subPlotK.clear()
-        plotRaw = subPlotK.scatter(self.newModel.Ktrans_ref_inPatch, self.newModel.Ktrans_ref_inPatch, color = 'g', alpha = 0.25, label = 'reference value')
-        plotUniformed = subPlotK.scatter(self.newModel.Ktrans_ref_inPatch, self.newModel.Ktrans_cal_inPatch, color = 'b', alpha = 0.25, label = 'calculated value')
+        plotRaw = subPlotK.scatter(self.newModel.Ktrans_ref, self.newModel.Ktrans_ref, color = 'g', alpha = 0.25, label = 'reference value')
+        plotUniformed = subPlotK.scatter(self.newModel.Ktrans_ref, self.newModel.Ktrans_cal, color = 'b', alpha = 0.25, label = 'calculated value')
         # plotRef = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempRefK, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
         subPlotK.legend(loc = 'upper left')
         subPlotK.set_xlabel('Reference Ktrans')
@@ -496,8 +498,8 @@ class MainWindow(wx.Frame):
 
         subPlotV = self.figureScatter.add_subplot(2, 1, 2)
         subPlotV.clear()
-        plotRaw = subPlotV.scatter(self.newModel.Ve_ref_inPatch, self.newModel.Ve_ref_inPatch, color = 'g', alpha = 0.25, label = 'reference value')
-        plotUniformed = subPlotV.scatter(self.newModel.Ve_ref_inPatch, self.newModel.Ve_cal_inPatch, color = 'b', alpha = 0.25, label = 'calculated value')
+        plotRaw = subPlotV.scatter(self.newModel.Ve_ref, self.newModel.Ve_ref, color = 'g', alpha = 0.25, label = 'reference value')
+        plotUniformed = subPlotV.scatter(self.newModel.Ve_ref, self.newModel.Ve_cal, color = 'b', alpha = 0.25, label = 'calculated value')
         # plotRef = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempRefV, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
         subPlotV.legend(loc = 'upper left')
         subPlotV.set_xlabel('Reference Ve')
@@ -518,8 +520,8 @@ class MainWindow(wx.Frame):
         temp = []
         referValueK = []
         for i in range(self.newModel.nrOfRows):
-            temp.extend(self.newModel.Ktrans_cal_inPatch[i])
-            referValueK.append(float('{0:.2f}'.format(self.newModel.Ktrans_ref_inPatch[i][0][0])))
+            temp.extend(self.newModel.Ktrans_cal[i])
+            referValueK.append(float('{0:.2f}'.format(self.newModel.Ktrans_ref[i][0][0])))
         subPlotK.boxplot(temp)
 
         subPlotV = self.figureBoxPlot.add_subplot(2, 1, 2)
@@ -528,8 +530,8 @@ class MainWindow(wx.Frame):
         referValueV = []
         for j in range(self.newModel.nrOfColumns):
             for i in range(self.newModel.nrOfRows):
-                temp.append(self.newModel.Ve_cal_inPatch[i][j])
-            referValueV.append(float('{0:.2f}'.format(zip(*self.newModel.Ve_ref_inPatch)[j][0][0])))
+                temp.append(self.newModel.Ve_cal[i][j])
+            referValueV.append(float('{0:.2f}'.format(zip(*self.newModel.Ve_ref)[j][0][0])))
         subPlotV.boxplot(temp)
 
         # decorate Ktrans plot
@@ -572,37 +574,37 @@ class MainWindow(wx.Frame):
             for j in range(self.newModel.nrOfColumns):
                 subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
                 # subPlot_K.clear()
-                subPlot_K.hist(self.newModel.Ktrans_cal_inPatch[i][j], nrOfBins)
-                minPatch_K = numpy.min(self.newModel.Ktrans_cal_inPatch[i][j])
-                maxPatch_K = numpy.max(self.newModel.Ktrans_cal_inPatch[i][j])
-                meanPatch_K = numpy.mean(self.newModel.Ktrans_cal_inPatch[i][j])
+                subPlot_K.hist(self.newModel.Ktrans_cal[i][j], nrOfBins)
+                minPatch_K = numpy.min(self.newModel.Ktrans_cal[i][j])
+                maxPatch_K = numpy.max(self.newModel.Ktrans_cal[i][j])
+                meanPatch_K = numpy.mean(self.newModel.Ktrans_cal[i][j])
                 subPlot_K.set_xticks([minPatch_K, maxPatch_K])
                 subPlot_K.set_xticklabels([str(minPatch_K), str(maxPatch_K)])
                 subPlot_K.axvline(meanPatch_K, color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
                 subPlot_K.set_ylim([0, pixelCountInPatch])
                 subPlot_K.text(meanPatch_K + 0.01 * meanPatch_K, 0.9 * pixelCountInPatch, str(meanPatch_K), size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
-                    subPlot_K.set_xlabel('Ve = ' + str(self.newModel.Ve_ref_inPatch[i][j][0]))
+                    subPlot_K.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
                     subPlot_K.xaxis.set_label_position('top')
                 if j == 0:
-                    subPlot_K.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref_inPatch[i][j][0]))
+                    subPlot_K.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
 
                 subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1 )
                 # subPlot_V.clear()
-                subPlot_V.hist(self.newModel.Ve_cal_inPatch[i][j], nrOfBins)
-                minPatch_V = numpy.min(self.newModel.Ve_cal_inPatch[i][j])
-                maxPatch_V = numpy.max(self.newModel.Ve_cal_inPatch[i][j])
-                meanPatch_V = numpy.mean(self.newModel.Ve_cal_inPatch[i][j])
+                subPlot_V.hist(self.newModel.Ve_cal[i][j], nrOfBins)
+                minPatch_V = numpy.min(self.newModel.Ve_cal[i][j])
+                maxPatch_V = numpy.max(self.newModel.Ve_cal[i][j])
+                meanPatch_V = numpy.mean(self.newModel.Ve_cal[i][j])
                 subPlot_V.set_xticks([minPatch_V, maxPatch_V])
                 subPlot_V.set_xticklabels([str(minPatch_V), str(maxPatch_V)])
                 subPlot_V.axvline(meanPatch_V, color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
                 subPlot_V.set_ylim([0, pixelCountInPatch])
                 subPlot_V.text(meanPatch_V + 0.01 * meanPatch_V, 0.9 * pixelCountInPatch, str(meanPatch_V), size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
-                    subPlot_V.set_xlabel('Ve = ' + str(self.newModel.Ve_ref_inPatch[i][j][0]))
+                    subPlot_V.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
                     subPlot_V.xaxis.set_label_position('top')
                 if j == 0:
-                    subPlot_V.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref_inPatch[i][j][0]))
+                    subPlot_V.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
 
 
         self.figureHist_Ve.tight_layout()
@@ -796,33 +798,25 @@ class ModelEvaluated:
         self.nrOfRows = 6
         self.nrOfColumns = 5
         self.patchLen = 10
-        self.rescaleIntercept = 0
-        self.rescaleSlope = 1
         self.METHOD = '' # for patch value decision
 
         # the raw image data as pixel flow
-        self.Ktrans_ref_raw = []
-        self.Ve_ref_raw = []
-        self.Ktrans_cal_raw = []
-        self.Ve_cal_raw = []
+        self.Ktrans_ref = []
+        self.Ve_ref = []
+        self.Ktrans_cal = []
+        self.Ve_cal = []
+
+        # the image data in row, for showing the preview of the images
+        self.Ktrans_ref_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
+        self.Ve_ref_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
+        self.Ktrans_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
+        self.Ve_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
 
         # the error map between calculated and reference file
         self.Ktrans_error = []
         self.Ve_error = []
         self.Ktrans_error_normalized = []
         self.Ve_error_normalized = []
-
-        # the rescaled image data
-        self.Ktrans_ref_rescaled = []
-        self.Ve_ref_rescaled = []
-        self.Ktrans_cal_rescaled = []
-        self.Ve_cal_rescaled = []
-
-        # the rearranged image in patches
-        self.Ktrans_ref_inPatch = [[[] for j in range(self.nrOfColumns)] for i in range(self.nrOfRows) ]
-        self.Ve_ref_inPatch = [[[] for j in range(self.nrOfColumns)] for i in range(self.nrOfRows) ]
-        self.Ktrans_cal_inPatch = [[[] for j in range(self.nrOfColumns)] for i in range(self.nrOfRows) ]
-        self.Ve_cal_inPatch = [[[] for j in range(self.nrOfColumns)] for i in range(self.nrOfRows) ]
 
         # the mean value(or median value) matrix of a calculated image
         self.Ktrans_ref_patchValue = [[]for i in range(self.nrOfRows)]
@@ -903,27 +897,26 @@ class ModelEvaluated:
         self.resultInHTML = ''
 
     def Evaluate(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
-        # do evaluation
-        # pre-process for the imported DICOMs
+        # evaluation
+        # pre-process for the imported files
         self.ImportFiles(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
-        self.RescaleImportedDICOMs()
-        self.CalculateErrorForImportedDICOMs()
-        self.RearrangeImportedDICOMs()
-        self.EstimatePatchForImportedDICOMs('MEAN')
+
+        self.CalculateErrorForModel()
+        self.EstimatePatchForModel('MEAN')
 
         # evaluation operations
-        self.FittingLinearModelForImportedDICOMs()
-        self.FittingLogarithmicModelForImportedDICOMs()
-        self.CalculateCorrelationForImportedDICOMs()
-        self.CalculateCovarianceForImportedDICOMs()
-        self.CalculateMeanForImportedDICOMs()
-        self.CalculateMedianForImportedDICOMs()
-        self.CalculateSTDDeviationForImportedDICOMs()
-        self.Calculate1stAnd3rdQuartileForImportedDICOMs()
-        self.CalculateMinAndMaxForImportedDICOMs()
-        self.T_TestForImportedDICOMS()
-        self.U_TestForImportedDICOMS()
-        self.ANOVAForImportedDICOMS()
+        self.FittingLinearModelForModel()
+        self.FittingLogarithmicModelForModel()
+        self.CalculateCorrelationForModel()
+        self.CalculateCovarianceForModel()
+        self.CalculateMeanForModel()
+        self.CalculateMedianForModel()
+        self.CalculateSTDDeviationForModel()
+        self.Calculate1stAnd3rdQuartileForModel()
+        self.CalculateMinAndMaxForModel()
+        self.T_TestForModel()
+        self.U_TestForModel()
+        self.ANOVAForModel()
 
         # write HTML result
         self.htmlCovCorrResults()
@@ -1270,51 +1263,37 @@ class ModelEvaluated:
 
     def ImportFiles(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # import the DICOM files for evaluation.
-        self.Ktrans_ref_raw = self.ImportFile(path_K_ref)
-        self.Ve_ref_raw = self.ImportFile(path_V_ref)
-        self.Ktrans_cal_raw = self.ImportFile(path_K_cal)
-        self.Ve_cal_raw = self.ImportFile(path_V_cal)
+        self.Ktrans_ref_inRow, self.Ktrans_ref = self.ImportFile(path_K_ref)
+        self.Ve_ref_inRow, self.Ve_ref = self.ImportFile(path_V_ref)
+        self.Ktrans_cal_inRow, self.Ktrans_cal = self.ImportFile(path_K_cal)
+        self.Ve_cal_inRow, self.Ve_cal = self.ImportFile(path_V_cal)
 
-    def RescaleImportedDICOMs(self):
-        # rescale the imported DICOM files
-        self.Ktrans_ref_rescaled = self.Rescale(self.Ktrans_ref_raw)
-        self.Ve_ref_rescaled = self.Rescale(self.Ve_ref_raw)
-        self.Ktrans_cal_rescaled = self.Rescale(self.Ktrans_cal_raw)
-        self.Ve_cal_rescaled = self.Rescale(self.Ve_cal_raw)
-
-    def CalculateErrorForImportedDICOMs(self):
+    def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
-        self.Ktrans_error = self.CalculateError(self.Ktrans_ref_rescaled, self.Ktrans_cal_rescaled)
-        self.Ve_error = self.CalculateError(self.Ve_ref_rescaled, self.Ve_cal_rescaled)
+        self.Ktrans_error = self.CalculateError(self.Ktrans_cal_inRow, self.Ktrans_ref_inRow)
+        self.Ve_error = self.CalculateError(self.Ve_cal_inRow, self.Ve_ref_inRow)
 
-        self.Ktrans_error_normalized = self.CalculateNormalizedError(self.Ktrans_cal_rescaled, self.Ktrans_ref_rescaled)
-        self.Ve_error_normalized = self.CalculateNormalizedError(self.Ve_cal_rescaled, self.Ve_ref_rescaled)
+        self.Ktrans_error_normalized = self.CalculateNormalizedError(self.Ktrans_cal_inRow, self.Ktrans_ref_inRow)
+        self.Ve_error_normalized = self.CalculateNormalizedError(self.Ve_cal_inRow, self.Ve_ref_inRow)
 
-    def RearrangeImportedDICOMs(self):
-        # rearrange the patched for each the imported DICOM
-        self.Ktrans_ref_inPatch = self.Rearrange(self.Ktrans_ref_rescaled)
-        self.Ve_ref_inPatch = self.Rearrange(self.Ve_ref_rescaled)
-        self.Ktrans_cal_inPatch = self.Rearrange(self.Ktrans_cal_rescaled)
-        self.Ve_cal_inPatch = self.Rearrange(self.Ve_cal_rescaled)
-
-    def EstimatePatchForImportedDICOMs(self, patchValueMethod):
+    def EstimatePatchForModel(self, patchValueMethod):
         # estimate the value to represent the patches for each imported DICOM
-        self.Ktrans_ref_patchValue = self.EstimatePatch(self.Ktrans_ref_inPatch, patchValueMethod)
-        self.Ve_ref_patchValue = self.EstimatePatch(self.Ve_ref_inPatch, patchValueMethod)
-        self.Ktrans_cal_patchValue = self.EstimatePatch(self.Ktrans_cal_inPatch, patchValueMethod)
-        self.Ve_cal_patchValue = self.EstimatePatch(self.Ve_cal_inPatch, patchValueMethod)
+        self.Ktrans_ref_patchValue = self.EstimatePatch(self.Ktrans_ref, patchValueMethod)
+        self.Ve_ref_patchValue = self.EstimatePatch(self.Ve_ref, patchValueMethod)
+        self.Ktrans_cal_patchValue = self.EstimatePatch(self.Ktrans_cal, patchValueMethod)
+        self.Ve_cal_patchValue = self.EstimatePatch(self.Ve_cal, patchValueMethod)
 
-    def FittingLinearModelForImportedDICOMs(self):
+    def FittingLinearModelForModel(self):
         # fit a planar for the calculated Ktrans and Ve maps
         self.a_lin_Ktrans, self.b_lin_Ktrans, self.c_lin_Ktrans = self.FittingLinearModel(self.Ktrans_cal_patchValue)
         self.a_lin_Ve, self.b_lin_Ve, self.c_lin_Ve = self.FittingLinearModel(self.Ve_cal_patchValue)
 
-    def FittingLogarithmicModelForImportedDICOMs(self):
+    def FittingLogarithmicModelForModel(self):
         # fitting logarithmic model
         self.a_log_Ktrans,self.b_log_Ktrans = self.FittingLogarithmicModel_K(self.Ktrans_cal_patchValue, self.Ktrans_ref_patchValue) # , self.c_log_Ktrans
         self.a_log_Ve,self.b_log_Ve = self.FittingLogarithmicModel_V(self.Ve_cal_patchValue, self.Ve_ref_patchValue) # , self.c_log_Ve
 
-    def CalculateCorrelationForImportedDICOMs(self):
+    def CalculateCorrelationForModel(self):
         # calculate the correlation between the calculated parameters and the reference parameters
         # 'Corre_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
 
@@ -1325,7 +1304,7 @@ class ModelEvaluated:
             self.corr_VV.append(self.CalCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
             self.corr_KV.append(self.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
 
-    def CalculateCovarianceForImportedDICOMs(self):
+    def CalculateCovarianceForModel(self):
         # calculate the covariance between the calculated parameters and the reference parameters
         # e.g. 'cov_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
 
@@ -1336,44 +1315,44 @@ class ModelEvaluated:
             self.cov_VV.append(self.CalCovMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
             self.cov_KV.append(self.CalCovMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
 
-    def CalculateMeanForImportedDICOMs(self):
+    def CalculateMeanForModel(self):
         # call the mean calculation function
-        self.Ktrans_cal_patch_mean = self.CalculateMean(self.Ktrans_cal_inPatch)
-        self.Ve_cal_patch_mean = self.CalculateMean(self.Ve_cal_inPatch)
+        self.Ktrans_cal_patch_mean = self.CalculateMean(self.Ktrans_cal)
+        self.Ve_cal_patch_mean = self.CalculateMean(self.Ve_cal)
 
-    def CalculateMedianForImportedDICOMs(self):
+    def CalculateMedianForModel(self):
         # call the median calculation function
-        self.Ktrans_cal_patch_median = self.CalculateMedian(self.Ktrans_cal_inPatch)
-        self.Ve_cal_patch_median = self.CalculateMedian(self.Ve_cal_inPatch)
+        self.Ktrans_cal_patch_median = self.CalculateMedian(self.Ktrans_cal)
+        self.Ve_cal_patch_median = self.CalculateMedian(self.Ve_cal)
 
-    def CalculateSTDDeviationForImportedDICOMs(self):
+    def CalculateSTDDeviationForModel(self):
         # call the std deviation calculation function
-        self.Ktrans_cal_patch_deviation = self.CalculateSTDDeviation(self.Ktrans_cal_inPatch)
-        self.Ve_cal_patch_deviation = self.CalculateSTDDeviation(self.Ve_cal_inPatch)
+        self.Ktrans_cal_patch_deviation = self.CalculateSTDDeviation(self.Ktrans_cal)
+        self.Ve_cal_patch_deviation = self.CalculateSTDDeviation(self.Ve_cal)
 
-    def Calculate1stAnd3rdQuartileForImportedDICOMs(self):
+    def Calculate1stAnd3rdQuartileForModel(self):
         # call the 1st and 3rd quartile calculation function
-        self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ktrans_cal_inPatch)
-        self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ve_cal_inPatch)
+        self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ktrans_cal)
+        self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ve_cal)
 
-    def CalculateMinAndMaxForImportedDICOMs(self):
-        self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max = self.CalculateMinAndMax(self.Ktrans_cal_inPatch)
-        self.Ve_cal_patch_min, self.Ve_cal_patch_max = self.CalculateMinAndMax(self.Ve_cal_inPatch)
+    def CalculateMinAndMaxForModel(self):
+        self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max = self.CalculateMinAndMax(self.Ktrans_cal)
+        self.Ve_cal_patch_min, self.Ve_cal_patch_max = self.CalculateMinAndMax(self.Ve_cal)
 
-    def T_TestForImportedDICOMS(self):
+    def T_TestForModel(self):
         # call the Ttest function
-        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = self.T_Test_1samp(self.Ktrans_cal_inPatch, self.Ktrans_ref_patchValue)
-        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = self.T_Test_1samp(self.Ve_cal_inPatch, self.Ve_ref_patchValue)
+        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = self.T_Test_1samp(self.Ktrans_cal, self.Ktrans_ref_patchValue)
+        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = self.T_Test_1samp(self.Ve_cal, self.Ve_ref_patchValue)
 
-    def U_TestForImportedDICOMS(self):
+    def U_TestForModel(self):
         # call the U test function
-        self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p = self.U_Test(self.Ktrans_cal_inPatch, self.Ktrans_ref_inPatch)
-        self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p = self.U_Test(self.Ve_cal_inPatch, self.Ve_ref_inPatch)
+        self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p = self.U_Test(self.Ktrans_cal, self.Ktrans_ref)
+        self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p = self.U_Test(self.Ve_cal, self.Ve_ref)
 
-    def ANOVAForImportedDICOMS(self):
+    def ANOVAForModel(self):
         # call the ANOVA function
-        self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = self.ANOVA_oneway_K(self.Ktrans_cal_inPatch)
-        self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = self.ANOVA_oneway_V(self.Ve_cal_inPatch)
+        self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = self.ANOVA_oneway_K(self.Ktrans_cal)
+        self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = self.ANOVA_oneway_V(self.Ve_cal)
 
 ############## ############## the unit functions ############## ##############
     def formatFloatTo4DigitsString(self, input):
@@ -1384,27 +1363,42 @@ class ModelEvaluated:
             return  str('{:5.4f}'.format(float(input)))
 
     def ImportFile(self, path):
-        # import a file(reference or calculated)
-        # it should be able to deal with different data type like DICOM, binary and so on.
+        # import a file. and pre-process the data so that handy to use later
 
-        fileName, fileExtension = os.path.splitext(path)
-        if fileExtension == '.dcm':
+        fileName, self.fileExtensionRef = os.path.splitext(path)
+        if self.fileExtensionRef == '.dcm':
             try:
-                return  dicom.read_file(path)
+                ds =  dicom.read_file(path)
+                rescaled = self.RescaleDICOM(ds)
+                rearranged = self.RearrangeDICOM(rescaled)
+                return rescaled, rearranged
             except:
                 wx.MessageBox('Invalid file path!\n' + '(' + path +')', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
                 return False
-        elif fileExtension == '.bin':
-            pass
 
+        elif self.fileExtensionRef == '.bin' or '.raw':
+            binaryData = []
+            rawData = open(path, 'rb').read()
+            fileLength = os.stat(path).st_size
+            dataLength = fileLength / ((self.nrOfRows + 2) * self.nrOfColumns * self.patchLen * self.patchLen)
+            if dataLength == 4:
+                dataType = 'f'
+            elif dataLength == 8:
+                dataType = 'd'
+            for i in range(fileLength / dataLength):
+                data = rawData[i * dataLength : (i + 1) * dataLength]
+                binaryData.append(struct.unpack(dataType, data)[0])
+            sectioned, rearranged = self.RearrangeBIN(binaryData)
+            return sectioned, rearranged
 
-    def Rescale(self, ds):
+    def RescaleDICOM(self, ds):
         # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.
         try:
             self.rescaleIntercept = ds.RescaleIntercept
             self.rescaleSlope = ds.RescaleSlope
         except:
-            pass
+            self.rescaleIntercept = 0
+            self.rescaleSlope = 1
         pixelFlow = []
         for row in ds.pixel_array:
             temp = []
@@ -1414,37 +1408,13 @@ class ModelEvaluated:
 
         # remove the first and last row which do not contain valid data
         pixelFlow = pixelFlow[self.patchLen:-self.patchLen]
-
         return pixelFlow
 
-    def CalculateError(self, cal, ref):
-        # compare the calculated and reference files, and return the error
-        errorCalRef = []
-
-        for row_cal, row_ref in zip(cal, ref):
-            temp = []
-            for pixel_cal, pixel_ref in zip(row_cal, row_ref):
-                temp.append(pixel_cal - pixel_ref)
-            errorCalRef.append(temp)
-        return errorCalRef
-
-    def CalculateNormalizedError(self, cal, ref):
-        # compare the calculated and reference files, and return the error
-        errorNormalized = []
-        delta = 0.001 # to avoid dividing zero
-
-        for row_cal, row_ref in zip(cal, ref):
-            temp = []
-            for pixel_cal, pixel_ref in zip(row_cal, row_ref):
-                temp.append((pixel_cal - pixel_ref) / (pixel_ref + delta))
-            errorNormalized.append(temp)
-        return errorNormalized
-
-    def Rearrange(self, pixelFlow):
+    def RearrangeDICOM(self, pixelFlow):
         # rearrange the DICOM file so that the file can be accessed in patches and the top and bottom strips are removed as they are not used here.
         tempAll = []
-        tempPatch = []
         tempRow = []
+        tempPatch = []
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
                 for k in range(self.patchLen):
@@ -1454,6 +1424,53 @@ class ModelEvaluated:
             tempAll.append(tempRow)
             tempRow = []
         return tempAll
+
+    def RearrangeBIN(self, pixelFlow):
+        # rearrange the binary data so that the data are arranged in the order of patched
+
+        # firstly section the binary data into DICOM fashioned order
+        sectioned = [[]for i in range((self.nrOfRows + 2) * self.patchLen)]
+
+        for i in range ((self.nrOfRows+2) * self.patchLen):
+            sectioned[i].extend(pixelFlow[self.nrOfColumns * self.patchLen * i : self.nrOfColumns * self.patchLen * (i + 1)] )
+        # remove the head and the tail strips which are not used in this evaluation
+        sectioned = sectioned[self.patchLen : -self.patchLen]
+        tempAll = []
+        tempRow = []
+        tempPatch = []
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                for k in range(self.patchLen):
+                    tempPatch.extend(sectioned[i * self.patchLen + k][j * self.patchLen : (j + 1) * self.patchLen])
+                tempRow.append(tempPatch)
+                tempPatch = []
+            tempAll.append(tempRow)
+            tempRow = []
+        return sectioned, tempAll
+
+    def CalculateError(self, cal, ref):
+        # compare the calculated and reference files, and return the error
+        errorAll = []
+        errorRow = []
+
+        for row_cal, row_ref in zip(cal, ref):
+            for pixel_cal, pixel_ref in zip(row_cal, row_ref):
+                errorRow.append(pixel_cal - pixel_ref)
+            errorAll.append(errorRow)
+            errorRow = []
+        return errorAll
+
+    def CalculateNormalizedError(self, cal, ref):
+        # compare the calculated and reference files, and return the normalized error
+        delta = 0.0001 # to avoid dividing zero
+        errorAllNormalized = []
+        errorRow = []
+        for row_cal, row_ref in zip(cal, ref):
+            for pixel_cal, pixel_ref in zip(row_cal, row_ref):
+                errorRow.append((pixel_cal - pixel_ref) / (pixel_ref + delta))
+            errorAllNormalized.append(errorRow)
+            errorRow = []
+        return errorAllNormalized
 
     def EstimatePatch(self, dataInPatch, patchValueMethod):
         # estimate the value that can represent a patch. It can be mean or median value, and the deviation could also be provided for further evaluation.
@@ -1486,8 +1503,8 @@ class ModelEvaluated:
 
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
-                xCurrent = self.Ktrans_ref_inPatch[i][j][0]
-                yCurrent = self.Ve_ref_inPatch[i][j][0]
+                xCurrent = self.Ktrans_ref[i][j][0]
+                yCurrent = self.Ve_ref[i][j][0]
                 zCurrent = calculatedPatchValue[i][j]
                 x.append(xCurrent)
                 y.append(yCurrent)
@@ -1511,29 +1528,25 @@ class ModelEvaluated:
         # fit the calculated Ktrans with reference data in logarithmic model
         temp_a = []
         temp_b = []
-        temp_c = []
 
         for j in range(self.nrOfColumns):
             popt, pcov = optimize.curve_fit(self.func_for_log_calculation, zip(*reference)[j], zip(*calculated)[j])
             temp_a.append(popt[0])
             temp_b.append(popt[1])
-            #temp_c.append(popt[2])
 
-        return temp_a, temp_b#, temp_c
+        return temp_a, temp_b
 
     def FittingLogarithmicModel_V(self, calculated, reference):
         # fit the calculated Ve with reference data in logarithmic model
         temp_a = []
         temp_b = []
-        temp_c = []
 
         for i in range(self.nrOfRows):
             popt, pcov = optimize.curve_fit(self.func_for_log_calculation, reference[i], calculated[i])
             temp_a.append(popt[0])
             temp_b.append(popt[1])
-            # temp_c.append(popt[2])
 
-        return temp_a, temp_b#, temp_c
+        return temp_a, temp_b
 
     def CalCorrMatrix(self, calculatedPatchValue, referencePatchValue):
         # calculate the correlation matrix of the calculated and reference DICOMs
