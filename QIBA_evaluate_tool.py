@@ -578,11 +578,17 @@ class MainWindow(wx.Frame):
                 minPatch_K = numpy.min(self.newModel.Ktrans_cal[i][j])
                 maxPatch_K = numpy.max(self.newModel.Ktrans_cal[i][j])
                 meanPatch_K = numpy.mean(self.newModel.Ktrans_cal[i][j])
-                subPlot_K.set_xticks([minPatch_K, maxPatch_K])
-                subPlot_K.set_xticklabels([str(minPatch_K), str(maxPatch_K)])
-                subPlot_K.axvline(meanPatch_K, color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+
+                minPatch_K = self.newModel.formatFloatTo2DigitsString(minPatch_K)
+                maxPatch_K = self.newModel.formatFloatTo2DigitsString(maxPatch_K)
+                meanPatch_K = self.newModel.formatFloatTo2DigitsString(meanPatch_K)
+
+                subPlot_K.set_xticks([float(minPatch_K), float(maxPatch_K)])
+
+                subPlot_K.set_xticklabels([minPatch_K, maxPatch_K])
+                subPlot_K.axvline(float(meanPatch_K), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
                 subPlot_K.set_ylim([0, pixelCountInPatch])
-                subPlot_K.text(meanPatch_K + 0.01 * meanPatch_K, 0.9 * pixelCountInPatch, str(meanPatch_K), size = 'x-small') # parameters: location_x, location_y, text, size
+                subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
                     subPlot_K.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
                     subPlot_K.xaxis.set_label_position('top')
@@ -595,11 +601,15 @@ class MainWindow(wx.Frame):
                 minPatch_V = numpy.min(self.newModel.Ve_cal[i][j])
                 maxPatch_V = numpy.max(self.newModel.Ve_cal[i][j])
                 meanPatch_V = numpy.mean(self.newModel.Ve_cal[i][j])
-                subPlot_V.set_xticks([minPatch_V, maxPatch_V])
-                subPlot_V.set_xticklabels([str(minPatch_V), str(maxPatch_V)])
-                subPlot_V.axvline(meanPatch_V, color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+                minPatch_V = self.newModel.formatFloatTo2DigitsString(minPatch_V)
+                maxPatch_V = self.newModel.formatFloatTo2DigitsString(maxPatch_V)
+                meanPatch_V = self.newModel.formatFloatTo2DigitsString(meanPatch_V)
+
+                subPlot_V.set_xticks([float(minPatch_V), float(maxPatch_V)])
+                subPlot_V.set_xticklabels([minPatch_V, maxPatch_V])
+                subPlot_V.axvline(float(meanPatch_V), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
                 subPlot_V.set_ylim([0, pixelCountInPatch])
-                subPlot_V.text(meanPatch_V + 0.01 * meanPatch_V, 0.9 * pixelCountInPatch, str(meanPatch_V), size = 'x-small') # parameters: location_x, location_y, text, size
+                subPlot_V.text(float(meanPatch_V) + 0.01 * float(meanPatch_V), 0.9 * pixelCountInPatch, meanPatch_V, size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
                     subPlot_V.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
                     subPlot_V.xaxis.set_label_position('top')
@@ -787,7 +797,9 @@ class MainWindow(wx.Frame):
 
         wx.AboutBox(info)
 
-class ModelEvaluated:
+#class BaseModel():
+
+class ModelEvaluated():
     '''
     the class for a evaluated model. It includes the necessary data and methods for evaluating the result from one calculation model.
     '''
@@ -1356,11 +1368,18 @@ class ModelEvaluated:
 
 ############## ############## the unit functions ############## ##############
     def formatFloatTo4DigitsString(self, input):
-        # format the input value into a string with 2 digits
+        # format the input value into a string with 4 digits
         if abs(input) < 0.0001:
             return  str('{:5.4e}'.format(float(input)))
         else:
             return  str('{:5.4f}'.format(float(input)))
+
+    def formatFloatTo2DigitsString(self, input):
+        # format the input value into a string with 2 digits
+        if abs(input) < 0.01:
+            return  str('{:3.2e}'.format(float(input)))
+        else:
+            return  str('{:3.2f}'.format(float(input)))
 
     def ImportFile(self, path):
         # import a file. and pre-process the data so that handy to use later
