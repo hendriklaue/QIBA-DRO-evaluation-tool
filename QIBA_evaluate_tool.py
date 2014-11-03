@@ -40,17 +40,14 @@
 import os.path
 import wx
 import wx.html
-import dicom
 import numpy
-from scipy import stats, optimize
-from math import log10
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from matplotlib.figure import Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
 import subprocess
-import struct
+import QIBA_functions
 
 class MainWindow(wx.Frame):
     '''
@@ -381,22 +378,22 @@ class MainWindow(wx.Frame):
         self.newModel = ModelEvaluated()
         #EvaluateProgressDialog.Update(10)
 
-        # make sure the import path is valid
-        if not self.newModel.ImportFile(self.path_Ktrans_ref):
-            self.SetStatusText('Please load a proper file as reference Ktrans.')
-            return False
-
-        if not self.newModel.ImportFile(self.path_Ve_ref):
-            self.SetStatusText('Please load a proper file as reference Ve.')
-            return False
-
-        if not self.newModel.ImportFile(self.path_Ktrans_cal):
-            self.SetStatusText('Please load a proper file as calculated Ktrans.')
-            return False
-
-        if not self.newModel.ImportFile(self.path_Ve_cal):
-            self.SetStatusText('Please load a proper file as calculated ve.')
-            return False
+        # # make sure the import path is valid
+        # if not self.newModel.ImportFile(self.path_Ktrans_ref):
+        #     self.SetStatusText('Please load a proper file as reference Ktrans.')
+        #     return False
+        #
+        # if not self.newModel.ImportFile(self.path_Ve_ref):
+        #     self.SetStatusText('Please load a proper file as reference Ve.')
+        #     return False
+        #
+        # if not self.newModel.ImportFile(self.path_Ktrans_cal):
+        #     self.SetStatusText('Please load a proper file as calculated Ktrans.')
+        #     return False
+        #
+        # if not self.newModel.ImportFile(self.path_Ve_cal):
+        #     self.SetStatusText('Please load a proper file as calculated ve.')
+        #     return False
         #EvaluateProgressDialog.Update(15)
 
         # call the method to execute evaluation
@@ -579,9 +576,9 @@ class MainWindow(wx.Frame):
                 maxPatch_K = numpy.max(self.newModel.Ktrans_cal[i][j])
                 meanPatch_K = numpy.mean(self.newModel.Ktrans_cal[i][j])
 
-                minPatch_K = self.newModel.formatFloatTo2DigitsString(minPatch_K)
-                maxPatch_K = self.newModel.formatFloatTo2DigitsString(maxPatch_K)
-                meanPatch_K = self.newModel.formatFloatTo2DigitsString(meanPatch_K)
+                minPatch_K = QIBA_functions.formatFloatTo2DigitsString(minPatch_K)
+                maxPatch_K = QIBA_functions.formatFloatTo2DigitsString(maxPatch_K)
+                meanPatch_K = QIBA_functions.formatFloatTo2DigitsString(meanPatch_K)
 
                 subPlot_K.set_xticks([float(minPatch_K), float(maxPatch_K)])
 
@@ -601,9 +598,9 @@ class MainWindow(wx.Frame):
                 minPatch_V = numpy.min(self.newModel.Ve_cal[i][j])
                 maxPatch_V = numpy.max(self.newModel.Ve_cal[i][j])
                 meanPatch_V = numpy.mean(self.newModel.Ve_cal[i][j])
-                minPatch_V = self.newModel.formatFloatTo2DigitsString(minPatch_V)
-                maxPatch_V = self.newModel.formatFloatTo2DigitsString(maxPatch_V)
-                meanPatch_V = self.newModel.formatFloatTo2DigitsString(meanPatch_V)
+                minPatch_V = QIBA_functions.formatFloatTo2DigitsString(minPatch_V)
+                maxPatch_V = QIBA_functions.formatFloatTo2DigitsString(maxPatch_V)
+                meanPatch_V = QIBA_functions.formatFloatTo2DigitsString(meanPatch_V)
 
                 subPlot_V.set_xticks([float(minPatch_V), float(maxPatch_V)])
                 subPlot_V.set_xticklabels([minPatch_V, maxPatch_V])
@@ -910,6 +907,7 @@ class ModelEvaluated():
 
     def Evaluate(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # evaluation
+
         # pre-process for the imported files
         self.ImportFiles(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
 
@@ -973,8 +971,9 @@ class ModelEvaluated():
         # write the model fitting results to html
 
         # Ktrans planar fitting
+
         KtransLinearFitting = '<h2>The linear model fitting for calculated Ktrans:</h2>' \
-                            '<p>Ktrans_cal = ' + self.formatFloatTo4DigitsString(self.a_lin_Ktrans) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_lin_Ktrans) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_lin_Ktrans) + '</p>'
+                            '<p>Ktrans_cal = (' + QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ktrans) + ')  * Ktrans_ref + (' + QIBA_functions.formatFloatTo4DigitsString(self.b_lin_Ktrans) + ') * Ve_ref + (' + QIBA_functions.formatFloatTo4DigitsString(self.c_lin_Ktrans) + ')</p>'
 
         # Ktrans logarithmic fitting
         KtransLogarithmicFitting = '<h2>The logarithmic model fitting for calculated Ktrans:</h2>' \
@@ -983,14 +982,14 @@ class ModelEvaluated():
         for j in range(self.nrOfColumns):
             KtransLogarithmicFitting += '<tr>'
             KtransLogarithmicFitting += '<th>Ref. Ve = '
-            KtransLogarithmicFitting += str('{:3.2f}'.format(zip(*self.Ve_ref_patchValue)[j][0]))
+            KtransLogarithmicFitting += QIBA_functions.formatFloatTo2DigitsString(zip(*self.Ve_ref_patchValue)[j][0])
             KtransLogarithmicFitting += '</th>'
 
-            KtransLogarithmicFitting += '<td align="right">Ktrans_cal = '
-            KtransLogarithmicFitting += self.formatFloatTo4DigitsString(self.a_log_Ktrans[j])
-            KtransLogarithmicFitting += ' + '
-            KtransLogarithmicFitting += self.formatFloatTo4DigitsString(self.corr_KK[j])
-            KtransLogarithmicFitting += ' * log10(Ktrans_ref)'
+            KtransLogarithmicFitting += '<td align="right">Ktrans_cal = ('
+            KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ktrans[j])
+            KtransLogarithmicFitting += ') + ('
+            KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.corr_KK[j])
+            KtransLogarithmicFitting += ') * log10(Ktrans_ref)'
             KtransLogarithmicFitting += '</td>'
             KtransLogarithmicFitting += '</tr>'
 
@@ -1000,7 +999,7 @@ class ModelEvaluated():
         # Ve planar fitting
         VeLinearFitting = \
                         '<h2>The linear model fitting for calculated Ve:</h2>' \
-                            '<p>Ve_cal = ' + self.formatFloatTo4DigitsString(self.a_lin_Ve) + '  * Ktrans_ref + ' + self.formatFloatTo4DigitsString(self.b_lin_Ve) + ' * Ve_ref + ' + self.formatFloatTo4DigitsString(self.c_lin_Ve) + '</p>'
+                            '<p>Ve_cal = (' + QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ve) + ')  * Ktrans_ref + (' + QIBA_functions.formatFloatTo4DigitsString(self.b_lin_Ve) + ') * Ve_ref + (' + QIBA_functions.formatFloatTo4DigitsString(self.c_lin_Ve) + ')</p>'
 
         # Ve logarithmic fitting
         VeLogarithmicFitting = '<h2>The logarithmic model fitting for calculated Ve:</h2>'\
@@ -1012,11 +1011,11 @@ class ModelEvaluated():
             VeLogarithmicFitting += str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))
             VeLogarithmicFitting += '</th>'
 
-            VeLogarithmicFitting += '<td align="right">Ve_cal = '
-            VeLogarithmicFitting += self.formatFloatTo4DigitsString(self.a_log_Ve[i])
-            VeLogarithmicFitting += ' + '
-            VeLogarithmicFitting += self.formatFloatTo4DigitsString(self.corr_KV[i])
-            VeLogarithmicFitting += ' * log10(Ve_ref)'
+            VeLogarithmicFitting += '<td align="right">Ve_cal = ('
+            VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ve[i])
+            VeLogarithmicFitting += ') + ('
+            VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.corr_KV[i])
+            VeLogarithmicFitting += ') * log10(Ve_ref)'
             VeLogarithmicFitting += '</td>'
             VeLogarithmicFitting += '</tr>'
         VeLogarithmicFitting += '</table>'
@@ -1041,9 +1040,9 @@ class ModelEvaluated():
         KK_Table += '<tr>'
         for j in range(self.nrOfColumns):
             KK_Table += '<td align="right">cov.: '
-            KK_Table += self.formatFloatTo4DigitsString(self.cov_KK[j])
+            KK_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_KK[j])
             KK_Table += '<br>corr.: '
-            KK_Table += self.formatFloatTo4DigitsString(self.corr_KK[j])
+            KK_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_KK[j])
             KK_Table += '</td>'
         KK_Table += '</tr>'
         KK_Table += '</table>'
@@ -1061,9 +1060,9 @@ class ModelEvaluated():
         KV_Table += '<tr>'
         for i in range(self.nrOfRows):
             KV_Table += '<td align="right">cov.: '
-            KV_Table += self.formatFloatTo4DigitsString(self.cov_KV[i])
+            KV_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_KV[i])
             KV_Table += '<br>corr.: '
-            KV_Table += self.formatFloatTo4DigitsString(self.corr_KV[i])
+            KV_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_KV[i])
             KV_Table += '</td>'
         KV_Table += '</tr>'
         KV_Table += '</table>'
@@ -1081,9 +1080,9 @@ class ModelEvaluated():
         VK_Table += '<tr>'
         for j in range(self.nrOfColumns):
             VK_Table += '<td align="right">cov.: '
-            VK_Table += self.formatFloatTo4DigitsString(self.cov_VK[j])
+            VK_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_VK[j])
             VK_Table += '<br>corr.: '
-            VK_Table += self.formatFloatTo4DigitsString(self.corr_VK[j])
+            VK_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_VK[j])
             VK_Table += '</td>'
         VK_Table += '</tr>'
         VK_Table += '</table>'
@@ -1101,9 +1100,9 @@ class ModelEvaluated():
         VV_Table += '<tr>'
         for i in range(self.nrOfRows):
             VV_Table += '<td align="right">cov.: '
-            VV_Table += self.formatFloatTo4DigitsString(self.cov_VV[i])
+            VV_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_VV[i])
             VV_Table += '<br>corr.: '
-            VV_Table += self.formatFloatTo4DigitsString(self.corr_VV[i])
+            VV_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_VV[i])
             VV_Table += '</td>'
         VV_Table += '</tr>'
         VV_Table += '</table>'
@@ -1173,9 +1172,9 @@ class ModelEvaluated():
         KtransANOVATable += '<tr>'
         for i in range(self.nrOfRows):
             KtransANOVATable += '<td align="right">f-value: '
-            KtransANOVATable += self.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_f[i])
+            KtransANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_f[i])
             KtransANOVATable += '<br>p-value: '
-            KtransANOVATable += self.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_p[i])
+            KtransANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_p[i])
             KtransANOVATable += '</td>'
         KtransANOVATable += '</tr>'
         KtransANOVATable += '</table>'
@@ -1194,9 +1193,9 @@ class ModelEvaluated():
         VeANOVATable += '<tr>'
         for j in range(self.nrOfColumns):
             VeANOVATable += '<td align="right">f-value: '
-            VeANOVATable += self.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_f[j])
+            VeANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_f[j])
             VeANOVATable += '<br>p-value: '
-            VeANOVATable += self.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_p[j])
+            VeANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_p[j])
             VeANOVATable += '</td>'
         VeANOVATable += '</tr>'
         VeANOVATable += '</table>'
@@ -1239,7 +1238,7 @@ class ModelEvaluated():
             for j in range(self.nrOfColumns):
                 tableText += '<td align="right">'
                 for name, data in zip(entryName, entryData):
-                    tableText += name + ' = ' + self.formatFloatTo4DigitsString(data[i][j]) + '<br>'
+                    tableText += name + ' = ' + QIBA_functions.formatFloatTo4DigitsString(data[i][j]) + '<br>'
                 tableText = tableText[:-4]
                 tableText += '</td>'
             tableText += '</tr>'
@@ -1274,393 +1273,103 @@ class ModelEvaluated():
         return self.ANOVAResultInHTML
 
     def ImportFiles(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
-        # import the DICOM files for evaluation.
-        self.Ktrans_ref_inRow, self.Ktrans_ref = self.ImportFile(path_K_ref)
-        self.Ve_ref_inRow, self.Ve_ref = self.ImportFile(path_V_ref)
-        self.Ktrans_cal_inRow, self.Ktrans_cal = self.ImportFile(path_K_cal)
-        self.Ve_cal_inRow, self.Ve_cal = self.ImportFile(path_V_cal)
+        # import files for evaluation.
+
+
+        self.Ktrans_ref_inRow, self.Ktrans_ref = QIBA_functions.ImportFile(path_K_ref, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.Ve_ref_inRow, self.Ve_ref = QIBA_functions.ImportFile(path_V_ref, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.Ktrans_cal_inRow, self.Ktrans_cal = QIBA_functions.ImportFile(path_K_cal, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.Ve_cal_inRow, self.Ve_cal = QIBA_functions.ImportFile(path_V_cal, self.nrOfRows, self.nrOfColumns, self.patchLen)
+
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
-        self.Ktrans_error = self.CalculateError(self.Ktrans_cal_inRow, self.Ktrans_ref_inRow)
-        self.Ve_error = self.CalculateError(self.Ve_cal_inRow, self.Ve_ref_inRow)
+        self.Ktrans_error = QIBA_functions.CalculateError(self.Ktrans_cal_inRow, self.Ktrans_ref_inRow)
+        self.Ve_error = QIBA_functions.CalculateError(self.Ve_cal_inRow, self.Ve_ref_inRow)
 
-        self.Ktrans_error_normalized = self.CalculateNormalizedError(self.Ktrans_cal_inRow, self.Ktrans_ref_inRow)
-        self.Ve_error_normalized = self.CalculateNormalizedError(self.Ve_cal_inRow, self.Ve_ref_inRow)
+        self.Ktrans_error_normalized = QIBA_functions.CalculateNormalizedError(self.Ktrans_cal_inRow, self.Ktrans_ref_inRow)
+        self.Ve_error_normalized = QIBA_functions.CalculateNormalizedError(self.Ve_cal_inRow, self.Ve_ref_inRow)
 
     def EstimatePatchForModel(self, patchValueMethod):
         # estimate the value to represent the patches for each imported DICOM
-        self.Ktrans_ref_patchValue = self.EstimatePatch(self.Ktrans_ref, patchValueMethod)
-        self.Ve_ref_patchValue = self.EstimatePatch(self.Ve_ref, patchValueMethod)
-        self.Ktrans_cal_patchValue = self.EstimatePatch(self.Ktrans_cal, patchValueMethod)
-        self.Ve_cal_patchValue = self.EstimatePatch(self.Ve_cal, patchValueMethod)
+        self.Ktrans_ref_patchValue = QIBA_functions.EstimatePatch(self.Ktrans_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns)
+        self.Ve_ref_patchValue = QIBA_functions.EstimatePatch(self.Ve_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_cal_patchValue = QIBA_functions.EstimatePatch(self.Ktrans_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patchValue = QIBA_functions.EstimatePatch(self.Ve_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns)
 
     def FittingLinearModelForModel(self):
         # fit a planar for the calculated Ktrans and Ve maps
-        self.a_lin_Ktrans, self.b_lin_Ktrans, self.c_lin_Ktrans = self.FittingLinearModel(self.Ktrans_cal_patchValue)
-        self.a_lin_Ve, self.b_lin_Ve, self.c_lin_Ve = self.FittingLinearModel(self.Ve_cal_patchValue)
+        self.a_lin_Ktrans, self.b_lin_Ktrans, self.c_lin_Ktrans = QIBA_functions.FittingLinearModel(self.Ktrans_cal_patchValue,self.Ktrans_ref, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
+        self.a_lin_Ve, self.b_lin_Ve, self.c_lin_Ve = QIBA_functions.FittingLinearModel(self.Ve_cal_patchValue,self.Ktrans_ref, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
 
     def FittingLogarithmicModelForModel(self):
         # fitting logarithmic model
-        self.a_log_Ktrans,self.b_log_Ktrans = self.FittingLogarithmicModel_K(self.Ktrans_cal_patchValue, self.Ktrans_ref_patchValue) # , self.c_log_Ktrans
-        self.a_log_Ve,self.b_log_Ve = self.FittingLogarithmicModel_V(self.Ve_cal_patchValue, self.Ve_ref_patchValue) # , self.c_log_Ve
+        self.a_log_Ktrans,self.b_log_Ktrans = QIBA_functions.FittingLogarithmicModel(zip(*self.Ktrans_cal_patchValue), zip(*self.Ktrans_ref_patchValue), self.nrOfColumns) # , self.c_log_Ktrans
+        self.a_log_Ve,self.b_log_Ve = QIBA_functions.FittingLogarithmicModel(self.Ve_cal_patchValue, self.Ve_ref_patchValue, self.nrOfRows) # , self.c_log_Ve
 
     def CalculateCorrelationForModel(self):
         # calculate the correlation between the calculated parameters and the reference parameters
         # 'Corre_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
 
         for i in range(self.nrOfColumns):
-            self.corr_KK.append(self.CalCorrMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-            self.corr_VK.append(self.CalCorrMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.corr_KK.append(QIBA_functions.CalCorrMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.corr_VK.append(QIBA_functions.CalCorrMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
         for j in range(self.nrOfRows):
-            self.corr_VV.append(self.CalCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-            self.corr_KV.append(self.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.corr_VV.append(QIBA_functions.CalCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.corr_KV.append(QIBA_functions.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
 
     def CalculateCovarianceForModel(self):
         # calculate the covariance between the calculated parameters and the reference parameters
         # e.g. 'cov_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
 
         for i in range(self.nrOfColumns):
-            self.cov_KK.append(self.CalCovMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-            self.cov_VK.append(self.CalCovMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.cov_KK.append(QIBA_functions.CalCovMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.cov_VK.append(QIBA_functions.CalCovMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
         for j in range(self.nrOfRows):
-            self.cov_VV.append(self.CalCovMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-            self.cov_KV.append(self.CalCovMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.cov_VV.append(QIBA_functions.CalCovMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.cov_KV.append(QIBA_functions.CalCovMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
 
     def CalculateMeanForModel(self):
         # call the mean calculation function
-        self.Ktrans_cal_patch_mean = self.CalculateMean(self.Ktrans_cal)
-        self.Ve_cal_patch_mean = self.CalculateMean(self.Ve_cal)
+        self.Ktrans_cal_patch_mean = QIBA_functions.CalculateMean(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patch_mean = QIBA_functions.CalculateMean(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
 
     def CalculateMedianForModel(self):
         # call the median calculation function
-        self.Ktrans_cal_patch_median = self.CalculateMedian(self.Ktrans_cal)
-        self.Ve_cal_patch_median = self.CalculateMedian(self.Ve_cal)
+        self.Ktrans_cal_patch_median = QIBA_functions.CalculateMedian(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patch_median = QIBA_functions.CalculateMedian(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
 
     def CalculateSTDDeviationForModel(self):
         # call the std deviation calculation function
-        self.Ktrans_cal_patch_deviation = self.CalculateSTDDeviation(self.Ktrans_cal)
-        self.Ve_cal_patch_deviation = self.CalculateSTDDeviation(self.Ve_cal)
+        self.Ktrans_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
 
     def Calculate1stAnd3rdQuartileForModel(self):
         # call the 1st and 3rd quartile calculation function
-        self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ktrans_cal)
-        self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = self.Calculate1stAnd3rdQuartile(self.Ve_cal)
+        self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
 
     def CalculateMinAndMaxForModel(self):
-        self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max = self.CalculateMinAndMax(self.Ktrans_cal)
-        self.Ve_cal_patch_min, self.Ve_cal_patch_max = self.CalculateMinAndMax(self.Ve_cal)
+        self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patch_min, self.Ve_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
 
     def T_TestForModel(self):
         # call the Ttest function
-        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = self.T_Test_1samp(self.Ktrans_cal, self.Ktrans_ref_patchValue)
-        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = self.T_Test_1samp(self.Ve_cal, self.Ve_ref_patchValue)
+        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.Ktrans_cal, self.Ktrans_ref_patchValue, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.Ve_cal, self.Ve_ref_patchValue, self.nrOfRows, self.nrOfColumns)
 
     def U_TestForModel(self):
         # call the U test function
-        self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p = self.U_Test(self.Ktrans_cal, self.Ktrans_ref)
-        self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p = self.U_Test(self.Ve_cal, self.Ve_ref)
+        self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
 
     def ANOVAForModel(self):
         # call the ANOVA function
-        self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = self.ANOVA_oneway_K(self.Ktrans_cal)
-        self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = self.ANOVA_oneway_V(self.Ve_cal)
+        self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.Ve_cal), self.nrOfColumns, self.nrOfRows)
 
-############## ############## the unit functions ############## ##############
-    def formatFloatTo4DigitsString(self, input):
-        # format the input value into a string with 4 digits
-        if abs(input) < 0.0001:
-            return  str('{:5.4e}'.format(float(input)))
-        else:
-            return  str('{:5.4f}'.format(float(input)))
 
-    def formatFloatTo2DigitsString(self, input):
-        # format the input value into a string with 2 digits
-        if abs(input) < 0.01:
-            return  str('{:3.2e}'.format(float(input)))
-        else:
-            return  str('{:3.2f}'.format(float(input)))
 
-    def ImportFile(self, path):
-        # import a file. and pre-process the data so that handy to use later
-
-        fileName, self.fileExtensionRef = os.path.splitext(path)
-        if self.fileExtensionRef == '.dcm':
-            try:
-                ds =  dicom.read_file(path)
-                rescaled = self.RescaleDICOM(ds)
-                rearranged = self.RearrangeDICOM(rescaled)
-                return rescaled, rearranged
-            except:
-                wx.MessageBox('Invalid file path!\n' + '(' + path +')', 'Cannot import file', wx.OK | wx.ICON_INFORMATION)
-                return False
-
-        elif self.fileExtensionRef == '.bin' or '.raw':
-            binaryData = []
-            rawData = open(path, 'rb').read()
-            fileLength = os.stat(path).st_size
-            dataLength = fileLength / ((self.nrOfRows + 2) * self.nrOfColumns * self.patchLen * self.patchLen)
-            if dataLength == 4:
-                dataType = 'f'
-            elif dataLength == 8:
-                dataType = 'd'
-            for i in range(fileLength / dataLength):
-                data = rawData[i * dataLength : (i + 1) * dataLength]
-                binaryData.append(struct.unpack(dataType, data)[0])
-            sectioned, rearranged = self.RearrangeBIN(binaryData)
-            return sectioned, rearranged
-
-    def RescaleDICOM(self, ds):
-        # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.
-        try:
-            self.rescaleIntercept = ds.RescaleIntercept
-            self.rescaleSlope = ds.RescaleSlope
-        except:
-            self.rescaleIntercept = 0
-            self.rescaleSlope = 1
-        pixelFlow = []
-        for row in ds.pixel_array:
-            temp = []
-            for pixel in row:
-                temp.append(pixel * self.rescaleSlope + self.rescaleIntercept)
-            pixelFlow.append(temp)
-
-        # remove the first and last row which do not contain valid data
-        pixelFlow = pixelFlow[self.patchLen:-self.patchLen]
-        return pixelFlow
-
-    def RearrangeDICOM(self, pixelFlow):
-        # rearrange the DICOM file so that the file can be accessed in patches and the top and bottom strips are removed as they are not used here.
-        tempAll = []
-        tempRow = []
-        tempPatch = []
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                for k in range(self.patchLen):
-                    tempPatch.extend(pixelFlow[i * self.patchLen + k][j * self.patchLen : (j + 1) * self.patchLen])
-                tempRow.append(tempPatch)
-                tempPatch = []
-            tempAll.append(tempRow)
-            tempRow = []
-        return tempAll
-
-    def RearrangeBIN(self, pixelFlow):
-        # rearrange the binary data so that the data are arranged in the order of patched
-
-        # firstly section the binary data into DICOM fashioned order
-        sectioned = [[]for i in range((self.nrOfRows + 2) * self.patchLen)]
-
-        for i in range ((self.nrOfRows+2) * self.patchLen):
-            sectioned[i].extend(pixelFlow[self.nrOfColumns * self.patchLen * i : self.nrOfColumns * self.patchLen * (i + 1)] )
-        # remove the head and the tail strips which are not used in this evaluation
-        sectioned = sectioned[self.patchLen : -self.patchLen]
-        tempAll = []
-        tempRow = []
-        tempPatch = []
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                for k in range(self.patchLen):
-                    tempPatch.extend(sectioned[i * self.patchLen + k][j * self.patchLen : (j + 1) * self.patchLen])
-                tempRow.append(tempPatch)
-                tempPatch = []
-            tempAll.append(tempRow)
-            tempRow = []
-        return sectioned, tempAll
-
-    def CalculateError(self, cal, ref):
-        # compare the calculated and reference files, and return the error
-        errorAll = []
-        errorRow = []
-
-        for row_cal, row_ref in zip(cal, ref):
-            for pixel_cal, pixel_ref in zip(row_cal, row_ref):
-                errorRow.append(pixel_cal - pixel_ref)
-            errorAll.append(errorRow)
-            errorRow = []
-        return errorAll
-
-    def CalculateNormalizedError(self, cal, ref):
-        # compare the calculated and reference files, and return the normalized error
-        delta = 0.0001 # to avoid dividing zero
-        errorAllNormalized = []
-        errorRow = []
-        for row_cal, row_ref in zip(cal, ref):
-            for pixel_cal, pixel_ref in zip(row_cal, row_ref):
-                errorRow.append((pixel_cal - pixel_ref) / (pixel_ref + delta))
-            errorAllNormalized.append(errorRow)
-            errorRow = []
-        return errorAllNormalized
-
-    def EstimatePatch(self, dataInPatch, patchValueMethod):
-        # estimate the value that can represent a patch. It can be mean or median value, and the deviation could also be provided for further evaluation.
-        # some statistics test like normality test could be applied to decide which value to take. But considering there are many patches, how to synchronise is also a question.
-        # currently the solution is, to open one new window when the 'process' button is pressed, on which the histograms of the patches will be shown. Whether to choose mean value
-        # or median value to represent a patch is up to the user.
-        temp = [[]for i in range(self.nrOfRows) ]
-        if patchValueMethod == 'MEAN':
-            for i in range(self.nrOfRows):
-                for j in range (self.nrOfColumns):
-                    temp[i].append(numpy.mean(dataInPatch[i][j]))
-        if patchValueMethod == 'MEDIAN':
-            for i in range(self.nrOfRows):
-                for j in range (self.nrOfColumns):
-                    temp[i].append(numpy.median(dataInPatch[i][j]))
-        return temp
-
-    def FittingLinearModel(self, calculatedPatchValue):
-        # fitting the linear model, i.e. Ktrans_ref, Ve_ref, Ktrans_cal(Ve_cal). So that the parameter dependency could be seen
-        # the fitting algorithm relies on the paper 'least squares fitting of data', David Eberly, Geometric tools, LLC
-        # assume x, y, z denote Ktrans_ref, Ve_ref and Ktrans_cal(Ve_cal) respectively.
-        x = []
-        y = []
-        z = []
-        xx = []
-        yy = []
-        xy = []
-        xz = []
-        yz = []
-
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                xCurrent = self.Ktrans_ref[i][j][0]
-                yCurrent = self.Ve_ref[i][j][0]
-                zCurrent = calculatedPatchValue[i][j]
-                x.append(xCurrent)
-                y.append(yCurrent)
-                z.append(zCurrent)
-                xx.append(xCurrent**2)
-                yy.append(yCurrent**2)
-                xy.append(xCurrent * yCurrent)
-                xz.append(xCurrent * zCurrent)
-                yz.append(yCurrent * zCurrent)
-        left = numpy.matrix([[numpy.sum(xx), numpy.sum(xy), numpy.sum(x)], [numpy.sum(xy), numpy.sum(yy), numpy.sum(y)], [numpy.sum(x), numpy.sum(y), self.nrOfRows * self.nrOfColumns]])
-        right = numpy.matrix([[numpy.sum(xz)], [numpy.sum(yz)], [numpy.sum(z)]])
-
-        [a, b ,c] = numpy.squeeze(numpy.array( numpy.linalg.inv(left) * right ))
-        return a, b, c
-
-    def func_for_log_calculation(self,x, a, b):
-        # assistant function for calculating logarithmic model fitting
-        return a + b * numpy.log10(x)
-
-    def FittingLogarithmicModel_K(self, calculated, reference):
-        # fit the calculated Ktrans with reference data in logarithmic model
-        temp_a = []
-        temp_b = []
-
-        for j in range(self.nrOfColumns):
-            popt, pcov = optimize.curve_fit(self.func_for_log_calculation, zip(*reference)[j], zip(*calculated)[j])
-            temp_a.append(popt[0])
-            temp_b.append(popt[1])
-
-        return temp_a, temp_b
-
-    def FittingLogarithmicModel_V(self, calculated, reference):
-        # fit the calculated Ve with reference data in logarithmic model
-        temp_a = []
-        temp_b = []
-
-        for i in range(self.nrOfRows):
-            popt, pcov = optimize.curve_fit(self.func_for_log_calculation, reference[i], calculated[i])
-            temp_a.append(popt[0])
-            temp_b.append(popt[1])
-
-        return temp_a, temp_b
-
-    def CalCorrMatrix(self, calculatedPatchValue, referencePatchValue):
-        # calculate the correlation matrix of the calculated and reference DICOMs
-        return numpy.corrcoef(calculatedPatchValue, referencePatchValue)
-
-    def CalCovMatrix(self, calculatedPatchValue, referencePatchValue):
-        # calculate the covariance matrix of the calculated and reference DICOMs
-        return  numpy.cov(calculatedPatchValue, referencePatchValue)
-
-    def CalculateMean(self, inPatch):
-        # calculate the mean value of each patch
-        temp = [[]for i in range(self.nrOfRows) ]
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                temp[i].append(numpy.mean(inPatch[i][j]))
-        return temp
-
-    def CalculateMedian(self, inPatch):
-        # calculate the median value of each patch
-        temp = [[]for i in range(self.nrOfRows) ]
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                temp[i].append(numpy.median(inPatch[i][j]))
-        return temp
-
-    def CalculateSTDDeviation(self, inPatch):
-        # calculate the std deviation of each patch
-        temp = [[]for i in range(self.nrOfRows) ]
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                temp[i].append(numpy.std(inPatch[i][j]))
-        return temp
-
-    def Calculate1stAnd3rdQuartile(self, inPatch):
-        # calculate the 1st and 3rd quartile of each patch
-        temp1stQuartile = [[]for i in range(self.nrOfRows) ]
-        temp3rdQuartile = [[]for i in range(self.nrOfRows) ]
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                temp1stQuartile[i].append(stats.mstats.mquantiles(inPatch[i][j],prob = 0.25))
-                temp3rdQuartile[i].append(stats.mstats.mquantiles(inPatch[i][j],prob = 0.75))
-        return temp1stQuartile, temp3rdQuartile
-
-    def CalculateMinAndMax(self, inPatch):
-        # calculated the min. and max value of each patch
-        tempMin = [[]for i in range(self.nrOfRows) ]
-        tempMax = [[]for i in range(self.nrOfRows) ]
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                tempMin[i].append(numpy.min(inPatch[i][j]))
-                tempMax[i].append(numpy.max(inPatch[i][j]))
-        return tempMin, tempMax
-
-    def T_Test_1samp(self, dataToBeTested, expectedMean):
-        # do 1 sample t-test
-        temp_t = [[]for i in range(self.nrOfRows) ]
-        temp_p = [[]for i in range(self.nrOfRows) ]
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                temp_t[i].append(stats.ttest_1samp(dataToBeTested[i][j], expectedMean[i][j])[0])
-                temp_p[i].append(stats.ttest_1samp(dataToBeTested[i][j], expectedMean[i][j])[1])
-        return temp_t, temp_p
-
-    def U_Test(self, dataToBeTested, referenceData):
-        # do Mann-Whitney U test
-        temp_u = [[]for i in range(self.nrOfRows) ]
-        temp_p = [[]for i in range(self.nrOfRows) ]
-        for i in range(self.nrOfRows):
-            for j in range(self.nrOfColumns):
-                temp_u[i].append(stats.mannwhitneyu(dataToBeTested[i][j], referenceData[i][j])[0])
-                temp_p[i].append(stats.mannwhitneyu(dataToBeTested[i][j], referenceData[i][j])[1])
-        return temp_u, temp_p
-
-    def ANOVA_oneway_K(self, inPatch_K):
-        # do ANOVA for each row of calculated Ktrans, to see if there is significant difference with regarding to Ve
-        tempf = []
-        tempp = []
-        for i in range(self.nrOfRows):
-            tempf.append(stats.f_oneway(inPatch_K[i][0], inPatch_K[i][1], inPatch_K[i][2], inPatch_K[i][3], inPatch_K[i][4])[0])
-            tempp.append(stats.f_oneway(inPatch_K[i][0], inPatch_K[i][1], inPatch_K[i][2], inPatch_K[i][3], inPatch_K[i][4])[1])
-        return tempf, tempp
-
-    def ANOVA_oneway_V(self, inPatch_V):
-        # do ANOVA for each column of calculated Ve, to see if there is significant difference with regarding to Ktrans
-        tempf = []
-        tempp = []
-        for j in range(self.nrOfColumns):
-            tempf.append(stats.f_oneway(zip(*inPatch_V)[j][0], zip(*inPatch_V)[j][1], zip(*inPatch_V)[j][2], zip(*inPatch_V)[j][3], zip(*inPatch_V)[j][4], zip(*inPatch_V)[j][5])[0])
-            tempp.append(stats.f_oneway(zip(*inPatch_V)[j][0], zip(*inPatch_V)[j][1], zip(*inPatch_V)[j][2], zip(*inPatch_V)[j][3], zip(*inPatch_V)[j][4], zip(*inPatch_V)[j][5])[1])
-
-        return tempf, tempp
-
-    def Score(self):
-        # give a score for evaluation according to the weighting factors.
-        pass
 
 class MySplashScreen(wx.SplashScreen):
     '''
@@ -1677,7 +1386,6 @@ class MySplashScreen(wx.SplashScreen):
         # Call the constructor with the above arguments in exactly the
         # following order.
         wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
-
 
 
 if __name__ == "__main__":
