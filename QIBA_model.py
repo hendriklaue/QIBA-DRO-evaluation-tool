@@ -1,5 +1,5 @@
 # this package contains the models to be evaluated, with respect to the parameter of Ktrans-Ve or T1.
-
+import QIBA_functions
 class Model_KV():
     '''
     the class for Ktrans-Ve model.
