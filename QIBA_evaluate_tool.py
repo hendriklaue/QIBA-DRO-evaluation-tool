@@ -56,13 +56,11 @@ class MainWindow_KV(wx.Frame):
     '''
     this is the main window of the QIBA evaluate tool
     '''
-    applicationName = "QIBA evaluate tool"
+    applicationName = "QIBA evaluate tool(Ktrans-Ve)"
 
     # the list of evaluated models
     testedModels = []
 
-    # path_Ktrans_ref = os.path.join(os.path.dirname(sys.argv[0]), 'reference_data', 'Ktrans.dcm')
-    # path_Ve_ref = os.path.join(os.path.dirname(sys.argv[0]), 'reference_data', 'Ve.dcm')
     path_Ktrans_ref = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
     path_Ve_ref = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
     path_Ktrans_cal = ''
@@ -123,7 +121,7 @@ class MainWindow_KV(wx.Frame):
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
                                              filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw")
 
-        self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
+        self.Bind(wx.EVT_TREE_SEL_CHANGED, self.SetSelectedFilePath)
 
         # setup the right click function
         self.popupMenu = wx.Menu()
@@ -155,9 +153,12 @@ class MainWindow_KV(wx.Frame):
 
     def OnShowPopup(self, event):
         # show the popup menu
-        position = event.GetPosition()
-        position = self.leftPanel.ScreenToClient(position)
-        self.leftPanel.PopupMenu(self.popupMenu, position)
+        if os.path.isfile(self.selectedFilePath):
+            position = event.GetPosition()
+            position = self.leftPanel.ScreenToClient(position)
+            self.leftPanel.PopupMenu(self.popupMenu, position)
+        else:
+            pass
 
     def OnPopupItemSelected(self, event):
         # do something when item of the popup menu is selected
@@ -167,10 +168,12 @@ class MainWindow_KV(wx.Frame):
         elif item.GetText() == 'Load as calculated Ve':
             self.OnLoadCalculatedVe()
 
-    def GetFilePath(self, event):
+    def SetSelectedFilePath(self, event):
         # copy the selected file's path for loading it
         if self.fileBrowser.GetFilePath():
             self.selectedFilePath = self.fileBrowser.GetFilePath()
+        else:
+            self.selectedFilePath = ''
 
     def SetupRight(self):
         '''
@@ -379,7 +382,7 @@ class MainWindow_KV(wx.Frame):
         #EvaluateProgressDialog.Update(5)
 
         # create new model object to evaluated on
-        self.newModel = ModelEvaluated()
+        self.newModel = QIBA_model.Model_KV()
         #EvaluateProgressDialog.Update(10)
 
         # # make sure the import path is valid
@@ -418,9 +421,26 @@ class MainWindow_KV(wx.Frame):
         #EvaluateProgressDialog.Update(30)
 
         # draw the figures
-        self.ShowImagePreview()
+        self.ShowImagePreview([[self.newModel.Ktrans_cal_inRow, self.newModel.Ktrans_error, self.newModel.Ktrans_error_normalized],
+                                  [self.newModel.Ve_cal_inRow, self.newModel.Ve_error, self.newModel.Ve_error_normalized]],
+
+                                [['Calculated Ktrans', 'Error map of Ktrans', 'Normalized Error map of Ktrans'],
+                                 ['Calculated Ve', 'Error map of Ve', 'Normalized Error map of Ve']],
+
+                                [['bone', 'rainbow', 'rainbow'], ['bone', 'rainbow', 'rainbow']],
+
+                                [['Ktrans[1/min]', 'Delta Ktrans[1/min.]', 'Normalized error[1]'], ['Ve[]', 'Delta Ve[]', 'Normalized error[1]']])
         #EvaluateProgressDialog.Update(35)
-        self.DrawScatterPlot()
+        self.DrawScatterPlot([[self.newModel.Ktrans_cal], [self.newModel.Ve_cal]],
+
+                            [[self.newModel.Ktrans_ref], [self.newModel.Ve_ref]],
+
+                            [['Reference Ktrans'], ['Reference Ve']],
+
+                            [['Calculated Ktrans'], ['Calculated Ve']],
+
+                            [['Distribution plot of Ktrans'], ['Distribution plot of Ve']])
+
         #EvaluateProgressDialog.Update(50)
         self.DrawHistograms()
         #EvaluateProgressDialog.Update(90)
@@ -436,80 +456,42 @@ class MainWindow_KV(wx.Frame):
         self.buttonEvaluate.Enable()
         self.buttonExport.Enable()
 
-    def ShowImagePreview(self):
+    def ShowImagePreview(self, dataList, titleList, colorMapList, unitList):
         # show calculated images and the error images
-        subplotK_Cal = self.figureImagePreview.add_subplot(2,3,1)
-        handler = subplotK_Cal.imshow(self.newModel.Ktrans_cal_inRow, cmap = 'bone', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotK_Cal.get_figure().colorbar(handler, cax = cax).set_label('Ktrans[1/min]') # show color bar and the label
-        subplotK_Cal.set_title('Calculated Ktrans')
+        nrOfSubFigRows = len(dataList)
+        nrOfSubFigColumns = len(dataList[0])
 
-        subplotK_Err = self.figureImagePreview.add_subplot(2,3,2)
-        handler = subplotK_Err.imshow(self.newModel.Ktrans_error, cmap = 'rainbow', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Err.get_figure().gca())
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotK_Err.get_figure().colorbar(handler, cax = cax).set_label('Delta Ktrans[1/min.]')
-        subplotK_Err.set_title('Error map of Ktrans')
-
-        subplotK_Err_Normalized = self.figureImagePreview.add_subplot(2,3,3)
-        handler = subplotK_Err_Normalized.imshow(self.newModel.Ktrans_error_normalized, cmap = 'rainbow', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotK_Err_Normalized.get_figure().colorbar(handler, cax = cax).set_label('Normalized error[1]')
-        subplotK_Err_Normalized.set_title('Normalized error map of Ktrans')
-
-        subplotV_Cal = self.figureImagePreview.add_subplot(2,3,4)
-        handler = subplotV_Cal.imshow(self.newModel.Ve_cal_inRow, cmap = 'bone', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotV_Cal.get_figure().colorbar(handler, cax = cax).set_label('ve[]')
-        subplotV_Cal.set_title('Preview of Calculated Ve')
-
-        subplotV_Err = self.figureImagePreview.add_subplot(2,3,5)
-        handler = subplotV_Err.imshow(self.newModel.Ve_error, cmap = 'rainbow', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotV_Err.get_figure().colorbar(handler, cax = cax).set_label('Delta ve[]')
-        subplotV_Err.set_title('Error map of Ve')
-
-        subplotV_Err_Normalized = self.figureImagePreview.add_subplot(2,3,6)
-        handler = subplotV_Err_Normalized.imshow(self.newModel.Ve_error_normalized, cmap = 'rainbow', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotV_Err_Normalized.get_figure().colorbar(handler, cax = cax).set_label('Normalized error[1]')
-        subplotV_Err_Normalized.set_title('Normalized error map of Ve')
+        for i in range(nrOfSubFigRows):
+            for j in range(nrOfSubFigColumns):
+                subplot = self.figureImagePreview.add_subplot(nrOfSubFigRows, nrOfSubFigColumns, i * nrOfSubFigColumns + j + 1)
+                handler = subplot.imshow(dataList[i][j], cmap = colorMapList[i][j], interpolation='nearest')
+                divider = make_axes_locatable(subplot.get_figure().gca()) # for tight up the color bar
+                cax = divider.append_axes("right", "5%", pad="3%")
+                subplot.get_figure().colorbar(handler, cax = cax).set_label(unitList[i][j]) # show color bar and the label
+                subplot.set_title(titleList[i][j])
 
         self.figureImagePreview.tight_layout()
         self.canvasImagePreview.draw()
 
-    def DrawScatterPlot(self):
+    def DrawScatterPlot(self, dataList, refDataList, xLabelList, yLabelList, titleList):
         '''
         the scatter plots to show the distribution of the calculated values
         '''
-        subPlotK = self.figureScatter.add_subplot(2, 1, 1)
-        subPlotK.clear()
-        plotRaw = subPlotK.scatter(self.newModel.Ktrans_ref, self.newModel.Ktrans_ref, color = 'g', alpha = 0.25, label = 'reference value')
-        plotUniformed = subPlotK.scatter(self.newModel.Ktrans_ref, self.newModel.Ktrans_cal, color = 'b', alpha = 0.25, label = 'calculated value')
-        # plotRef = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempRefK, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
-        subPlotK.legend(loc = 'upper left')
-        subPlotK.set_xlabel('Reference Ktrans')
-        subPlotK.set_ylabel('Calculated Ktrans')
-        subPlotK.set_title('Distribution plot of Ktrans')
+        nrOfSubFigRows = len(dataList)
+        nrOfSubFigColumns = len(dataList[0])
 
-        subPlotV = self.figureScatter.add_subplot(2, 1, 2)
-        subPlotV.clear()
-        plotRaw = subPlotV.scatter(self.newModel.Ve_ref, self.newModel.Ve_ref, color = 'g', alpha = 0.25, label = 'reference value')
-        plotUniformed = subPlotV.scatter(self.newModel.Ve_ref, self.newModel.Ve_cal, color = 'b', alpha = 0.25, label = 'calculated value')
-        # plotRef = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempRefV, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
-        subPlotV.legend(loc = 'upper left')
-        subPlotV.set_xlabel('Reference Ve')
-        subPlotV.set_ylabel('Calculated Ve')
-        subPlotV.set_title('Distribution plot of Ve')
+        for i in range(nrOfSubFigRows):
+            for j in range(nrOfSubFigColumns):
+                subPlot = self.figureScatter.add_subplot(nrOfSubFigRows, nrOfSubFigColumns, i * nrOfSubFigColumns + j + 1)
+                subPlot.scatter(refDataList[i][j], refDataList[i][j], color = 'g', alpha = 0.25, label = 'reference value')
+                subPlot.scatter(refDataList[i][j], dataList[i][j], color = 'b', alpha = 0.25, label = 'calculated value')
+                subPlot.legend(loc = 'upper left')
+                subPlot.set_xlabel(xLabelList[i][j])
+                subPlot.set_ylabel(yLabelList[i][j])
+                subPlot.set_title(titleList[i][j])
 
         self.figureScatter.tight_layout()
         self.canvasScatter.draw()
-        self.rightPanel.Layout()
 
     def DrawBoxPlot(self):
         '''
