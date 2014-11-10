@@ -57,37 +57,27 @@ class MainWindow(wx.Frame):
     this is the parent class of the main window of the application.
     '''
 
-    def __init__(self, parent, BRANCH):
-        wx.Frame.__init__(self, parent, title = self.applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
-
-        # default file paths
-        self.path_Ktrans_ref = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
-        self.path_Ve_ref = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
-        self.path_Ktrans_cal = ''
-        self.path_Ve_cal = ''
-        self.path_T1_ref = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
-        self.path_T1_cal = ''
+    def __init__(self, parent, applicationName):
+        wx.Frame.__init__(self, parent, title = applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
 
         # decide the interface according to the BRANCH
-        if BRANCH == 'Ktrans-Ve':
-            self.EditMenuItemList = ['Load new reference Ktrans...', 'Load new reference Ve...']
-            self.PopupMenuItemList = ['Load as cal. Ktrans', 'Load as cal. Ve']
-            self.applicationName = "QIBA evaluate tool (Ktrans-Ve)"
-        elif BRANCH == 'T1':
-            self.EditMenuItemList = ['Load new reference T1...']
-            self.PopupMenuItemList = ['Load as cal. T1']
-            self.applicationName = "QIBA evaluate tool (T1)"
 
         self.CenterOnScreen()
 
         self.CreateStatusBar()
-        self.SetStatusText("Welcome to " + self.applicationName + "!")
+        self.SetStatusText("Welcome to " + applicationName + "!")
 
-        self.SetupMenubar(BRANCH)
+        self.SetupMenubar()
 
-        self.SetupLayoutMain(BRANCH)
+        self.SetupLayoutMain()
 
-    def SetupMenubar(self, BRANCH):
+    def SetupEditMenu(self):
+        pass
+
+    def OnRightClick(self, event):
+        pass
+
+    def SetupMenubar(self):
         '''
         set up the menu bar
         '''
@@ -96,17 +86,9 @@ class MainWindow(wx.Frame):
         fileMenu = wx.Menu()
         OnExport = fileMenu.Append(wx.ID_ANY, "&Export the results...\tCtrl+E", "Export the result as PDF/EXCEL file.")
         fileMenu.AppendSeparator()
-        OnExit = fileMenu.Append(wx.ID_ANY, "&Quit\tCtrl+Q", "Quit " + self.applicationName)
+        OnExit = fileMenu.Append(wx.ID_ANY, "&Quit\tCtrl+Q", "Quit")
 
-        editMenu = wx.Menu()
-        if BRANCH == 'Ktrans-Ve':
-            OnLoadKtransRef = editMenu.Append(wx.ID_ANY, "Load reference Ktrans...")
-            OnLoadVeRef = editMenu.Append(wx.ID_ANY, "Load reference Ve...")
-            self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceKtrans, OnLoadKtransRef)
-            self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceVe, OnLoadVeRef)
-        elif BRANCH == 'T1':
-            OnLoadT1Ref = editMenu.Append(wx.ID_ANY, "Load reference T1...")
-            self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceT1, OnLoadT1Ref)
+        # self.SetupEditMenu()
 
         aboutMenu = wx.Menu()
         OnAboutApp = aboutMenu.Append(wx.ID_ANY, "About this application")
@@ -116,26 +98,34 @@ class MainWindow(wx.Frame):
         self.menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
 
         self.menubar.Append(fileMenu, "&File")
-        self.menubar.Append(editMenu, "&Edit")
         self.menubar.Append(aboutMenu, "&About")
         self.SetMenuBar(self.menubar)
 
-    def SetupLayoutMain(self, BRANCH):
+    def SetupLayoutMain(self):
         '''
         set up the main window
         '''
         self.leftPanel = wx.Panel(self)
         self.rightPanel = wx.Panel(self)
 
-        self.SetupLeft(BRANCH)
-        self.SetupRight(BRANCH)
+        self.SetupLeft()
+        self.SetupRight()
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.leftPanel, 2, flag = wx.EXPAND)  # second argument being 0 to make sure that it wont expand
         sizer.Add(self.rightPanel, 7, flag = wx.EXPAND)
         self.SetSizer(sizer)
 
-    def SetupLeft(self, BRANCH):
+    def SetupRightClickMenu(self):
+        pass
+
+    def SetupPage_Histogram(self):
+        pass
+
+    def ClearPage_Histogram(self):
+        pass
+
+    def SetupLeft(self):
         '''
         set up the left panel.
         show the directories and files list to load calculated DICOMs
@@ -146,21 +136,10 @@ class MainWindow(wx.Frame):
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
                                              filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw")
 
-        self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
+        # self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
 
         # setup the right click function
-        self.popupMenu = wx.Menu()
-        if BRANCH == 'Ktrans-Ve':
-            itemLoadCalK = self.popupMenu.Append(-1, 'Load as calculated Ktrans')
-            self.leftPanel.Bind(wx.EVT_MENU, self.OnPopupItemSelected, itemLoadCalK)
-            itemLoadCalV = self.popupMenu.Append(-1, 'Load as calculated Ve')
-            self.leftPanel.Bind(wx.EVT_MENU, self.OnPopupItemSelected, itemLoadCalV)
-        else:
-            itemLoadT1 = self.popupMenu.Append(-1, 'Load as calculated T1')
-            self.leftPanel.Bind(wx.EVT_MENU, self.OnPopupItemSelected, itemLoadT1)
-
-        # right click action to popup menu
-        self.leftPanel.Bind(wx.EVT_CONTEXT_MENU, self.OnShowPopup)
+        self.SetupRightClickMenu()
 
         # setup 'evaluate' and 'export result' buttons
         self.buttonEvaluate = wx.Button(self.leftPanel, wx.ID_ANY, 'Evaluate')
@@ -181,91 +160,7 @@ class MainWindow(wx.Frame):
         self.buttonExport.Disable()
         self.buttonEvaluate.Disable()
 
-    def OnShowPopup(self, event):
-        # show the popup menu
-        position = event.GetPosition()
-        position = self.leftPanel.ScreenToClient(position)
-        self.leftPanel.PopupMenu(self.popupMenu, position)
-
-    def OnPopupItemSelected(self, event):
-        # do something when item of the popup menu is selected
-        item = self.popupMenu.FindItemById(event.GetId())
-        if item.GetText() == 'Load as calculated Ktrans':
-            self.OnLoadCalculatedKtrans()
-        elif item.GetText() == 'Load as calculated Ve':
-            self.OnLoadCalculatedVe()
-        else:
-            self.OnLoadCalculatedT1()
-
-    def OnLoadReferenceKtrans(self, event):
-        # Import the reference Ktrans
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ktrans_ref = dlg.GetPath()
-            self.SetStatusText('Reference Ktrans loaded.')
-        else:
-            self.SetStatusText('Reference Ktrans was NOT loaded!')
-
-    def OnLoadReferenceVe(self, event):
-        # Import the reference Ve
-        dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ve_ref = dlg.GetPath()
-            self.SetStatusText('Reference Ve loaded.')
-        else:
-            self.SetStatusText('Reference Ve was NOT loaded!')
-
-    def OnLoadReferenceT1(self, event):
-        # Import the reference T1
-        dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.path_T1_ref = dlg.GetPath()
-            self.SetStatusText('Reference T1 loaded.')
-        else:
-            self.SetStatusText('Reference T1 was NOT loaded!')
-
-    def OnLoadCalculatedT1(self):
-        # load the selected file as calculated Ktrans
-        if os.path.splitext(self.selectedFilePath)[1] == '.dcm' or '.bin' or '.raw':
-            self.path_T1_cal = self.selectedFilePath
-            self.SetStatusText('Calculated T1 loaded.')
-        else:
-            self.SetStatusText('Invalid file or path chosen.')
-
-        # enable the evaluate button when the paths are valid
-        if self.path_T1_cal:
-            self.buttonEvaluate.Enable()
-
-    def OnLoadCalculatedKtrans(self):
-        # load the selected file as calculated Ktrans
-        if os.path.splitext(self.selectedFilePath)[1] == '.dcm' or '.bin' or '.raw':
-            self.path_Ktrans_cal = self.selectedFilePath
-            self.SetStatusText('Calculated Ktrans loaded.')
-        else:
-            self.SetStatusText('Invalid file or path chosen.')
-
-        # enable the evaluate button when the paths are valid
-        if self.path_Ktrans_cal and self.path_Ve_cal:
-            self.buttonEvaluate.Enable()
-
-    def OnLoadCalculatedVe(self):
-        # load the selected file as calculated Ve
-        if os.path.splitext(self.selectedFilePath)[1] == '.dcm' or '.bin' or '.raw':
-            self.path_Ve_cal = self.selectedFilePath
-            self.SetStatusText('Calculated Ve loaded.')
-        else:
-            self.SetStatusText('Invalid file or path chosen.')
-
-        # enable the evaluate button when the paths are valid
-        if self.path_Ktrans_cal and self.path_Ve_cal:
-            self.buttonEvaluate.Enable()
-
-    def GetFilePath(self, event):
-        # copy the selected file's path for loading it
-        if self.fileBrowser.GetFilePath():
-            self.selectedFilePath = self.fileBrowser.GetFilePath()
-
-    def SetupRight(self, BRANCH):
+    def SetupRight(self):
         '''
         set up the right panel
         '''
@@ -307,20 +202,8 @@ class MainWindow(wx.Frame):
         sizer.Add(self.canvasScatter, 1, wx.EXPAND)
         self.pageScatter.SetSizer(sizer)
 
-        # page Histogram
-        self.figureHist_Ktrans = Figure()
-        self.canvasHist_Ktrans = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ktrans)
-
-        self.figureHist_Ve = Figure()
-        self.canvasHist_Ve = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ve)
-
-        self.verticalLine = wx.StaticLine(self.pageHistogram, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
-        sizer.Add(self.verticalLine, 2, wx.EXPAND)
-        sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
-        self.pageHistogram.SetSizer(sizer)
+        # page histogram
+        self.SetupPage_Histogram()
 
         # page box plots
         self.figureBoxPlot = Figure()
@@ -378,9 +261,135 @@ class MainWindow(wx.Frame):
         self.rightPanel.SetSizer(sizer)
         self.rightPanel.Layout()
 
+    def ClearInterface(self):
+        # clear the plots in the interface, so that when the evaluated models are cleared, the interface will also be cleaned.
+        self.figureImagePreview.clear()
+        self.canvasImagePreview.draw()
+
+        self.figureScatter.clear()
+        self.canvasScatter.draw()
+
+        self.ClearPage_Histogram()
+
+        self.figureBoxPlot.clear()
+        self.canvasBoxPlot.draw()
+
+        self.statisticsViewer.SetPage('')
+        self.covCorrViewer.SetPage('')
+        self.modelFittingViewer.SetPage('')
+        self.t_testViewer.SetPage('')
+        self.U_testViewer.SetPage('')
+        self.ANOVAViewer.SetPage('')
+
+    def DrawMaps(self):
+        pass
+
+    def DrawScatter(self):
+        pass
+
+    def PlotPreview(self, dataList, titleList, colorMapList, unitList):
+        # show calculated images and the error images
+        nrOfSubFigRows = len(dataList)
+        nrOfSubFigColumns = len(dataList[0])
+        # subplot = [[] for i in range(nrOfSubFigRows)]
+
+        for i in range(nrOfSubFigRows):
+            for j in range(nrOfSubFigColumns):
+                print nrOfSubFigRows, nrOfSubFigColumns, i * nrOfSubFigColumns + j +1
+                subplot = self.figureImagePreview.add_subplot(nrOfSubFigRows, nrOfSubFigColumns, i * nrOfSubFigColumns + j + 1)
+                handler = subplot.imshow(dataList[i][j], cmap = colorMapList[i][j], interpolation='nearest')
+                divider = make_axes_locatable(subplot.get_figure().gca()) # for tight up the color bar
+                cax = divider.append_axes("right", "5%", pad="3%")
+                subplot.get_figure().colorbar(handler, cax = cax).set_label(unitList[i][j]) # show color bar and the label
+                subplot.set_title(titleList[i][j])
+
+        self.figureImagePreview.tight_layout()
+        self.canvasImagePreview.draw()
+
+    def PlotScatter(self, dataList, refDataList, xLabelList, yLabelList, titleList):
+        '''
+        the scatter plots to show the distribution of the calculated values
+        '''
+        nrOfSubFigRows = len(dataList)
+        nrOfSubFigColumns = len(dataList[0])
+
+        for i in range(nrOfSubFigRows):
+            for j in range(nrOfSubFigColumns):
+                subPlot = self.figureScatter.add_subplot(nrOfSubFigRows, nrOfSubFigColumns, i * nrOfSubFigColumns + j + 1)
+                subPlot.scatter(refDataList[i][j], refDataList[i][j], color = 'g', alpha = 0.25, label = 'reference value')
+                subPlot.scatter(refDataList[i][j], dataList[i][j], color = 'b', alpha = 0.25, label = 'calculated value')
+                subPlot.legend(loc = 'upper left')
+                subPlot.set_xlabel(xLabelList[i][j])
+                subPlot.set_ylabel(yLabelList[i][j])
+                subPlot.set_title(titleList[i][j])
+
+        self.figureScatter.tight_layout()
+        self.canvasScatter.draw()
+
+    def DrawHistograms(self):
+        pass
+
+    def DrawBoxPlot(self):
+        pass
+
+
     def OnEvaluate(self, event):
         # start to evaluate
-        pass
+        # clear the interface if they were used before
+        self.ClearInterface()
+
+        # disable some widgets
+        self.buttonEvaluate.Disable()
+        self.buttonExport.Disable()
+
+        # status bar
+        self.SetStatusText('Evaluating...')
+        #EvaluateProgressDialog.Update(5)
+
+        # create new model object to evaluated on
+        self.GenerateModel()
+        #EvaluateProgressDialog.Update(10)
+
+        # call the method to execute evaluation
+        self.newModel.Evaluate()
+        #EvaluateProgressDialog.Update(20)
+
+        # show the results in the main window
+        self.ShowResults()
+
+        # status bar
+        self.SetStatusText('Evaluation finished.')
+        #EvaluateProgressDialog.Update(100)
+        #EvaluateProgressDialog.Destroy()
+
+        # enable some widgets
+        self.buttonEvaluate.Enable()
+        self.buttonExport.Enable()
+
+    def GenerateModel(self):
+        self.newModel = QIBA_model.Model_KV('', '', '', '')
+
+    def ShowResults(self):
+        # show the results in the main window
+        self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
+        self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
+        self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
+        self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
+        self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
+        self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
+        #EvaluateProgressDialog.Update(25)
+
+        #EvaluateProgressDialog.Update(30)
+
+        # draw the figures
+        self.DrawMaps()
+        #EvaluateProgressDialog.Update(35)
+        self.DrawScatter()
+        #EvaluateProgressDialog.Update(50)
+        self.DrawHistograms()
+        #EvaluateProgressDialog.Update(90)
+        self.DrawBoxPlot()
+        #EvaluateProgressDialog.Update(95)
 
     def OnExport(self, event):
         # export the evaluation results to PDF
@@ -461,185 +470,49 @@ class MainWindow_KV(MainWindow):
     '''
     this is the Ktrans-Ve branch's interface.
     '''
-    def __init__(self, wx,Frame):
-        MainWindow.__init__(self, wx.Frame, 'Ktrans-Ve')
+    def __init__(self, appName):
+        # instance of the main window
+        MainWindow.__init__(self, None, appName)
 
-        # default reference files
-        self.path_Ktrans_ref = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
-        self.path_Ve_ref = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
-        self.path_Ktrans_cal = ''
-        self.path_Ve_cal = ''
+        # default files' paths
+        self.path_ref_K = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
+        self.path_ref_V = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
+        self.path_cal_K = ''
+        self.path_cal_V = ''
 
-class MainWindow_T1(MainWindow):
-    '''
-    this is the Ktrans-Ve branch's interface.
-    '''
-    def __init__(self, wx,Frame):
-        MainWindow.__init__(self, wx.Frame, 'T1')
+        # interface specialized items
+        self.EditMenuItemList = ['Load new reference Ktrans...', 'Load new reference Ve...']
+        self.PopupMenuItemList = ['Load as cal. Ktrans', 'Load as cal. Ve']
 
+        # customize the main window
+        self.SetupEditMenu()
+        self.SetupRightClickMenu()
+        self.SetupPage_Histogram()
 
-        # default reference files
-        self.path_T1_ref = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
-        self.path_T1_cal = ''
-
-class MainWindow_KV(wx.Frame):
-    '''
-    this is the main window of the QIBA evaluate tool
-    '''
-    applicationName = "QIBA evaluate tool(Ktrans-Ve)"
-
-    path_Ktrans_ref = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
-    path_Ve_ref = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
-    path_Ktrans_cal = ''
-    path_Ve_cal = ''
-
-    def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title = self.applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
-
-        self.CenterOnScreen()
-
-        self.CreateStatusBar()
-        self.SetStatusText("Welcome to " + self.applicationName + "!")
-
-        self.SetupMenubar()
-
-        self.SetupLayoutMain()
-
-
-    def SetupMenubar(self):
-        '''
-        set up the menu bar
-        '''
-        self.menubar = wx.MenuBar()
-
-        fileMenu = wx.Menu()
-        OnExport = fileMenu.Append(wx.ID_ANY, "&Export the results...\tCtrl+E", "Export the result as PDF/EXCEL file.")
-        fileMenu.AppendSeparator()
-        OnExit = fileMenu.Append(wx.ID_ANY, "&Quit\tCtrl+Q", "Quit " + self.applicationName)
-
+    def SetupEditMenu(self):
+        # setup the edit menu in the menu bar
         editMenu = wx.Menu()
-        # OnClearModelList = editMenu.Append(wx.ID_ANY, "Clear evaluated model list")
-        OnLoadKtransRef = editMenu.Append(wx.ID_ANY, "Load Ktrans reference parameter map...")
-        OnLoadVeRef = editMenu.Append(wx.ID_ANY, "Load Ve reference parameter map...")
-
-        aboutMenu = wx.Menu()
-        OnAboutApp = aboutMenu.Append(wx.ID_ANY, "About this application")
-
-        self.menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
-        # menubar.Bind(wx.EVT_MENU, self.OnClearModelList, OnClearModelList)
-        self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceKtrans, OnLoadKtransRef)
-        self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceVe, OnLoadVeRef)
-        self.menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
-        self.menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
-
-        self.menubar.Append(fileMenu, "&File")
-        self.menubar.Append(editMenu, "&Edit")
-        self.menubar.Append(aboutMenu, "&About")
+        OnLoadRef_K = editMenu.Append(wx.ID_ANY, 'Load reference Ktrans...')
+        OnLoadRef_V = editMenu.Append(wx.ID_ANY, 'Load reference Ve...')
+        self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_K, OnLoadRef_K)
+        self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_V, OnLoadRef_V)
+        self.menubar.Insert(1,editMenu, "&Edit")
         self.SetMenuBar(self.menubar)
 
-    def SetupLeft(self):
-        '''
-        set up the left panel.
-        show the directories and files list to load calculated DICOMs
-        '''
-        self.selectedFilePath = ''
-        # setup the tree control widget for file viewing and selection
-
-        self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
-                                             filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw")
-
-        self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
-
-        # setup the right click function
+    def SetupRightClickMenu(self):
+        # setup the popup menu on right click
+        wx.EVT_RIGHT_DOWN(self.fileBrowser.GetTreeCtrl(), self.OnRightClick)
         self.popupMenu = wx.Menu()
-        itemLoadCalK = self.popupMenu.Append(-1, 'Load as calculated Ktrans')
-        self.leftPanel.Bind(wx.EVT_MENU, self.OnPopupItemSelected, itemLoadCalK)
-        itemLoadCalV = self.popupMenu.Append(-1, 'Load as calculated Ve')
-        self.leftPanel.Bind(wx.EVT_MENU, self.OnPopupItemSelected, itemLoadCalV)
+        self.ID_POPUP_LOAD_CAL_K = wx.NewId()
+        self.ID_POPUP_LOAD_CAL_V = wx.NewId()
 
-        self.leftPanel.Bind(wx.EVT_CONTEXT_MENU, self.OnShowPopup)
+        OnLoadCal_K = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, 'Load as calculated Ktrans')
+        OnLoadCal_V = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, 'Load as calculated Ve')
+        self.popupMenu.AppendItem(OnLoadCal_K)
+        self.popupMenu.AppendItem(OnLoadCal_V)
 
-        # setup 'evaluate' and 'export result' buttons
-        self.buttonEvaluate = wx.Button(self.leftPanel, wx.ID_ANY, 'Evaluate')
-        self.buttonExport = wx.Button(self.leftPanel, wx.ID_ANY, 'Export result')
-        self.Bind(wx.EVT_BUTTON, self.OnEvaluate, self.buttonEvaluate)
-        self.Bind(wx.EVT_BUTTON, self.OnExport, self.buttonExport)
-
-        sizerButton = wx.BoxSizer(wx.HORIZONTAL)
-        sizerButton.Add(self.buttonEvaluate, 1, wx.ALIGN_LEFT)
-        sizerButton.Add(self.buttonExport, 1, wx.ALIGN_RIGHT)
-
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.fileBrowser, 1, wx.EXPAND)
-        sizer.Add(sizerButton)
-        self.leftPanel.SetSizer(sizer)
-
-        # disable the export/evaluate button in start up
-        self.buttonExport.Disable()
-        self.buttonEvaluate.Disable()
-
-    def OnShowPopup(self, event):
-        # show the popup menu
-        position = event.GetPosition()
-        position = self.leftPanel.ScreenToClient(position)
-        self.leftPanel.PopupMenu(self.popupMenu, position)
-
-    def OnPopupItemSelected(self, event):
-        # do something when item of the popup menu is selected
-        item = self.popupMenu.FindItemById(event.GetId())
-        if item.GetText() == 'Load as calculated Ktrans':
-            self.OnLoadCalculatedKtrans()
-        elif item.GetText() == 'Load as calculated Ve':
-            self.OnLoadCalculatedVe()
-
-    def GetFilePath(self, event):
-        # copy the selected file's path for loading it
-        if self.fileBrowser.GetFilePath():
-            self.selectedFilePath = self.fileBrowser.GetFilePath()
-
-    def SetupRight(self):
-        '''
-        set up the right panel
-        '''
-        self.noteBookRight = wx.Notebook(self.rightPanel)  #, style=wx.SUNKEN_BORDER)
-        self.pageImagePreview = wx.Panel(self.noteBookRight)
-        self.pageScatter = wx.Panel(self.noteBookRight)
-        self.pageHistogram = wx.Panel(self.noteBookRight)
-        self.pageBoxPlot = wx.Panel(self.noteBookRight)
-        self.pageStatistics = wx.Panel(self.noteBookRight)
-        self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
-        self.pageModelFitting = wx.Panel(self.noteBookRight)
-        self.pageT_Test = wx.Panel(self.noteBookRight)
-        self.pageU_Test = wx.Panel(self.noteBookRight)
-        self.pageANOVA = wx.Panel(self.noteBookRight)
-        self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
-        self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
-        self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
-        self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
-        self.noteBookRight.AddPage(self.pageStatistics, "Statistics Viewer")
-        self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance And Correlation")
-        self.noteBookRight.AddPage(self.pageModelFitting, "Model fitting")
-        self.noteBookRight.AddPage(self.pageT_Test, "t-test results Viewer")
-        self.noteBookRight.AddPage(self.pageU_Test, "U-test results Viewer")
-        self.noteBookRight.AddPage(self.pageANOVA, "ANOVA results Viewer")
-
-        # show the calculated images and error images
-        self.figureImagePreview = Figure()
-        self.canvasImagePreview = FigureCanvas(self.pageImagePreview, -1, self.figureImagePreview)
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
-        self.pageImagePreview.SetSizer(sizer)
-
-        # page scatter
-        self.figureScatter = Figure()
-        self.canvasScatter = FigureCanvas(self.pageScatter,-1, self.figureScatter)
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvasScatter, 1, wx.EXPAND)
-        self.pageScatter.SetSizer(sizer)
-
-        # page Histogram
+    def SetupPage_Histogram(self):
+        # setup the histogram page
         self.figureHist_Ktrans = Figure()
         self.canvasHist_Ktrans = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ktrans)
 
@@ -654,329 +527,66 @@ class MainWindow_KV(wx.Frame):
         sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
         self.pageHistogram.SetSizer(sizer)
 
-        # page box plots
-        self.figureBoxPlot = Figure()
-        self.canvasBoxPlot = FigureCanvas(self.pageBoxPlot,-1, self.figureBoxPlot)
+    def ClearPage_Histogram(self):
+        # clear the histogram page
+        self.figureHist_Ktrans.clear()
+        self.canvasHist_Ktrans.draw()
+        self.figureHist_Ve.clear()
+        self.canvasHist_Ve.draw()
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvasBoxPlot, 1, wx.EXPAND)
-        self.pageBoxPlot.SetSizer(sizer)
+    def GenerateModel(self):
+        # generate the model for evaluation
+        self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V)
 
-        # page statistics
-        self.statisticsViewer = wx.html.HtmlWindow(self.pageStatistics, -1)
+    def OnRightClick(self, event):
+        # the right click action on the file list
+        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in ['.dcm', '.bin', '.raw']):
+            wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, self.OnLoadCal_K)
+            wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, self.OnLoadCal_V)
+            self.PopupMenu(self.popupMenu, event.GetPosition())
+        else:
+            self.SetStatusText('Invalid file or path chosen.')
 
-        sizer = wx.BoxSizer()
-        sizer.Add(self.statisticsViewer, 1, wx.EXPAND)
-        self.pageStatistics.SetSizer(sizer)
+    def OnLoadCal_K(self, event):
+        # pass the file path for loading
+        self.path_cal_K = self.fileBrowser.GetPath()
+        self.SetStatusText('Calculated Ktrans loaded.')
+        if self.path_cal_V:
+            self.buttonEvaluate.Enable()
 
-        # page covariance and correlation
-        self.covCorrViewer = wx.html.HtmlWindow(self.pageCovarianceCorrelation, -1)
+    def OnLoadCal_V(self, event):
+        # pass the file path for loading
+        self.path_cal_V = self.fileBrowser.GetPath()
+        self.SetStatusText('Calculated Ve loaded.')
+        if self.path_cal_K:
+            self.buttonEvaluate.Enable()
 
-        sizer = wx.BoxSizer()
-        sizer.Add(self.covCorrViewer, 1, wx.EXPAND)
-        self.pageCovarianceCorrelation.SetSizer(sizer)
-
-        # page model fitting
-        self.modelFittingViewer = wx.html.HtmlWindow(self.pageModelFitting, -1)
-
-        sizer = wx.BoxSizer()
-        sizer.Add(self.modelFittingViewer, 1, wx.EXPAND)
-        self.pageModelFitting.SetSizer(sizer)
-
-        # page t-test
-        self.t_testViewer = wx.html.HtmlWindow(self.pageT_Test, -1)
-
-        sizer = wx.BoxSizer()
-        sizer.Add(self.t_testViewer, 1, wx.EXPAND)
-        self.pageT_Test.SetSizer(sizer)
-
-        # page U-test
-        self.U_testViewer = wx.html.HtmlWindow(self.pageU_Test, -1)
-
-        sizer = wx.BoxSizer()
-        sizer.Add(self.U_testViewer, 1, wx.EXPAND)
-        self.pageU_Test.SetSizer(sizer)
-
-        # page ANOVA
-        self.ANOVAViewer = wx.html.HtmlWindow(self.pageANOVA, -1)
-
-        sizer = wx.BoxSizer()
-        sizer.Add(self.ANOVAViewer, 1, wx.EXPAND)
-        self.pageANOVA.SetSizer(sizer)
-
-        # sizer for the right panel
-        sizer = wx.BoxSizer()
-        sizer.Add(self.noteBookRight, 1, wx.EXPAND)
-        self.rightPanel.SetSizer(sizer)
-        self.rightPanel.Layout()
-
-    def SetupLayoutMain(self):
-        '''
-        set up the main window
-        '''
-        self.leftPanel = wx.Panel(self)
-        self.rightPanel = wx.Panel(self)
-
-        self.SetupLeft()
-        self.SetupRight()
-
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.leftPanel, 2, flag = wx.EXPAND)  # second argument being 0 to make sure that it wont expand
-        sizer.Add(self.rightPanel, 7, flag = wx.EXPAND)
-        self.SetSizer(sizer)
-
-    def OnLoadReferenceKtrans(self, event):
-        # Import the reference Ktrans
+    def OnLoadRef_K(self, event):
+        # pass the file path for loading
         dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ktrans_ref = dlg.GetPath()
+            self.path_ref_K = dlg.GetPath()
             self.SetStatusText('Reference Ktrans loaded.')
         else:
             self.SetStatusText('Reference Ktrans was NOT loaded!')
 
-    def OnLoadReferenceVe(self, event):
-        # Import the reference Ve
-        dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
+    def OnLoadRef_V(self, event):
+        # pass the file path for loading
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ve_ref = dlg.GetPath()
+            self.path_ref_V = dlg.GetPath()
             self.SetStatusText('Reference Ve loaded.')
         else:
             self.SetStatusText('Reference Ve was NOT loaded!')
 
-    def OnLoadCalculatedKtrans(self):
-        # load the selected DICOM as calculated Ktrans
-        if os.path.splitext(self.selectedFilePath)[1] == '.dcm' or '.bin' or '.raw':
-            self.path_Ktrans_cal = self.selectedFilePath
-            self.SetStatusText('Calculated Ktrans loaded.')
-        else:
-            self.SetStatusText('Invalid file or path chosen.')
-
-        # enable the evaluate button when the paths are valid
-        if self.path_Ktrans_cal and self.path_Ve_cal:
-            self.buttonEvaluate.Enable()
-
-    def OnLoadCalculatedVe(self):
-        # load the selected DICOM as calculated Ve
-        if os.path.splitext(self.selectedFilePath)[1] == '.dcm' or '.bin' or '.raw':
-            self.path_Ve_cal = self.selectedFilePath
-            self.SetStatusText('Calculated Ve loaded.')
-        else:
-            self.SetStatusText('Invalid file or path chosen.')
-
-        # enable the evaluate button when the paths are valid
-        if self.path_Ktrans_cal and self.path_Ve_cal:
-            self.buttonEvaluate.Enable()
-
-    def OnEvaluate(self, event):
-        '''
-        process the imported DICOM,and display
-        '''
-
-        # initialize one progress bar
-       # max = 100
-        #EvaluateProgressDialog = wx.ProgressDialog('Evaluating...', 'The progress of evaluation:', maximum = max)
-
-        # clear the interface if they were used before
-        self.ClearInterface()
-
-        # disable some widgets
-        self.buttonEvaluate.Disable()
-        self.buttonExport.Disable()
-
-        # status bar
-        self.SetStatusText('Evaluating...')
-        #EvaluateProgressDialog.Update(5)
-
-        # create new model object to evaluated on
-        self.newModel = QIBA_model.Model_KV()
-        #EvaluateProgressDialog.Update(10)
-
-        # # make sure the import path is valid
-        # if not self.newModel.ImportFile(self.path_Ktrans_ref):
-        #     self.SetStatusText('Please load a proper file as reference Ktrans.')
-        #     return False
-        #
-        # if not self.newModel.ImportFile(self.path_Ve_ref):
-        #     self.SetStatusText('Please load a proper file as reference Ve.')
-        #     return False
-        #
-        # if not self.newModel.ImportFile(self.path_Ktrans_cal):
-        #     self.SetStatusText('Please load a proper file as calculated Ktrans.')
-        #     return False
-        #
-        # if not self.newModel.ImportFile(self.path_Ve_cal):
-        #     self.SetStatusText('Please load a proper file as calculated ve.')
-        #     return False
-        #EvaluateProgressDialog.Update(15)
-
-        # call the method to execute evaluation
-        self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
-        #EvaluateProgressDialog.Update(20)
-
-        # show the results in the main window
-        self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
-        self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
-        self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
-        self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
-        self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
-        self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
-        #EvaluateProgressDialog.Update(25)
-
-        #EvaluateProgressDialog.Update(30)
-
-        # draw the figures
-        self.ShowImagePreview()
-        #EvaluateProgressDialog.Update(35)
-        self.DrawScatterPlot()
-        #EvaluateProgressDialog.Update(50)
-        self.DrawHistograms()
-        #EvaluateProgressDialog.Update(90)
-        self.DrawBoxPlot()
-        #EvaluateProgressDialog.Update(95)
-
-        # status bar
-        self.SetStatusText('Evaluation finished.')
-        #EvaluateProgressDialog.Update(100)
-        #EvaluateProgressDialog.Destroy()
-
-        # enable some widgets
-        self.buttonEvaluate.Enable()
-        self.buttonExport.Enable()
-
-    def ShowImagePreview(self):
-        # show calculated images and the error images
-        subplotK_Cal = self.figureImagePreview.add_subplot(2,3,1)
-        handler = subplotK_Cal.imshow(self.newModel.Ktrans_cal_inRow, cmap = 'bone', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotK_Cal.get_figure().colorbar(handler, cax = cax).set_label('Ktrans[1/min]') # show color bar and the label
-        subplotK_Cal.set_title('Calculated Ktrans')
-
-        subplotK_Err = self.figureImagePreview.add_subplot(2,3,2)
-        handler = subplotK_Err.imshow(self.newModel.Ktrans_error, cmap = 'rainbow', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Err.get_figure().gca())
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotK_Err.get_figure().colorbar(handler, cax = cax).set_label('Delta Ktrans[1/min.]')
-        subplotK_Err.set_title('Error map of Ktrans')
-
-        subplotK_Err_Normalized = self.figureImagePreview.add_subplot(2,3,3)
-        handler = subplotK_Err_Normalized.imshow(self.newModel.Ktrans_error_normalized, cmap = 'rainbow', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotK_Err_Normalized.get_figure().colorbar(handler, cax = cax).set_label('Normalized error[1]')
-        subplotK_Err_Normalized.set_title('Normalized error map of Ktrans')
-
-        subplotV_Cal = self.figureImagePreview.add_subplot(2,3,4)
-        handler = subplotV_Cal.imshow(self.newModel.Ve_cal_inRow, cmap = 'bone', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotV_Cal.get_figure().colorbar(handler, cax = cax).set_label('ve[]')
-        subplotV_Cal.set_title('Preview of Calculated Ve')
-
-        subplotV_Err = self.figureImagePreview.add_subplot(2,3,5)
-        handler = subplotV_Err.imshow(self.newModel.Ve_error, cmap = 'rainbow', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotV_Err.get_figure().colorbar(handler, cax = cax).set_label('Delta ve[]')
-        subplotV_Err.set_title('Error map of Ve')
-
-        subplotV_Err_Normalized = self.figureImagePreview.add_subplot(2,3,6)
-        handler = subplotV_Err_Normalized.imshow(self.newModel.Ve_error_normalized, cmap = 'rainbow', interpolation='nearest')
-        divider = make_axes_locatable(subplotK_Cal.get_figure().gca()) # for tight up the color bar
-        cax = divider.append_axes("right", "5%", pad="3%")
-        subplotV_Err_Normalized.get_figure().colorbar(handler, cax = cax).set_label('Normalized error[1]')
-        subplotV_Err_Normalized.set_title('Normalized error map of Ve')
-
-        self.figureImagePreview.tight_layout()
-        self.canvasImagePreview.draw()
-
-    def DrawScatterPlot(self):
-        '''
-        the scatter plots to show the distribution of the calculated values
-        '''
-        subPlotK = self.figureScatter.add_subplot(2, 1, 1)
-        subPlotK.clear()
-        plotRaw = subPlotK.scatter(self.newModel.Ktrans_ref, self.newModel.Ktrans_ref, color = 'g', alpha = 0.25, label = 'reference value')
-        plotUniformed = subPlotK.scatter(self.newModel.Ktrans_ref, self.newModel.Ktrans_cal, color = 'b', alpha = 0.25, label = 'calculated value')
-        # plotRef = subPlotK.scatter(self.pixelsTempRefK, self.pixelsTempRefK, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
-        subPlotK.legend(loc = 'upper left')
-        subPlotK.set_xlabel('Reference Ktrans')
-        subPlotK.set_ylabel('Calculated Ktrans')
-        subPlotK.set_title('Distribution plot of Ktrans')
-
-        subPlotV = self.figureScatter.add_subplot(2, 1, 2)
-        subPlotV.clear()
-        plotRaw = subPlotV.scatter(self.newModel.Ve_ref, self.newModel.Ve_ref, color = 'g', alpha = 0.25, label = 'reference value')
-        plotUniformed = subPlotV.scatter(self.newModel.Ve_ref, self.newModel.Ve_cal, color = 'b', alpha = 0.25, label = 'calculated value')
-        # plotRef = subPlotV.scatter(self.pixelsTempRefV, self.pixelsTempRefV, color = 'r', alpha = 0.25, label = 'uniformed calculated value')
-        subPlotV.legend(loc = 'upper left')
-        subPlotV.set_xlabel('Reference Ve')
-        subPlotV.set_ylabel('Calculated Ve')
-        subPlotV.set_title('Distribution plot of Ve')
-
-        self.figureScatter.tight_layout()
-        self.canvasScatter.draw()
-        self.rightPanel.Layout()
-
-    def DrawBoxPlot(self):
-        '''
-        draw box plots of each patch
-        '''
-
-        subPlotK = self.figureBoxPlot.add_subplot(2, 1, 1)
-        subPlotK.clear()
-        temp = []
-        referValueK = []
-        for i in range(self.newModel.nrOfRows):
-            temp.extend(self.newModel.Ktrans_cal[i])
-            referValueK.append(float('{0:.2f}'.format(self.newModel.Ktrans_ref[i][0][0])))
-        subPlotK.boxplot(temp)
-
-        subPlotV = self.figureBoxPlot.add_subplot(2, 1, 2)
-        subPlotV.clear()
-        temp = []
-        referValueV = []
-        for j in range(self.newModel.nrOfColumns):
-            for i in range(self.newModel.nrOfRows):
-                temp.append(self.newModel.Ve_cal[i][j])
-            referValueV.append(float('{0:.2f}'.format(zip(*self.newModel.Ve_ref)[j][0][0])))
-        subPlotV.boxplot(temp)
-
-        # decorate Ktrans plot
-        subPlotK.set_title('Box plot of calculated Ktrans')
-        subPlotK.set_xlabel('In each column, each box plot denotes Ve = ' + str(referValueV) + ' respectively')
-        subPlotK.set_ylabel('Calculated values in patches')
-
-        subPlotK.xaxis.set_major_formatter(ticker.NullFormatter())
-        subPlotK.xaxis.set_minor_locator(ticker.FixedLocator([3, 8, 13, 18, 23, 28]))
-        subPlotK.xaxis.set_minor_formatter(ticker.FixedFormatter(['Ktrans = ' + str(referValueK[0]), 'Ktrans = ' + str(referValueK[1]), 'Ktrans = ' + str(referValueK[2]), 'Ktrans = ' + str(referValueK[3]), 'Ktrans = ' + str(referValueK[4]), 'Ktrans = ' + str(referValueK[5])]))
-        for i in range(self.newModel.nrOfRows):
-            subPlotK.axvline(x = self.newModel.nrOfColumns * i + 0.5, color = 'green', linestyle = 'dashed')
-
-        # decorate Ve plot
-        subPlotV.set_title('Box plot of calculated Ve')
-        subPlotV.set_xlabel('In each column, each box plot denotes Ktrans = ' + str(referValueK) + ' respectively')
-        subPlotV.set_ylabel('Calculated values in patches')
-
-        subPlotV.xaxis.set_major_formatter(ticker.NullFormatter())
-        subPlotV.xaxis.set_minor_locator(ticker.FixedLocator([3.5, 9.5, 15.5, 21.5, 27.5]))
-        subPlotV.xaxis.set_minor_formatter(ticker.FixedFormatter(['Ve = ' + str(referValueV[0]), 'Ve = ' + str(referValueV[1]), 'Ve = ' + str(referValueV[2]), 'Ve = ' + str(referValueV[3]), 'Ve = ' + str(referValueV[4])]))
-        for i in range(self.newModel.nrOfColumns):
-            subPlotV.axvline(x = self.newModel.nrOfRows * i + 0.5, color = 'green', linestyle = 'dashed')
-
-
-        self.figureBoxPlot.tight_layout()
-        self.canvasBoxPlot.draw()
-        self.rightPanel.Layout()
-
     def DrawHistograms(self):
         # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
 
-        self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans',) # fontsize = 18)
-        self.figureHist_Ve.suptitle('The histogram of the calculated Ve') # , fontsize = 18)
-
         pixelCountInPatch = self.newModel.patchLen ** 2
         nrOfBins = 10
+
+        self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans',) # fontsize = 18)
+        self.figureHist_Ve.suptitle('The histogram of the calculated Ve') # , fontsize = 18)
 
         for i in range(self.newModel.nrOfRows):
             for j in range(self.newModel.nrOfColumns):
@@ -1034,179 +644,98 @@ class MainWindow_KV(wx.Frame):
         self.canvasHist_Ktrans.draw()
         self.canvasHist_Ve.draw()
 
-    def GetResultInHtml(self):
-        # render the figures, tables into html, for exporting to pdf
-        htmlContent = ''
-        self.figureImagePreview.savefig(os.path.join(os.getcwd(), 'temp', 'figureImages.png'))
-        self.figureScatter.savefig(os.path.join(os.getcwd(), 'temp', 'figureScatters.png'))
-        self.figureHist_Ktrans.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_K.png'))
-        self.figureHist_Ve.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_V.png'))
-        self.figureBoxPlot.savefig(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
+    def DrawBoxPlot(self):
+        '''
+        draw box plots of each patch
+        '''
 
-        htmlContent += self.newModel.packInHtml('<h1 align="center">QIBA DRO Evaluation Tool Results Report</h1>')
+        subPlotK = self.figureBoxPlot.add_subplot(2, 1, 1)
+        subPlotK.clear()
+        temp = []
+        referValueK = []
+        for i in range(self.newModel.nrOfRows):
+            temp.extend(self.newModel.Ktrans_cal[i])
+            referValueK.append(float('{0:.2f}'.format(self.newModel.Ktrans_ref[i][0][0])))
+        subPlotK.boxplot(temp)
 
-        htmlContent += self.newModel.packInHtml('''
-        <h2 align="center">The image view of calculated Ktrans and Ve</h2>''' +\
-        '''<img src="''' + os.path.join(os.getcwd(), 'temp', 'figureImages.png') + '''" style="width:100%"> <br>'''+\
-        '''<p><font face="verdana">* The first column shows the calculated Ktrans and Ve in black and white. You can have a general impression of the value distribution according to the changing of the parameters. Generally the brighter the pixel is, the higher the calculated value is.<br>
-        <br>The Second column shows the error map between calculated and reference data. Each pixel is the result of corresponding pixel in calculated data being subtracted with that in the reference data. Generally the more the color approaches to the red direction, the larger the error is.<br>
-        <br>The third column shows the normalized error. This is out of the consideration that the error could be related with the original value itself. Therefore normalized error may give a more uniformed standard of the error level. Each pixel's value comes from the division of the error by the reference pixel value. Similarly as the error map, the more the color approaches to the red direction, the larger the normalized error is.
-        </p>''' )
+        subPlotV = self.figureBoxPlot.add_subplot(2, 1, 2)
+        subPlotV.clear()
+        temp = []
+        referValueV = []
+        for j in range(self.newModel.nrOfColumns):
+            for i in range(self.newModel.nrOfRows):
+                temp.append(self.newModel.Ve_cal[i][j])
+            referValueV.append(float('{0:.2f}'.format(zip(*self.newModel.Ve_ref)[j][0][0])))
+        subPlotV.boxplot(temp)
 
-        htmlContent += self.newModel.packInHtml( '''
-        <h2 align="center">The scatter plots of calculated Ktrans and Ve</h2>
-        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureScatters.png') + '''" style="width:100%"> <br>'''+\
-        '''<p><font face="verdana">* For the reference data, the pixel values in one row (for Ktrans) or column (for Ve) share the same constant value. Therefore in the scatter plot it shows that all green dots of a row (or column) overlap to each other. For the calculated data, as they share the same parameter, the blue dots align to the same x-axis. But they may scatter vertically, showing there's variance of the value in a row (or column).<br>
-        <br>From these plots you can see the trend of the values, which offer some information of which model (e.g. linear or logarithmic) the calculated parameter may fit. For example, with the artificial calculated data which were generated from the reference data by adding Gaussian noise, scaling by two and adding 0.5, it can be easily read from the plots that the calculated data follow the linear model, and have scaling factor and extra bias value.
-        </p>''' )
+        # decorate Ktrans plot
+        subPlotK.set_title('Box plot of calculated Ktrans')
+        subPlotK.set_xlabel('In each column, each box plot denotes Ve = ' + str(referValueV) + ' respectively')
+        subPlotK.set_ylabel('Calculated values in patches')
 
-        htmlContent += self.newModel.packInHtml('''
-        <h2 align="center">The histograms of calculated Ktrans and Ve</h2>
-        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_K.png') + '''" style="width:50%" align="left">''' + '''
-        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_V.png') + '''" style="width:50%" align="right"> <br>'''+\
-        '''<p><font face="verdana">* All histograms have the uniformed y-axis limits, so that the comparison among different patched is easier.  The minimum and maximum values of a patch are denoted on the x-axis for reference.
-        </p>''')
+        subPlotK.xaxis.set_major_formatter(ticker.NullFormatter())
+        subPlotK.xaxis.set_minor_locator(ticker.FixedLocator([3, 8, 13, 18, 23, 28]))
+        subPlotK.xaxis.set_minor_formatter(ticker.FixedFormatter(['Ktrans = ' + str(referValueK[0]), 'Ktrans = ' + str(referValueK[1]), 'Ktrans = ' + str(referValueK[2]), 'Ktrans = ' + str(referValueK[3]), 'Ktrans = ' + str(referValueK[4]), 'Ktrans = ' + str(referValueK[5])]))
+        for i in range(self.newModel.nrOfRows):
+            subPlotK.axvline(x = self.newModel.nrOfColumns * i + 0.5, color = 'green', linestyle = 'dashed')
 
-        htmlContent += self.newModel.packInHtml('''
-        <h2 align="center">The box plots of calculated Ktrans and Ve</h2>
-        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png') + '''" style="width:100%"> <br>'''+\
-        '''<p><font face="verdana">* The vertical dash lines are used to separate the rows (or columns), as each box plot is responsible for one patch. From these plots you could see (roughly) the statistics of each patch, like the mean value, the 1st and 3rd quartile, the minimum and maximum value. The more precise value of those statistics could be found in the tab "Result in HTML viewer".
-        </p>''')
+        # decorate Ve plot
+        subPlotV.set_title('Box plot of calculated Ve')
+        subPlotV.set_xlabel('In each column, each box plot denotes Ktrans = ' + str(referValueK) + ' respectively')
+        subPlotV.set_ylabel('Calculated values in patches')
 
-        htmlContent += self.newModel.StatisticsInHTML
+        subPlotV.xaxis.set_major_formatter(ticker.NullFormatter())
+        subPlotV.xaxis.set_minor_locator(ticker.FixedLocator([3.5, 9.5, 15.5, 21.5, 27.5]))
+        subPlotV.xaxis.set_minor_formatter(ticker.FixedFormatter(['Ve = ' + str(referValueV[0]), 'Ve = ' + str(referValueV[1]), 'Ve = ' + str(referValueV[2]), 'Ve = ' + str(referValueV[3]), 'Ve = ' + str(referValueV[4])]))
+        for i in range(self.newModel.nrOfColumns):
+            subPlotV.axvline(x = self.newModel.nrOfRows * i + 0.5, color = 'green', linestyle = 'dashed')
 
-        htmlContent += self.newModel.ModelFittingInHtml
 
-        htmlContent += self.newModel.T_testResultInHTML
-
-        htmlContent += self.newModel.U_testResultInHTML
-
-        htmlContent += self.newModel.ANOVAResultInHTML
-
-        return htmlContent
-
-    def OnClearModelList(self, event):
-        # not used now
-        # clear the list which holds all the models that have been evaluated.
-        if self.testedModels == []:
-            self.SetStatusText('Evaluated model list is empty.')
-        else:
-            self.testedModels = []
-            self.SetStatusText('Evaluated model list is cleared.')
-
-        # clean the interface plots
-        self.ClearInterface()
-
-    def ClearInterface(self):
-        # clear the plots in the interface, so that when the evaluated models are cleared, the interface will also be cleaned.
-        self.figureImagePreview.clear()
-        self.canvasImagePreview.draw()
-
-        self.figureScatter.clear()
-        self.canvasScatter.draw()
-
-        self.figureBoxPlot.clear()
+        self.figureBoxPlot.tight_layout()
         self.canvasBoxPlot.draw()
+        self.rightPanel.Layout()
 
-        self.figureHist_Ktrans.clear()
-        self.canvasHist_Ktrans.draw()
-        self.figureHist_Ve.clear()
-        self.canvasHist_Ve.draw()
+    def DrawMaps(self):
+        # draw the maps of the preview and error
+        self.PlotPreview([[self.newModel.Ktrans_cal_inRow, self.newModel.Ktrans_error, self.newModel.Ktrans_error_normalized],
+                                  [self.newModel.Ve_cal_inRow, self.newModel.Ve_error, self.newModel.Ve_error_normalized]],
 
-        self.statisticsViewer.SetPage('')
-        self.covCorrViewer.SetPage('')
-        self.modelFittingViewer.SetPage('')
-        self.t_testViewer.SetPage('')
-        self.U_testViewer.SetPage('')
-        self.ANOVAViewer.SetPage('')
+                                [['Calculated Ktrans', 'Error map of Ktrans', 'Normalized Error map of Ktrans'],
+                                 ['Calculated Ve', 'Error map of Ve', 'Normalized Error map of Ve']],
 
-    def ClearPanel(self, panel):
-        # clear a panel object(from wxPython)
-        for child in panel.GetChildren():
-            if child:
-                child.Destroy()
-            else:
-                pass
+                                [['bone', 'rainbow', 'rainbow'], ['bone', 'rainbow', 'rainbow']],
 
-    def OnExport(self, event):
-        # export the evaluation results to PDF
+                                [['Ktrans[1/min]', 'Delta Ktrans[1/min.]', 'Normalized error[1]'], ['Ve[]', 'Delta Ve[]', 'Normalized error[1]']])
 
-        # disable some widgets
-        self.buttonEvaluate.Disable()
-        self.buttonExport.Disable()
+    def DrawScatter(self):
+        # draw the scatters
+        self.PlotScatter([[self.newModel.Ktrans_cal], [self.newModel.Ve_cal]],
 
-        # show in status bar when export finishes
-        self.SetStatusText('Exporting results...')
+                            [[self.newModel.Ktrans_ref], [self.newModel.Ve_ref]],
 
-        # save file path dialog
-        savePath = ''
-        dlg = wx.FileDialog(self, 'Export the results as PDF file...', '', '', "PDF file(*.pdf)|*.pdf", wx.SAVE | wx.OVERWRITE_PROMPT)
-        if dlg.ShowModal() == wx.ID_OK:
-            savePath = dlg.GetPath()
-        else:
-            return False
+                            [['Reference Ktrans'], ['Reference Ve']],
 
-        # save to temp html file
-        resultToSaveInHtml = self.GetResultInHtml()
-        temp_html = open(os.path.join(os.getcwd(), 'temp', 'temp.html'), 'w+')
-        temp_html.write(resultToSaveInHtml)
-        temp_html.close()
+                            [['Calculated Ktrans'], ['Calculated Ve']],
 
-        # due to the Python wrapper of wkhtmltopdf "python_wkhtmltopdf" pre-requires xvfb is not available for Windows, here use commandline to call the tool
-        cmd=[os.path.join(os.getcwd(), 'tools', 'wkhtmltopdf', 'bin', 'wkhtmltopdf'), os.path.join(os.getcwd(), 'temp', 'temp.html'), savePath]
-        process = subprocess.Popen(cmd) #, stdout=subprocess.PIPE)
-        process.wait()
+                            [['Distribution plot of Ktrans'], ['Distribution plot of Ve']])
 
-        # remove the temp file
-        folderPath = os.path.join(os.getcwd(), 'temp')
-        for theFile in os.listdir(folderPath):
-            os.remove(os.path.join(folderPath, theFile))
+class MainWindow_T1(MainWindow):
+    '''
+    this is the Ktrans-Ve branch's interface.
+    '''
+    def __init__(self, wx,Frame):
+        MainWindow.__init__(self, wx.Frame, 'T1')
 
-        # show in status bar when export finishes
-        self.SetStatusText('Results exported as PDF file.')
+        # default files' paths
+        self.path_T1_ref = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
+        self.path_T1_cal = ''
 
-        # enable some widgets
-        self.buttonEvaluate.Enable()
-        self.buttonExport.Enable()
+        # interface specialized items
+        self.EditMenuItemList = ['Load new reference T1...']
+        self.PopupMenuItemList = ['Load as cal. T1']
 
-    def OnQuit(self, event):
-        # quit the application
-        self.Close()
-
-    def OnAbout(self, event):
-        # show the information about this application and the related.
-        description = """This is the description of this software."""
-
-        licence = """This is the Licence of the software."""
-
-
-        info = wx.AboutDialogInfo()
-
-        # set icon here
-        # info.SetIcon(wx.Icon('hunter.png', wx.BITMAP_TYPE_PNG))
-
-        info.SetName('QIBA evaluate tool')
-        info.SetVersion('1.0')
-        info.SetDescription(description)
-        # set copyright here
-        # info.SetCopyright('(C) 2007 - 2011 Jan Bodnar')
-
-        # set website
-        # info.SetWebSite('http://www.zetcode.com')
-        info.SetLicence(licence)
-
-        # set developer
-        # info.AddDeveloper('Jan Bodnar')
-        # set document writer
-        # info.AddDocWriter('Jan Bodnar')
-
-        wx.AboutBox(info)
-
-class MainWindow_T1(wx.Frame):
-
-    applicationName = "QIBA evaluate tool"
-    def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title = self.applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
+        # instance of the main window
+        MainWindow.__init__(self, wx.Frame, "QIBA evaluate tool (T1)")
 
 class MySelectionDialog(wx.Dialog):
     '''
@@ -1253,18 +782,18 @@ if __name__ == "__main__":
     Application = wx.App()
 
     # show the splash window
-    QIBASplashWindow = MySplashScreen()
-    QIBASplashWindow.Show()
-    time.sleep(2)
+    # QIBASplashWindow = MySplashScreen()
+    # QIBASplashWindow.Show()
+    # time.sleep(2)
 
     # the branch selection dialog
     QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['Ktrans-Ve', 'T1'])
 
     if QIBASelectionDialog.ShowModal() == wx.ID_OK:
         if QIBASelectionDialog.GetSelections() == 'Ktrans-Ve':
-            window = MainWindow_KV(None)
+            window = MainWindow_KV("QIBA evaluate tool (Ktrans-Ve)")
         else:
-            window = MainWindow_T1(None)
+            window = MainWindow_T1("QIBA evaluate tool (T1)")
     else:
         exit(0) # quit the application
 

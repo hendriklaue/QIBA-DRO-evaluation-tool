@@ -4,7 +4,7 @@ class Model_KV():
     '''
     the class for Ktrans-Ve model.
     '''
-    def __init__(self):
+    def __init__(self, path_ref_K, path_ref_V, path_cal_K, path_cal_V):
         # initializes the class
 
         # parameters of the image size
@@ -24,6 +24,9 @@ class Model_KV():
         self.Ve_ref_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
         self.Ktrans_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
         self.Ve_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
+
+        # import files
+        self.ImportFiles(path_ref_K, path_ref_V, path_cal_K, path_cal_V)
 
         # the error map between calculated and reference file
         self.Ktrans_error = []
@@ -109,12 +112,10 @@ class Model_KV():
         # the result in HTML
         self.resultInHTML = ''
 
-    def Evaluate(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
+    def Evaluate(self):
         # evaluation
 
         # pre-process for the imported files
-        self.ImportFiles(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
-
         self.CalculateErrorForModel()
         self.EstimatePatchForModel('MEAN')
 
@@ -478,13 +479,10 @@ class Model_KV():
 
     def ImportFiles(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
         # import files for evaluation.
-
-
         self.Ktrans_ref_inRow, self.Ktrans_ref = QIBA_functions.ImportFile(path_K_ref, self.nrOfRows, self.nrOfColumns, self.patchLen)
         self.Ve_ref_inRow, self.Ve_ref = QIBA_functions.ImportFile(path_V_ref, self.nrOfRows, self.nrOfColumns, self.patchLen)
         self.Ktrans_cal_inRow, self.Ktrans_cal = QIBA_functions.ImportFile(path_K_cal, self.nrOfRows, self.nrOfColumns, self.patchLen)
         self.Ve_cal_inRow, self.Ve_cal = QIBA_functions.ImportFile(path_V_cal, self.nrOfRows, self.nrOfColumns, self.patchLen)
-
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
