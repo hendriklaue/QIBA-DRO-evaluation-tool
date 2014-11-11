@@ -175,7 +175,7 @@ class MainWindow_KV(wx.Frame):
         else:
             self.selectedFilePath = ''
 
-    def SetupRight(self):
+    def SetupRight(self, BRANCH):
         '''
         set up the right panel
         '''
@@ -218,19 +218,28 @@ class MainWindow_KV(wx.Frame):
         self.pageScatter.SetSizer(sizer)
 
         # page Histogram
-        self.figureHist_Ktrans = Figure()
-        self.canvasHist_Ktrans = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ktrans)
 
-        self.figureHist_Ve = Figure()
-        self.canvasHist_Ve = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ve)
+        if BRANCH == 'Ktrans-Ve':
+            self.figureHist_Ktrans = Figure()
+            self.canvasHist_Ktrans = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ktrans)
 
-        self.verticalLine = wx.StaticLine(self.pageHistogram, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
+            self.figureHist_Ve = Figure()
+            self.canvasHist_Ve = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ve)
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
-        sizer.Add(self.verticalLine, 2, wx.EXPAND)
-        sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
-        self.pageHistogram.SetSizer(sizer)
+            self.verticalLine = wx.StaticLine(self.pageHistogram, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
+            sizer.Add(self.verticalLine, 2, wx.EXPAND)
+            sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
+            self.pageHistogram.SetSizer(sizer)
+        elif BRANCH == 'T1':
+            self.figureHist_T1 = Figure()
+            self.canvasHist_T1 = FigureCanvas(self.pageHistogram,-1, self.figureHist_T1)
+
+            sizer = wx.BoxSizer(wx.HORIZONTAL)
+            sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
+            self.pageHistogram.SetSizer(sizer)
 
         # page box plots
         self.figureBoxPlot = Figure()
@@ -296,7 +305,7 @@ class MainWindow_KV(wx.Frame):
         self.rightPanel = wx.Panel(self)
 
         self.SetupLeft()
-        self.SetupRight()
+        self.SetupRight('Ktrans-Ve')
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.leftPanel, 2, flag = wx.EXPAND)  # second argument being 0 to make sure that it wont expand
@@ -544,70 +553,107 @@ class MainWindow_KV(wx.Frame):
         self.canvasBoxPlot.draw()
         self.rightPanel.Layout()
 
-    def DrawHistograms(self):
+    def DrawHistograms(self, dataList, refList, titleList):
         # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
-
-        self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans',) # fontsize = 18)
-        self.figureHist_Ve.suptitle('The histogram of the calculated Ve') # , fontsize = 18)
 
         pixelCountInPatch = self.newModel.patchLen ** 2
         nrOfBins = 10
+        nrOfRows = len(dataList[0][0])
+        nrOfColumns = len(dataList[0][0][0])
 
-        for i in range(self.newModel.nrOfRows):
-            for j in range(self.newModel.nrOfColumns):
-                subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
-                # subPlot_K.clear()
-                subPlot_K.hist(self.newModel.Ktrans_cal[i][j], nrOfBins)
-                minPatch_K = numpy.min(self.newModel.Ktrans_cal[i][j])
-                maxPatch_K = numpy.max(self.newModel.Ktrans_cal[i][j])
-                meanPatch_K = numpy.mean(self.newModel.Ktrans_cal[i][j])
+        for item, itemTitle, canvas, refItem in zip(dataList, titleList, self.pageHistogram.GetChildren(), refList):
+            figure = canvas.GetChild()
+            figure.suptitle(itemTitle)
+            for i in range(nrOfRows):
+                for j in range(nrOfColumns):
+                    subplot = figure.add_subplot(nrOfRows, nrOfColumns, i * nrOfRows + j + 1)
+                    subplot.hist(item[i][j], nrOfBins)
+                    minPatch = numpy.min(item[i][j])
+                    maxPatch = numpy.max(item[i][j])
+                    meanPatch = numpy.mean(item[i][j])
 
-                minPatch_K = QIBA_functions.formatFloatTo2DigitsString(minPatch_K)
-                maxPatch_K = QIBA_functions.formatFloatTo2DigitsString(maxPatch_K)
-                meanPatch_K = QIBA_functions.formatFloatTo2DigitsString(meanPatch_K)
+                    minPatch = QIBA_functions.formatFloatTo2DigitsString(minPatch)
+                    maxPatch = QIBA_functions.formatFloatTo2DigitsString(maxPatch)
+                    meanPatch = QIBA_functions.formatFloatTo2DigitsString(meanPatch)
 
-                subPlot_K.set_xticks([float(minPatch_K), float(maxPatch_K)])
+                    subplot.set_xticks([float(minPatch), float(maxPatch)])
 
-                subPlot_K.set_xticklabels([minPatch_K, maxPatch_K])
-                subPlot_K.axvline(float(meanPatch_K), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
-                subPlot_K.set_ylim([0, pixelCountInPatch])
-                subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size = 'x-small') # parameters: location_x, location_y, text, size
-                if i == 0:
-                    subPlot_K.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
-                    subPlot_K.xaxis.set_label_position('top')
-                if j == 0:
-                    subPlot_K.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
+                    subplot.set_xticklabels([minPatch, maxPatch])
+                    subplot.axvline(float(meanPatch), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+                    subplot.set_ylim([0, pixelCountInPatch])
+                    subplot.text(float(meanPatch) + 0.01 * float(meanPatch), 0.9 * pixelCountInPatch, meanPatch, size = 'x-small') # parameters: location_x, location_y, text, size
+                    if i == 0:
+                        subplot.set_xlabel('Ve = ' + str(refItem[1][i][j][0]))
+                        subplot.xaxis.set_label_position('top')
+                    if j == 0:
+                        subplot.set_ylabel('Ktrans = ' + str(refItem[0][i][j][0]))
 
-                subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1 )
-                # subPlot_V.clear()
-                subPlot_V.hist(self.newModel.Ve_cal[i][j], nrOfBins)
-                minPatch_V = numpy.min(self.newModel.Ve_cal[i][j])
-                maxPatch_V = numpy.max(self.newModel.Ve_cal[i][j])
-                meanPatch_V = numpy.mean(self.newModel.Ve_cal[i][j])
-                minPatch_V = QIBA_functions.formatFloatTo2DigitsString(minPatch_V)
-                maxPatch_V = QIBA_functions.formatFloatTo2DigitsString(maxPatch_V)
-                meanPatch_V = QIBA_functions.formatFloatTo2DigitsString(meanPatch_V)
-
-                subPlot_V.set_xticks([float(minPatch_V), float(maxPatch_V)])
-                subPlot_V.set_xticklabels([minPatch_V, maxPatch_V])
-                subPlot_V.axvline(float(meanPatch_V), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
-                subPlot_V.set_ylim([0, pixelCountInPatch])
-                subPlot_V.text(float(meanPatch_V) + 0.01 * float(meanPatch_V), 0.9 * pixelCountInPatch, meanPatch_V, size = 'x-small') # parameters: location_x, location_y, text, size
-                if i == 0:
-                    subPlot_V.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
-                    subPlot_V.xaxis.set_label_position('top')
-                if j == 0:
-                    subPlot_V.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
+            figure.tight_layout()
+            figure.subplot_adjust(top = 0.94, right = 0.95)
+            canvas.draw()
 
 
-        self.figureHist_Ve.tight_layout()
-        self.figureHist_Ktrans.tight_layout()
 
-        self.figureHist_Ktrans.subplots_adjust(top = 0.94, right = 0.95)
-        self.figureHist_Ve.subplots_adjust(top = 0.94, right = 0.95)
-
-        self.canvasHist_Ktrans.draw()
-        self.canvasHist_Ve.draw()
+        # self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans',) # fontsize = 18)
+        # self.figureHist_Ve.suptitle('The histogram of the calculated Ve') # , fontsize = 18)
+        #
+        #
+        #
+        # for i in range(self.newModel.nrOfRows):
+        #     for j in range(self.newModel.nrOfColumns):
+        #         subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
+        #         # subPlot_K.clear()
+        #         subPlot_K.hist(self.newModel.Ktrans_cal[i][j], nrOfBins)
+        #         minPatch_K = numpy.min(self.newModel.Ktrans_cal[i][j])
+        #         maxPatch_K = numpy.max(self.newModel.Ktrans_cal[i][j])
+        #         meanPatch_K = numpy.mean(self.newModel.Ktrans_cal[i][j])
+        #
+        #         minPatch_K = QIBA_functions.formatFloatTo2DigitsString(minPatch_K)
+        #         maxPatch_K = QIBA_functions.formatFloatTo2DigitsString(maxPatch_K)
+        #         meanPatch_K = QIBA_functions.formatFloatTo2DigitsString(meanPatch_K)
+        #
+        #         subPlot_K.set_xticks([float(minPatch_K), float(maxPatch_K)])
+        #
+        #         subPlot_K.set_xticklabels([minPatch_K, maxPatch_K])
+        #         subPlot_K.axvline(float(meanPatch_K), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+        #         subPlot_K.set_ylim([0, pixelCountInPatch])
+        #         subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size = 'x-small') # parameters: location_x, location_y, text, size
+        #         if i == 0:
+        #             subPlot_K.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
+        #             subPlot_K.xaxis.set_label_position('top')
+        #         if j == 0:
+        #             subPlot_K.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
+        #
+        #         subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1 )
+        #         # subPlot_V.clear()
+        #         subPlot_V.hist(self.newModel.Ve_cal[i][j], nrOfBins)
+        #         minPatch_V = numpy.min(self.newModel.Ve_cal[i][j])
+        #         maxPatch_V = numpy.max(self.newModel.Ve_cal[i][j])
+        #         meanPatch_V = numpy.mean(self.newModel.Ve_cal[i][j])
+        #         minPatch_V = QIBA_functions.formatFloatTo2DigitsString(minPatch_V)
+        #         maxPatch_V = QIBA_functions.formatFloatTo2DigitsString(maxPatch_V)
+        #         meanPatch_V = QIBA_functions.formatFloatTo2DigitsString(meanPatch_V)
+        #
+        #         subPlot_V.set_xticks([float(minPatch_V), float(maxPatch_V)])
+        #         subPlot_V.set_xticklabels([minPatch_V, maxPatch_V])
+        #         subPlot_V.axvline(float(meanPatch_V), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+        #         subPlot_V.set_ylim([0, pixelCountInPatch])
+        #         subPlot_V.text(float(meanPatch_V) + 0.01 * float(meanPatch_V), 0.9 * pixelCountInPatch, meanPatch_V, size = 'x-small') # parameters: location_x, location_y, text, size
+        #         if i == 0:
+        #             subPlot_V.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
+        #             subPlot_V.xaxis.set_label_position('top')
+        #         if j == 0:
+        #             subPlot_V.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
+        #
+        #
+        # self.figureHist_Ve.tight_layout()
+        # self.figureHist_Ktrans.tight_layout()
+        #
+        # self.figureHist_Ktrans.subplots_adjust(top = 0.94, right = 0.95)
+        # self.figureHist_Ve.subplots_adjust(top = 0.94, right = 0.95)
+        #
+        # self.canvasHist_Ktrans.draw()
+        # self.canvasHist_Ve.draw()
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf

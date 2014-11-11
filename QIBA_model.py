@@ -571,92 +571,70 @@ class Model_KV():
         self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.Ve_cal), self.nrOfColumns, self.nrOfRows)
 
 
-class ModelT1():
+class Model_T1():
     '''
     the class for T1 model.
     '''
-    def __init__(self):
+    def __init__(self, path_ref_T1, path_cal_T1):
         # initializes the class
 
+        # import the files
+        self.ImportFiles(path_ref_T1, path_cal_T1)
+
         # parameters of the image size
-        self.nrOfRows = 6
-        self.nrOfColumns = 5
+        self.nrOfRows = 7
+        self.nrOfColumns = 15
         self.patchLen = 10
         self.METHOD = '' # for patch value decision
 
         # the raw image data as pixel flow
-        self.Ktrans_ref = []
-        self.Ve_ref = []
-        self.Ktrans_cal = []
-        self.Ve_cal = []
+        self.T1_ref = []
+        self.T1_cal = []
 
         # the image data in row, for showing the preview of the images
-        self.Ktrans_ref_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
-        self.Ve_ref_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
-        self.Ktrans_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
-        self.Ve_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
+        self.T1_ref_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
+        self.T1_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
 
         # the error map between calculated and reference file
-        self.Ktrans_error = []
-        self.Ve_error = []
-        self.Ktrans_error_normalized = []
-        self.Ve_error_normalized = []
+        self.T1_error = []
+        self.T1_error_normalized = []
 
         # the mean value(or median value) matrix of a calculated image
-        self.Ktrans_ref_patchValue = [[]for i in range(self.nrOfRows)]
-        self.Ve_ref_patchValue = [[]for i in range(self.nrOfRows)]
-        self.Ktrans_cal_patchValue = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patchValue = [[]for i in range(self.nrOfRows)]
+        self.T1_ref_patchValue = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patchValue = [[]for i in range(self.nrOfRows)]
 
         # the mean value
-        self.Ktrans_ref_patch_mean = [[]for i in range(self.nrOfRows)]
-        self.Ve_ref_patch_mean = [[]for i in range(self.nrOfRows)]
-        self.Ktrans_cal_patch_mean = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_mean = [[]for i in range(self.nrOfRows)]
+        self.T1_ref_patch_mean = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_mean = [[]for i in range(self.nrOfRows)]
 
         # the median value
-        self.Ktrans_ref_patch_median = [[]for i in range(self.nrOfRows)]
-        self.Ve_ref_patch_median = [[]for i in range(self.nrOfRows)]
-        self.Ktrans_cal_patch_median = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_median = [[]for i in range(self.nrOfRows)]
+        self.T1_ref_patch_median = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_median = [[]for i in range(self.nrOfRows)]
 
         # the deviation
-        self.Ktrans_cal_patch_deviation = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_deviation = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_deviation = [[]for i in range(self.nrOfRows)]
 
         # the first quartile
-        self.Ktrans_cal_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_1stQuartile = [[]for i in range(self.nrOfRows)]
 
         # the third quartile
-        self.Ktrans_cal_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_3rdQuartile = [[]for i in range(self.nrOfRows)]
 
-        # the min. value
-        self.Ktrans_cal_patch_min = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_min = [[]for i in range(self.nrOfRows)]
-
-        # the max. value
-        self.Ktrans_cal_patch_max = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_max = [[]for i in range(self.nrOfRows)]
+        # the min. max. value
+        self.T1_cal_patch_min = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_max = [[]for i in range(self.nrOfRows)]
 
          # the student-t test
-        self.Ktrans_cal_patch_ttest_t = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_ttest_t = [[]for i in range(self.nrOfRows)]
-        self.Ktrans_cal_patch_ttest_p = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_ttest_p = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_ttest_t = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_ttest_p = [[]for i in range(self.nrOfRows)]
 
         # the U test
-        self.Ktrans_cal_patch_Utest_u = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_Utest_u = [[]for i in range(self.nrOfRows)]
-        self.Ktrans_cal_patch_Utest_p = [[]for i in range(self.nrOfRows)]
-        self.Ve_cal_patch_Utest_p = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_Utest_u = [[]for i in range(self.nrOfRows)]
+        self.T1_cal_patch_Utest_p = [[]for i in range(self.nrOfRows)]
 
         # ANOVA
-        self.Ktrans_cal_patch_ANOVA_f = []
-        self.Ktrans_cal_patch_ANOVA_p = []
-        self.Ve_cal_patch_ANOVA_f = []
-        self.Ve_cal_patch_ANOVA_p = []
+        self.T1_cal_patch_ANOVA_f = []
+        self.T1_cal_patch_ANOVA_p = []
 
         # covarinace
         self.cov_KK = []
@@ -671,8 +649,7 @@ class ModelT1():
         self.corr_VV = []
 
         # planar fitting parameters
-        self.Ktrans_fittingParameter = []
-        self.Ve_fittingParameter = []
+        self.T1_fittingParameter = []
 
         # the result text
         self.resultText = ''
@@ -680,20 +657,18 @@ class ModelT1():
         # the result in HTML
         self.resultInHTML = ''
 
-    def Evaluate(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
+    def Evaluate(self):
         # evaluation
 
         # pre-process for the imported files
-        self.ImportFiles(path_K_ref, path_V_ref, path_K_cal, path_V_cal)
-
         self.CalculateErrorForModel()
         self.EstimatePatchForModel('MEAN')
 
         # evaluation operations
         self.FittingLinearModelForModel()
         self.FittingLogarithmicModelForModel()
-        self.CalculateCorrelationForModel()
-        self.CalculateCovarianceForModel()
+        # self.CalculateCorrelationForModel()
+        # self.CalculateCovarianceForModel()
         self.CalculateMeanForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
@@ -715,12 +690,9 @@ class ModelT1():
         # write the statistics to html form
 
         statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile', 'min.', 'max.']
-        statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max],
-                          [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_min, self.Ve_cal_patch_max]]
+        statisticsData = [[self.T1_cal_patch_mean, self.T1_cal_patch_median, self.T1_cal_patch_deviation, self.T1_cal_patch_1stQuartile, self.T1_cal_patch_3rdQuartile, self.T1_cal_patch_min, self.T1_cal_patch_max],]
 
-
-
-        # Ktrans statistics tables
+        # T1 statistics tables
         KtransStatisticsTable = \
                         '<h2>The statistics analysis of each patch in calculated Ktrans:</h2>'
 
@@ -1047,40 +1019,29 @@ class ModelT1():
         # getter for the result in HTML.
         return self.ANOVAResultInHTML
 
-    def ImportFiles(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
+    def ImportFiles(self, path_ref_T1, path_cal_T1):
         # import files for evaluation.
-
-
-        self.Ktrans_ref_inRow, self.Ktrans_ref = QIBA_functions.ImportFile(path_K_ref, self.nrOfRows, self.nrOfColumns, self.patchLen)
-        self.Ve_ref_inRow, self.Ve_ref = QIBA_functions.ImportFile(path_V_ref, self.nrOfRows, self.nrOfColumns, self.patchLen)
-        self.Ktrans_cal_inRow, self.Ktrans_cal = QIBA_functions.ImportFile(path_K_cal, self.nrOfRows, self.nrOfColumns, self.patchLen)
-        self.Ve_cal_inRow, self.Ve_cal = QIBA_functions.ImportFile(path_V_cal, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.T1_ref_inRow, self.T1_ref = QIBA_functions.ImportFile(path_ref_T1, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.T1_cal_inRow, self.T1_cal = QIBA_functions.ImportFile(path_cal_T1, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
-        self.Ktrans_error = QIBA_functions.CalculateError(self.Ktrans_cal_inRow, self.Ktrans_ref_inRow)
-        self.Ve_error = QIBA_functions.CalculateError(self.Ve_cal_inRow, self.Ve_ref_inRow)
-
-        self.Ktrans_error_normalized = QIBA_functions.CalculateNormalizedError(self.Ktrans_cal_inRow, self.Ktrans_ref_inRow)
-        self.Ve_error_normalized = QIBA_functions.CalculateNormalizedError(self.Ve_cal_inRow, self.Ve_ref_inRow)
+        self.T1_error = QIBA_functions.CalculateError(self.T1_cal_inRow, self.T1_ref_inRow)
+        self.T1_error_normalized = QIBA_functions.CalculateNormalizedError(self.T1_cal_inRow, self.T1_ref_inRow)
 
     def EstimatePatchForModel(self, patchValueMethod):
         # estimate the value to represent the patches for each imported DICOM
-        self.Ktrans_ref_patchValue = QIBA_functions.EstimatePatch(self.Ktrans_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns)
-        self.Ve_ref_patchValue = QIBA_functions.EstimatePatch(self.Ve_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns)
-        self.Ktrans_cal_patchValue = QIBA_functions.EstimatePatch(self.Ktrans_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patchValue = QIBA_functions.EstimatePatch(self.Ve_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns)
+        self.T1_ref_patchValue = QIBA_functions.EstimatePatch(self.T1_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patchValue = QIBA_functions.EstimatePatch(self.T1_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns)
 
     def FittingLinearModelForModel(self):
         # fit a planar for the calculated Ktrans and Ve maps
-        self.a_lin_Ktrans, self.b_lin_Ktrans, self.c_lin_Ktrans = QIBA_functions.FittingLinearModel(self.Ktrans_cal_patchValue,self.Ktrans_ref, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
-        self.a_lin_Ve, self.b_lin_Ve, self.c_lin_Ve = QIBA_functions.FittingLinearModel(self.Ve_cal_patchValue,self.Ktrans_ref, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
+        self.a_lin_T1, self.b_lin_T1, self.c_lin_T1 = QIBA_functions.FittingLinearModel(self.T1_cal_patchValue,self.T1_ref, self.nrOfRows, self.nrOfColumns)
 
     def FittingLogarithmicModelForModel(self):
         # fitting logarithmic model
-        self.a_log_Ktrans,self.b_log_Ktrans = QIBA_functions.FittingLogarithmicModel(zip(*self.Ktrans_cal_patchValue), zip(*self.Ktrans_ref_patchValue), self.nrOfColumns) # , self.c_log_Ktrans
-        self.a_log_Ve,self.b_log_Ve = QIBA_functions.FittingLogarithmicModel(self.Ve_cal_patchValue, self.Ve_ref_patchValue, self.nrOfRows) # , self.c_log_Ve
+        self.a_log_T1,self.b_log_T1 = QIBA_functions.FittingLogarithmicModel(self.T1_cal_patchValue, self.T1_ref_patchValue, self.nrOfRows) # , self.c_log_Ve
 
     def CalculateCorrelationForModel(self):
         # calculate the correlation between the calculated parameters and the reference parameters
