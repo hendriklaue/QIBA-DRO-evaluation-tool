@@ -1,7 +1,7 @@
  #!/usr/bin/env python
 # License file for the QIBA DRO Evaluation Tool (QDET)
 
-# Copyright (c) 2014-2015 Fraunhofer MEVIS, member of the Fraunhofer Soviety 
+# Copyright (c) 2014-2015 Fraunhofer MEVIS, member of the Fraunhofer Soviety
 # and the Radiological Society of North America (RSNA)
 
 # Except for portions outlined below, pydicom is released under an MIT license:
@@ -52,32 +52,30 @@ import subprocess
 import QIBA_functions
 import QIBA_model
 
-class MainWindow_KV(wx.Frame):
+class MainWindow(wx.Frame):
     '''
-    this is the main window of the QIBA evaluate tool
+    this is the parent class of the main window of the application.
     '''
-    applicationName = "QIBA evaluate tool(Ktrans-Ve)"
 
-    # the list of evaluated models
-    testedModels = []
+    def __init__(self, parent, applicationName):
+        wx.Frame.__init__(self, parent, title = applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
 
-    path_Ktrans_ref = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
-    path_Ve_ref = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
-    path_Ktrans_cal = ''
-    path_Ve_cal = ''
-
-    def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title = self.applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
+        # decide the interface according to the BRANCH
 
         self.CenterOnScreen()
 
         self.CreateStatusBar()
-        self.SetStatusText("Welcome to " + self.applicationName + "!")
+        self.SetStatusText("Welcome to " + applicationName + "!")
 
         self.SetupMenubar()
 
         self.SetupLayoutMain()
 
+    def SetupEditMenu(self):
+        pass
+
+    def OnRightClick(self, event):
+        pass
 
     def SetupMenubar(self):
         '''
@@ -88,27 +86,44 @@ class MainWindow_KV(wx.Frame):
         fileMenu = wx.Menu()
         OnExport = fileMenu.Append(wx.ID_ANY, "&Export the results...\tCtrl+E", "Export the result as PDF/EXCEL file.")
         fileMenu.AppendSeparator()
-        OnExit = fileMenu.Append(wx.ID_ANY, "&Quit\tCtrl+Q", "Quit " + self.applicationName)
+        OnExit = fileMenu.Append(wx.ID_ANY, "&Quit\tCtrl+Q", "Quit")
 
-        editMenu = wx.Menu()
-        # OnClearModelList = editMenu.Append(wx.ID_ANY, "Clear evaluated model list")
-        OnLoadKtransRef = editMenu.Append(wx.ID_ANY, "Load Ktrans reference parameter map...")
-        OnLoadVeRef = editMenu.Append(wx.ID_ANY, "Load Ve reference parameter map...")
+        # self.SetupEditMenu()
 
         aboutMenu = wx.Menu()
         OnAboutApp = aboutMenu.Append(wx.ID_ANY, "About this application")
 
         self.menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
-        # menubar.Bind(wx.EVT_MENU, self.OnClearModelList, OnClearModelList)
-        self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceKtrans, OnLoadKtransRef)
-        self.menubar.Bind(wx.EVT_MENU, self.OnLoadReferenceVe, OnLoadVeRef)
         self.menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
         self.menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
 
         self.menubar.Append(fileMenu, "&File")
-        self.menubar.Append(editMenu, "&Edit")
         self.menubar.Append(aboutMenu, "&About")
         self.SetMenuBar(self.menubar)
+
+    def SetupLayoutMain(self):
+        '''
+        set up the main window
+        '''
+        self.leftPanel = wx.Panel(self)
+        self.rightPanel = wx.Panel(self)
+
+        self.SetupLeft()
+        self.SetupRight()
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.leftPanel, 2, flag = wx.EXPAND)  # second argument being 0 to make sure that it wont expand
+        sizer.Add(self.rightPanel, 7, flag = wx.EXPAND)
+        self.SetSizer(sizer)
+
+    def SetupRightClickMenu(self):
+        pass
+
+    def SetupPage_Histogram(self):
+        pass
+
+    def ClearPage_Histogram(self):
+        pass
 
     def SetupLeft(self):
         '''
@@ -121,16 +136,10 @@ class MainWindow_KV(wx.Frame):
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
                                              filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw")
 
-        self.Bind(wx.EVT_TREE_SEL_CHANGED, self.SetSelectedFilePath)
+        # self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
 
         # setup the right click function
-        self.popupMenu = wx.Menu()
-        itemLoadCalK = self.popupMenu.Append(-1, 'Load as calculated Ktrans')
-        self.leftPanel.Bind(wx.EVT_MENU, self.OnPopupItemSelected, itemLoadCalK)
-        itemLoadCalV = self.popupMenu.Append(-1, 'Load as calculated Ve')
-        self.leftPanel.Bind(wx.EVT_MENU, self.OnPopupItemSelected, itemLoadCalV)
-
-        self.leftPanel.Bind(wx.EVT_CONTEXT_MENU, self.OnShowPopup)
+        self.SetupRightClickMenu()
 
         # setup 'evaluate' and 'export result' buttons
         self.buttonEvaluate = wx.Button(self.leftPanel, wx.ID_ANY, 'Evaluate')
@@ -151,31 +160,7 @@ class MainWindow_KV(wx.Frame):
         self.buttonExport.Disable()
         self.buttonEvaluate.Disable()
 
-    def OnShowPopup(self, event):
-        # show the popup menu
-        if os.path.isfile(self.selectedFilePath):
-            position = event.GetPosition()
-            position = self.leftPanel.ScreenToClient(position)
-            self.leftPanel.PopupMenu(self.popupMenu, position)
-        else:
-            pass
-
-    def OnPopupItemSelected(self, event):
-        # do something when item of the popup menu is selected
-        item = self.popupMenu.FindItemById(event.GetId())
-        if item.GetText() == 'Load as calculated Ktrans':
-            self.OnLoadCalculatedKtrans()
-        elif item.GetText() == 'Load as calculated Ve':
-            self.OnLoadCalculatedVe()
-
-    def SetSelectedFilePath(self, event):
-        # copy the selected file's path for loading it
-        if self.fileBrowser.GetFilePath():
-            self.selectedFilePath = self.fileBrowser.GetFilePath()
-        else:
-            self.selectedFilePath = ''
-
-    def SetupRight(self, BRANCH):
+    def SetupRight(self):
         '''
         set up the right panel
         '''
@@ -217,29 +202,8 @@ class MainWindow_KV(wx.Frame):
         sizer.Add(self.canvasScatter, 1, wx.EXPAND)
         self.pageScatter.SetSizer(sizer)
 
-        # page Histogram
-
-        if BRANCH == 'Ktrans-Ve':
-            self.figureHist_Ktrans = Figure()
-            self.canvasHist_Ktrans = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ktrans)
-
-            self.figureHist_Ve = Figure()
-            self.canvasHist_Ve = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ve)
-
-            self.verticalLine = wx.StaticLine(self.pageHistogram, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
-
-            sizer = wx.BoxSizer(wx.HORIZONTAL)
-            sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
-            sizer.Add(self.verticalLine, 2, wx.EXPAND)
-            sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
-            self.pageHistogram.SetSizer(sizer)
-        elif BRANCH == 'T1':
-            self.figureHist_T1 = Figure()
-            self.canvasHist_T1 = FigureCanvas(self.pageHistogram,-1, self.figureHist_T1)
-
-            sizer = wx.BoxSizer(wx.HORIZONTAL)
-            sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
-            self.pageHistogram.SetSizer(sizer)
+        # page histogram
+        self.SetupPage_Histogram()
 
         # page box plots
         self.figureBoxPlot = Figure()
@@ -297,178 +261,37 @@ class MainWindow_KV(wx.Frame):
         self.rightPanel.SetSizer(sizer)
         self.rightPanel.Layout()
 
-    def SetupLayoutMain(self):
-        '''
-        set up the main window
-        '''
-        self.leftPanel = wx.Panel(self)
-        self.rightPanel = wx.Panel(self)
+    def ClearInterface(self):
+        # clear the plots in the interface, so that when the evaluated models are cleared, the interface will also be cleaned.
+        self.figureImagePreview.clear()
+        self.canvasImagePreview.draw()
 
-        self.SetupLeft()
-        self.SetupRight('Ktrans-Ve')
+        self.figureScatter.clear()
+        self.canvasScatter.draw()
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.leftPanel, 2, flag = wx.EXPAND)  # second argument being 0 to make sure that it wont expand
-        sizer.Add(self.rightPanel, 7, flag = wx.EXPAND)
-        self.SetSizer(sizer)
+        self.ClearPage_Histogram()
 
-    def OnLoadReferenceKtrans(self, event):
-        # Import the reference Ktrans
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ktrans_ref = dlg.GetPath()
-            self.SetStatusText('Reference Ktrans loaded.')
-        else:
-            self.SetStatusText('Reference Ktrans was NOT loaded!')
+        self.figureBoxPlot.clear()
+        self.canvasBoxPlot.draw()
 
-    def OnLoadReferenceVe(self, event):
-        # Import the reference Ve
-        dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ve_ref = dlg.GetPath()
-            self.SetStatusText('Reference Ve loaded.')
-        else:
-            self.SetStatusText('Reference Ve was NOT loaded!')
+        self.statisticsViewer.SetPage('')
+        self.covCorrViewer.SetPage('')
+        self.modelFittingViewer.SetPage('')
+        self.t_testViewer.SetPage('')
+        self.U_testViewer.SetPage('')
+        self.ANOVAViewer.SetPage('')
 
-    def OnLoadCalculatedKtrans(self):
-        # load the selected DICOM as calculated Ktrans
-        if os.path.splitext(self.selectedFilePath)[1] == '.dcm' or '.bin' or '.raw':
-            self.path_Ktrans_cal = self.selectedFilePath
-            self.SetStatusText('Calculated Ktrans loaded.')
-        else:
-            self.SetStatusText('Invalid file chosen.')
+    def DrawMaps(self):
+        pass
 
-        # enable the evaluate button when the paths are valid
-        if self.path_Ktrans_cal and self.path_Ve_cal:
-            self.buttonEvaluate.Enable()
+    def DrawScatter(self):
+        pass
 
-    def OnLoadCalculatedVe(self):
-        # load the selected DICOM as calculated Ve
-        if os.path.splitext(self.selectedFilePath)[1] == '.dcm' or '.bin' or '.raw':
-            self.path_Ve_cal = self.selectedFilePath
-            self.SetStatusText('Calculated Ve loaded.')
-        else:
-            self.SetStatusText('Invalid file chosen.')
-
-        # enable the evaluate button when the paths are valid
-        if self.path_Ktrans_cal and self.path_Ve_cal:
-            self.buttonEvaluate.Enable()
-
-    def OnImportCalK(self, event):
-        '''
-        Import the calculated Ktrans
-        '''
-        dlg = wx.FileDialog(self, 'Load calculated Ktrans...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ktrans_cal = dlg.GetPath()
-
-    def OnImportCalV(self, event):
-        '''
-        Import the calculated Ve
-        '''
-        dlg = wx.FileDialog(self, 'Load calculated Ve...', '', '', "DICOM file(*.dcm)|*.dcm", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.path_Ve_cal = dlg.GetPath()
-
-    def OnEvaluate(self, event):
-        '''
-        process the imported DICOM,and display
-        '''
-
-        # initialize one progress bar
-       # max = 100
-        #EvaluateProgressDialog = wx.ProgressDialog('Evaluating...', 'The progress of evaluation:', maximum = max)
-
-        # clear the interface if they were used before
-        self.ClearInterface()
-
-        # disable some widgets
-        self.buttonEvaluate.Disable()
-        self.buttonExport.Disable()
-
-        # status bar
-        self.SetStatusText('Evaluating...')
-        #EvaluateProgressDialog.Update(5)
-
-        # create new model object to evaluated on
-        self.newModel = QIBA_model.Model_KV()
-        #EvaluateProgressDialog.Update(10)
-
-        # # make sure the import path is valid
-        # if not self.newModel.ImportFile(self.path_Ktrans_ref):
-        #     self.SetStatusText('Please load a proper file as reference Ktrans.')
-        #     return False
-        #
-        # if not self.newModel.ImportFile(self.path_Ve_ref):
-        #     self.SetStatusText('Please load a proper file as reference Ve.')
-        #     return False
-        #
-        # if not self.newModel.ImportFile(self.path_Ktrans_cal):
-        #     self.SetStatusText('Please load a proper file as calculated Ktrans.')
-        #     return False
-        #
-        # if not self.newModel.ImportFile(self.path_Ve_cal):
-        #     self.SetStatusText('Please load a proper file as calculated ve.')
-        #     return False
-        #EvaluateProgressDialog.Update(15)
-
-        # call the method to execute evaluation
-        self.newModel.Evaluate(self.path_Ktrans_ref, self.path_Ve_ref, self.path_Ktrans_cal, self.path_Ve_cal)
-        #EvaluateProgressDialog.Update(20)
-
-        # show the results in the main window
-        self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
-        self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
-        self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
-        self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
-        self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
-        self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
-        #EvaluateProgressDialog.Update(25)
-
-        # push the new tested model to the list
-        self.testedModels.append(self.newModel)
-        #EvaluateProgressDialog.Update(30)
-
-        # draw the figures
-        self.ShowImagePreview([[self.newModel.Ktrans_cal_inRow, self.newModel.Ktrans_error, self.newModel.Ktrans_error_normalized],
-                                  [self.newModel.Ve_cal_inRow, self.newModel.Ve_error, self.newModel.Ve_error_normalized]],
-
-                                [['Calculated Ktrans', 'Error map of Ktrans', 'Normalized Error map of Ktrans'],
-                                 ['Calculated Ve', 'Error map of Ve', 'Normalized Error map of Ve']],
-
-                                [['bone', 'rainbow', 'rainbow'], ['bone', 'rainbow', 'rainbow']],
-
-                                [['Ktrans[1/min]', 'Delta Ktrans[1/min.]', 'Normalized error[1]'], ['Ve[]', 'Delta Ve[]', 'Normalized error[1]']])
-        #EvaluateProgressDialog.Update(35)
-        self.DrawScatterPlot([[self.newModel.Ktrans_cal], [self.newModel.Ve_cal]],
-
-                            [[self.newModel.Ktrans_ref], [self.newModel.Ve_ref]],
-
-                            [['Reference Ktrans'], ['Reference Ve']],
-
-                            [['Calculated Ktrans'], ['Calculated Ve']],
-
-                            [['Distribution plot of Ktrans'], ['Distribution plot of Ve']])
-
-        #EvaluateProgressDialog.Update(50)
-        self.DrawHistograms()
-        #EvaluateProgressDialog.Update(90)
-        self.DrawBoxPlot()
-        #EvaluateProgressDialog.Update(95)
-
-        # status bar
-        self.SetStatusText('Evaluation finished.')
-        #EvaluateProgressDialog.Update(100)
-        #EvaluateProgressDialog.Destroy()
-
-        # enable some widgets
-        self.buttonEvaluate.Enable()
-        self.buttonExport.Enable()
-
-    def ShowImagePreview(self, dataList, titleList, colorMapList, unitList):
+    def PlotPreview(self, dataList, titleList, colorMapList, unitList):
         # show calculated images and the error images
         nrOfSubFigRows = len(dataList)
         nrOfSubFigColumns = len(dataList[0])
+        # subplot = [[] for i in range(nrOfSubFigRows)]
 
         for i in range(nrOfSubFigRows):
             for j in range(nrOfSubFigColumns):
@@ -482,7 +305,7 @@ class MainWindow_KV(wx.Frame):
         self.figureImagePreview.tight_layout()
         self.canvasImagePreview.draw()
 
-    def DrawScatterPlot(self, dataList, refDataList, xLabelList, yLabelList, titleList):
+    def PlotScatter(self, dataList, refDataList, xLabelList, yLabelList, titleList):
         '''
         the scatter plots to show the distribution of the calculated values
         '''
@@ -492,8 +315,8 @@ class MainWindow_KV(wx.Frame):
         for i in range(nrOfSubFigRows):
             for j in range(nrOfSubFigColumns):
                 subPlot = self.figureScatter.add_subplot(nrOfSubFigRows, nrOfSubFigColumns, i * nrOfSubFigColumns + j + 1)
-                subPlot.scatter(refDataList[i][j], refDataList[i][j], color = 'g', alpha = 0.25, label = 'reference value')
                 subPlot.scatter(refDataList[i][j], dataList[i][j], color = 'b', alpha = 0.25, label = 'calculated value')
+                subPlot.scatter(refDataList[i][j], refDataList[i][j], color = 'g', alpha = 0.25, label = 'reference value')
                 subPlot.legend(loc = 'upper left')
                 subPlot.set_xlabel(xLabelList[i][j])
                 subPlot.set_ylabel(yLabelList[i][j])
@@ -501,6 +324,323 @@ class MainWindow_KV(wx.Frame):
 
         self.figureScatter.tight_layout()
         self.canvasScatter.draw()
+
+    def DrawHistograms(self):
+        pass
+
+    def DrawBoxPlot(self):
+        pass
+
+
+    def OnEvaluate(self, event):
+        # start to evaluate
+        # clear the interface if they were used before
+        self.ClearInterface()
+
+        # disable some widgets
+        self.buttonEvaluate.Disable()
+        self.buttonExport.Disable()
+
+        # status bar
+        self.SetStatusText('Evaluating...')
+        #EvaluateProgressDialog.Update(5)
+
+        # create new model object to evaluated on
+        self.GenerateModel()
+        #EvaluateProgressDialog.Update(10)
+
+        # call the method to execute evaluation
+        self.newModel.Evaluate()
+        #EvaluateProgressDialog.Update(20)
+
+        # show the results in the main window
+        self.ShowResults()
+
+        # status bar
+        self.SetStatusText('Evaluation finished.')
+        #EvaluateProgressDialog.Update(100)
+        #EvaluateProgressDialog.Destroy()
+
+        # enable some widgets
+        self.buttonEvaluate.Enable()
+        self.buttonExport.Enable()
+
+    def GenerateModel(self):
+        self.newModel = QIBA_model.Model_KV('', '', '', '')
+
+    def ShowResults(self):
+        # show the results in the main window
+        self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
+        self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
+        self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
+        self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
+        self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
+        self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
+        #EvaluateProgressDialog.Update(25)
+
+        #EvaluateProgressDialog.Update(30)
+
+        # draw the figures
+        self.DrawMaps()
+        #EvaluateProgressDialog.Update(35)
+        self.DrawScatter()
+        #EvaluateProgressDialog.Update(50)
+        self.DrawHistograms()
+        #EvaluateProgressDialog.Update(90)
+        self.DrawBoxPlot()
+        #EvaluateProgressDialog.Update(95)
+
+    def OnExport(self, event):
+        # export the evaluation results to PDF
+
+        # disable some widgets
+        self.buttonEvaluate.Disable()
+        self.buttonExport.Disable()
+
+        # show in status bar when export finishes
+        self.SetStatusText('Exporting results...')
+
+        # save file path dialog
+        savePath = ''
+        dlg = wx.FileDialog(self, 'Export the results as PDF file...', '', '', "PDF file(*.pdf)|*.pdf", wx.SAVE | wx.OVERWRITE_PROMPT)
+        if dlg.ShowModal() == wx.ID_OK:
+            savePath = dlg.GetPath()
+        else:
+            return False
+
+        # save to temp html file
+        resultToSaveInHtml = self.GetResultInHtml()
+        temp_html = open(os.path.join(os.getcwd(), 'temp', 'temp.html'), 'w+')
+        temp_html.write(resultToSaveInHtml)
+        temp_html.close()
+
+        # due to the Python wrapper of wkhtmltopdf "python_wkhtmltopdf" pre-requires xvfb is not available for Windows, here use commandline to call the tool
+        cmd=[os.path.join(os.getcwd(), 'tools', 'wkhtmltopdf', 'bin', 'wkhtmltopdf'), os.path.join(os.getcwd(), 'temp', 'temp.html'), savePath]
+        process = subprocess.Popen(cmd) #, stdout=subprocess.PIPE)
+        process.wait()
+
+        # remove the temp file
+        folderPath = os.path.join(os.getcwd(), 'temp')
+        for theFile in os.listdir(folderPath):
+            os.remove(os.path.join(folderPath, theFile))
+
+        # show in status bar when export finishes
+        self.SetStatusText('Results exported as PDF file.')
+
+        # enable some widgets
+        self.buttonEvaluate.Enable()
+        self.buttonExport.Enable()
+
+    def GetResultInHtml(self):
+        # render the figures, tables into html, for exporting to pdf
+        pass
+
+    def OnQuit(self, event):
+        # quit the application
+        self.Close()
+
+    def OnAbout(self, event):
+        # show the information about this application and the related.
+        description = """This is the description of this software."""
+
+        licence = """This is the Licence of the software."""
+
+
+        info = wx.AboutDialogInfo()
+
+        # set icon here
+        # info.SetIcon(wx.Icon('hunter.png', wx.BITMAP_TYPE_PNG))
+
+        info.SetName('QIBA evaluate tool')
+        info.SetVersion('1.0')
+        info.SetDescription(description)
+        # set copyright here
+        # info.SetCopyright('(C) 2007 - 2011 Jan Bodnar')
+
+        # set website
+        # info.SetWebSite('http://www.zetcode.com')
+        info.SetLicence(licence)
+
+        # set developer
+        # info.AddDeveloper('Jan Bodnar')
+        # set document writer
+        # info.AddDocWriter('Jan Bodnar')
+
+        wx.AboutBox(info)
+
+class MainWindow_KV(MainWindow):
+    '''
+    this is the Ktrans-Ve branch's interface.
+    '''
+    def __init__(self, appName):
+        # instance of the main window
+        MainWindow.__init__(self, None, appName)
+
+        # default files' paths
+        self.path_ref_K = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
+        self.path_ref_V = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
+        self.path_cal_K = ''
+        self.path_cal_V = ''
+
+        # customize the main window
+        self.SetupEditMenu()
+        self.SetupRightClickMenu()
+        self.SetupPage_Histogram()
+
+    def SetupEditMenu(self):
+        # setup the edit menu in the menu bar
+        editMenu = wx.Menu()
+        OnLoadRef_K = editMenu.Append(wx.ID_ANY, 'Load reference Ktrans...')
+        OnLoadRef_V = editMenu.Append(wx.ID_ANY, 'Load reference Ve...')
+        self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_K, OnLoadRef_K)
+        self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_V, OnLoadRef_V)
+        self.menubar.Insert(1,editMenu, "&Edit")
+        self.SetMenuBar(self.menubar)
+
+    def SetupRightClickMenu(self):
+        # setup the popup menu on right click
+        wx.EVT_RIGHT_DOWN(self.fileBrowser.GetTreeCtrl(), self.OnRightClick)
+        self.popupMenu = wx.Menu()
+        self.ID_POPUP_LOAD_CAL_K = wx.NewId()
+        self.ID_POPUP_LOAD_CAL_V = wx.NewId()
+
+        OnLoadCal_K = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, 'Load as calculated Ktrans')
+        OnLoadCal_V = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, 'Load as calculated Ve')
+        self.popupMenu.AppendItem(OnLoadCal_K)
+        self.popupMenu.AppendItem(OnLoadCal_V)
+
+    def SetupPage_Histogram(self):
+        # setup the histogram page
+        self.figureHist_Ktrans = Figure()
+        self.canvasHist_Ktrans = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ktrans)
+
+        self.figureHist_Ve = Figure()
+        self.canvasHist_Ve = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ve)
+
+        self.verticalLine = wx.StaticLine(self.pageHistogram, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
+        sizer.Add(self.verticalLine, 2, wx.EXPAND)
+        sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
+        self.pageHistogram.SetSizer(sizer)
+
+    def ClearPage_Histogram(self):
+        # clear the histogram page
+        self.figureHist_Ktrans.clear()
+        self.canvasHist_Ktrans.draw()
+        self.figureHist_Ve.clear()
+        self.canvasHist_Ve.draw()
+
+    def GenerateModel(self):
+        # generate the model for evaluation
+        self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V)
+
+    def OnRightClick(self, event):
+        # the right click action on the file list
+        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in ['.dcm', '.bin', '.raw']):
+            wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, self.OnLoadCal_K)
+            wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, self.OnLoadCal_V)
+            self.PopupMenu(self.popupMenu, event.GetPosition())
+        else:
+            self.SetStatusText('Invalid file or path chosen.')
+
+    def OnLoadCal_K(self, event):
+        # pass the file path for loading
+        self.path_cal_K = self.fileBrowser.GetPath()
+        self.SetStatusText('Calculated Ktrans loaded.')
+        if self.path_cal_V:
+            self.buttonEvaluate.Enable()
+
+    def OnLoadCal_V(self, event):
+        # pass the file path for loading
+        self.path_cal_V = self.fileBrowser.GetPath()
+        self.SetStatusText('Calculated Ve loaded.')
+        if self.path_cal_K:
+            self.buttonEvaluate.Enable()
+
+    def OnLoadRef_K(self, event):
+        # pass the file path for loading
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.path_ref_K = dlg.GetPath()
+            self.SetStatusText('Reference Ktrans loaded.')
+        else:
+            self.SetStatusText('Reference Ktrans was NOT loaded!')
+
+    def OnLoadRef_V(self, event):
+        # pass the file path for loading
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.path_ref_V = dlg.GetPath()
+            self.SetStatusText('Reference Ve loaded.')
+        else:
+            self.SetStatusText('Reference Ve was NOT loaded!')
+
+    def DrawHistograms(self):
+        # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
+
+        pixelCountInPatch = self.newModel.patchLen ** 2
+        nrOfBins = 10
+
+        self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans',) # fontsize = 18)
+        self.figureHist_Ve.suptitle('The histogram of the calculated Ve') # , fontsize = 18)
+
+        for i in range(self.newModel.nrOfRows):
+            for j in range(self.newModel.nrOfColumns):
+                subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
+                # subPlot_K.clear()
+                subPlot_K.hist(self.newModel.Ktrans_cal[i][j], nrOfBins)
+                minPatch_K = numpy.min(self.newModel.Ktrans_cal[i][j])
+                maxPatch_K = numpy.max(self.newModel.Ktrans_cal[i][j])
+                meanPatch_K = numpy.mean(self.newModel.Ktrans_cal[i][j])
+
+                minPatch_K = QIBA_functions.formatFloatTo2DigitsString(minPatch_K)
+                maxPatch_K = QIBA_functions.formatFloatTo2DigitsString(maxPatch_K)
+                meanPatch_K = QIBA_functions.formatFloatTo2DigitsString(meanPatch_K)
+
+                subPlot_K.set_xticks([float(minPatch_K), float(maxPatch_K)])
+
+                subPlot_K.set_xticklabels([minPatch_K, maxPatch_K])
+                subPlot_K.axvline(float(meanPatch_K), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+                subPlot_K.set_ylim([0, pixelCountInPatch])
+                subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size = 'x-small') # parameters: location_x, location_y, text, size
+                if i == 0:
+                    subPlot_K.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
+                    subPlot_K.xaxis.set_label_position('top')
+                if j == 0:
+                    subPlot_K.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
+
+                subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1 )
+                # subPlot_V.clear()
+                subPlot_V.hist(self.newModel.Ve_cal[i][j], nrOfBins)
+                minPatch_V = numpy.min(self.newModel.Ve_cal[i][j])
+                maxPatch_V = numpy.max(self.newModel.Ve_cal[i][j])
+                meanPatch_V = numpy.mean(self.newModel.Ve_cal[i][j])
+                minPatch_V = QIBA_functions.formatFloatTo2DigitsString(minPatch_V)
+                maxPatch_V = QIBA_functions.formatFloatTo2DigitsString(maxPatch_V)
+                meanPatch_V = QIBA_functions.formatFloatTo2DigitsString(meanPatch_V)
+
+                subPlot_V.set_xticks([float(minPatch_V), float(maxPatch_V)])
+                subPlot_V.set_xticklabels([minPatch_V, maxPatch_V])
+                subPlot_V.axvline(float(meanPatch_V), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+                subPlot_V.set_ylim([0, pixelCountInPatch])
+                subPlot_V.text(float(meanPatch_V) + 0.01 * float(meanPatch_V), 0.9 * pixelCountInPatch, meanPatch_V, size = 'x-small') # parameters: location_x, location_y, text, size
+                if i == 0:
+                    subPlot_V.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
+                    subPlot_V.xaxis.set_label_position('top')
+                if j == 0:
+                    subPlot_V.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
+
+
+        self.figureHist_Ve.tight_layout()
+        self.figureHist_Ktrans.tight_layout()
+
+        self.figureHist_Ktrans.subplots_adjust(top = 0.94, right = 0.95)
+        self.figureHist_Ve.subplots_adjust(top = 0.94, right = 0.95)
+
+        self.canvasHist_Ktrans.draw()
+        self.canvasHist_Ve.draw()
 
     def DrawBoxPlot(self):
         '''
@@ -553,107 +693,29 @@ class MainWindow_KV(wx.Frame):
         self.canvasBoxPlot.draw()
         self.rightPanel.Layout()
 
-    def DrawHistograms(self, dataList, refList, titleList):
-        # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
+    def DrawMaps(self):
+        # draw the maps of the preview and error
+        self.PlotPreview([[self.newModel.Ktrans_cal_inRow, self.newModel.Ktrans_error, self.newModel.Ktrans_error_normalized],
+                                  [self.newModel.Ve_cal_inRow, self.newModel.Ve_error, self.newModel.Ve_error_normalized]],
 
-        pixelCountInPatch = self.newModel.patchLen ** 2
-        nrOfBins = 10
-        nrOfRows = len(dataList[0][0])
-        nrOfColumns = len(dataList[0][0][0])
+                                [['Calculated Ktrans', 'Error map of Ktrans', 'Normalized Error map of Ktrans'],
+                                 ['Calculated Ve', 'Error map of Ve', 'Normalized Error map of Ve']],
 
-        for item, itemTitle, canvas, refItem in zip(dataList, titleList, self.pageHistogram.GetChildren(), refList):
-            figure = canvas.GetChild()
-            figure.suptitle(itemTitle)
-            for i in range(nrOfRows):
-                for j in range(nrOfColumns):
-                    subplot = figure.add_subplot(nrOfRows, nrOfColumns, i * nrOfRows + j + 1)
-                    subplot.hist(item[i][j], nrOfBins)
-                    minPatch = numpy.min(item[i][j])
-                    maxPatch = numpy.max(item[i][j])
-                    meanPatch = numpy.mean(item[i][j])
+                                [['bone', 'rainbow', 'rainbow'], ['bone', 'rainbow', 'rainbow']],
 
-                    minPatch = QIBA_functions.formatFloatTo2DigitsString(minPatch)
-                    maxPatch = QIBA_functions.formatFloatTo2DigitsString(maxPatch)
-                    meanPatch = QIBA_functions.formatFloatTo2DigitsString(meanPatch)
+                                [['Ktrans[1/min]', 'Delta Ktrans[1/min.]', 'Normalized error[1]'], ['Ve[]', 'Delta Ve[]', 'Normalized error[1]']])
 
-                    subplot.set_xticks([float(minPatch), float(maxPatch)])
+    def DrawScatter(self):
+        # draw the scatters
+        self.PlotScatter([[self.newModel.Ktrans_cal], [self.newModel.Ve_cal]],
 
-                    subplot.set_xticklabels([minPatch, maxPatch])
-                    subplot.axvline(float(meanPatch), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
-                    subplot.set_ylim([0, pixelCountInPatch])
-                    subplot.text(float(meanPatch) + 0.01 * float(meanPatch), 0.9 * pixelCountInPatch, meanPatch, size = 'x-small') # parameters: location_x, location_y, text, size
-                    if i == 0:
-                        subplot.set_xlabel('Ve = ' + str(refItem[1][i][j][0]))
-                        subplot.xaxis.set_label_position('top')
-                    if j == 0:
-                        subplot.set_ylabel('Ktrans = ' + str(refItem[0][i][j][0]))
+                            [[self.newModel.Ktrans_ref], [self.newModel.Ve_ref]],
 
-            figure.tight_layout()
-            figure.subplot_adjust(top = 0.94, right = 0.95)
-            canvas.draw()
+                            [['Reference Ktrans'], ['Reference Ve']],
 
+                            [['Calculated Ktrans'], ['Calculated Ve']],
 
-
-        # self.figureHist_Ktrans.suptitle('The histogram of the calculated Ktrans',) # fontsize = 18)
-        # self.figureHist_Ve.suptitle('The histogram of the calculated Ve') # , fontsize = 18)
-        #
-        #
-        #
-        # for i in range(self.newModel.nrOfRows):
-        #     for j in range(self.newModel.nrOfColumns):
-        #         subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
-        #         # subPlot_K.clear()
-        #         subPlot_K.hist(self.newModel.Ktrans_cal[i][j], nrOfBins)
-        #         minPatch_K = numpy.min(self.newModel.Ktrans_cal[i][j])
-        #         maxPatch_K = numpy.max(self.newModel.Ktrans_cal[i][j])
-        #         meanPatch_K = numpy.mean(self.newModel.Ktrans_cal[i][j])
-        #
-        #         minPatch_K = QIBA_functions.formatFloatTo2DigitsString(minPatch_K)
-        #         maxPatch_K = QIBA_functions.formatFloatTo2DigitsString(maxPatch_K)
-        #         meanPatch_K = QIBA_functions.formatFloatTo2DigitsString(meanPatch_K)
-        #
-        #         subPlot_K.set_xticks([float(minPatch_K), float(maxPatch_K)])
-        #
-        #         subPlot_K.set_xticklabels([minPatch_K, maxPatch_K])
-        #         subPlot_K.axvline(float(meanPatch_K), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
-        #         subPlot_K.set_ylim([0, pixelCountInPatch])
-        #         subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size = 'x-small') # parameters: location_x, location_y, text, size
-        #         if i == 0:
-        #             subPlot_K.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
-        #             subPlot_K.xaxis.set_label_position('top')
-        #         if j == 0:
-        #             subPlot_K.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
-        #
-        #         subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1 )
-        #         # subPlot_V.clear()
-        #         subPlot_V.hist(self.newModel.Ve_cal[i][j], nrOfBins)
-        #         minPatch_V = numpy.min(self.newModel.Ve_cal[i][j])
-        #         maxPatch_V = numpy.max(self.newModel.Ve_cal[i][j])
-        #         meanPatch_V = numpy.mean(self.newModel.Ve_cal[i][j])
-        #         minPatch_V = QIBA_functions.formatFloatTo2DigitsString(minPatch_V)
-        #         maxPatch_V = QIBA_functions.formatFloatTo2DigitsString(maxPatch_V)
-        #         meanPatch_V = QIBA_functions.formatFloatTo2DigitsString(meanPatch_V)
-        #
-        #         subPlot_V.set_xticks([float(minPatch_V), float(maxPatch_V)])
-        #         subPlot_V.set_xticklabels([minPatch_V, maxPatch_V])
-        #         subPlot_V.axvline(float(meanPatch_V), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
-        #         subPlot_V.set_ylim([0, pixelCountInPatch])
-        #         subPlot_V.text(float(meanPatch_V) + 0.01 * float(meanPatch_V), 0.9 * pixelCountInPatch, meanPatch_V, size = 'x-small') # parameters: location_x, location_y, text, size
-        #         if i == 0:
-        #             subPlot_V.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
-        #             subPlot_V.xaxis.set_label_position('top')
-        #         if j == 0:
-        #             subPlot_V.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
-        #
-        #
-        # self.figureHist_Ve.tight_layout()
-        # self.figureHist_Ktrans.tight_layout()
-        #
-        # self.figureHist_Ktrans.subplots_adjust(top = 0.94, right = 0.95)
-        # self.figureHist_Ve.subplots_adjust(top = 0.94, right = 0.95)
-        #
-        # self.canvasHist_Ktrans.draw()
-        # self.canvasHist_Ve.draw()
+                            [['Distribution plot of Ktrans'], ['Distribution plot of Ve']])
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
@@ -664,7 +726,7 @@ class MainWindow_KV(wx.Frame):
         self.figureHist_Ve.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_V.png'))
         self.figureBoxPlot.savefig(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
 
-        htmlContent += self.newModel.packInHtml('<h1 align="center">QIBA DRO Evaluation Tool Results Report</h1>')
+        htmlContent += self.newModel.packInHtml('<h1 align="center">QIBA DRO Evaluation Tool Results Report<br>(Ktrans-Ve)</h1>')
 
         htmlContent += self.newModel.packInHtml('''
         <h2 align="center">The image view of calculated Ktrans and Ve</h2>''' +\
@@ -706,131 +768,218 @@ class MainWindow_KV(wx.Frame):
 
         return htmlContent
 
-    def OnClearModelList(self, event):
-        # not used now
-        # clear the list which holds all the models that have been evaluated.
-        if self.testedModels == []:
-            self.SetStatusText('Evaluated model list is empty.')
+class MainWindow_T1(MainWindow):
+    '''
+    this is the Ktrans-Ve branch's interface.
+    '''
+    def __init__(self, appName):
+        MainWindow.__init__(self, None, appName)
+
+        # default files' paths
+        self.path_ref_T1 = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
+        self.path_cal_T1 = ''
+
+        # customize the main window
+        self.SetupEditMenu()
+        self.SetupRightClickMenu()
+        self.SetupPage_Histogram()
+
+    def SetupEditMenu(self):
+        # setup the edit menu in the menu bar
+        editMenu = wx.Menu()
+        OnLoadRef_T1 = editMenu.Append(wx.ID_ANY, 'Load reference T1...')
+        self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_T1, OnLoadRef_T1)
+        self.menubar.Insert(1,editMenu, "&Edit")
+        self.SetMenuBar(self.menubar)
+
+    def SetupRightClickMenu(self):
+        # setup the popup menu on right click
+        wx.EVT_RIGHT_DOWN(self.fileBrowser.GetTreeCtrl(), self.OnRightClick)
+        self.popupMenu = wx.Menu()
+        self.ID_POPUP_LOAD_CAL_T1 = wx.NewId()
+
+        OnLoadCal_T1 = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_T1, 'Load as calculated T1')
+        self.popupMenu.AppendItem(OnLoadCal_T1)
+
+    def SetupPage_Histogram(self):
+        # setup the histogram page
+        self.figureHist_T1 = Figure()
+        self.canvasHist_T1 = FigureCanvas(self.pageHistogram,-1, self.figureHist_T1)
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.canvasHist_T1, 1, wx.EXPAND)
+        self.pageHistogram.SetSizer(sizer)
+
+    def ClearPage_Histogram(self):
+        # clear the histogram page
+        self.figureHist_T1.clear()
+        self.canvasHist_T1.draw()
+
+    def GenerateModel(self):
+        # generate the model for evaluation
+        self.newModel = QIBA_model.Model_T1(self.path_ref_T1, self.path_cal_T1)
+
+    def OnRightClick(self, event):
+        # the right click action on the file list
+        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in ['.dcm', '.bin', '.raw']):
+            wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_T1, self.OnLoadCal_T1)
+            self.PopupMenu(self.popupMenu, event.GetPosition())
         else:
-            self.testedModels = []
-            self.SetStatusText('Evaluated model list is cleared.')
+            self.SetStatusText('Invalid file or path chosen.')
 
-        # clean the interface plots
-        self.ClearInterface()
-
-    def ClearInterface(self):
-        # clear the plots in the interface, so that when the evaluated models are cleared, the interface will also be cleaned.
-        self.figureImagePreview.clear()
-        self.canvasImagePreview.draw()
-
-        self.figureScatter.clear()
-        self.canvasScatter.draw()
-
-        self.figureBoxPlot.clear()
-        self.canvasBoxPlot.draw()
-
-        self.figureHist_Ktrans.clear()
-        self.canvasHist_Ktrans.draw()
-        self.figureHist_Ve.clear()
-        self.canvasHist_Ve.draw()
-
-        self.statisticsViewer.SetPage('')
-        self.covCorrViewer.SetPage('')
-        self.modelFittingViewer.SetPage('')
-        self.t_testViewer.SetPage('')
-        self.U_testViewer.SetPage('')
-        self.ANOVAViewer.SetPage('')
-
-    def ClearPanel(self, panel):
-        # clear a panel object(from wxPython)
-        for child in panel.GetChildren():
-            if child:
-                child.Destroy()
-            else:
-                pass
-
-    def OnExport(self, event):
-        # export the evaluation results to PDF
-
-        # disable some widgets
-        self.buttonEvaluate.Disable()
-        self.buttonExport.Disable()
-
-        # show in status bar when export finishes
-        self.SetStatusText('Exporting results...')
-
-        # save file path dialog
-        savePath = ''
-        dlg = wx.FileDialog(self, 'Export the results as PDF file...', '', '', "PDF file(*.pdf)|*.pdf", wx.SAVE | wx.OVERWRITE_PROMPT)
-        if dlg.ShowModal() == wx.ID_OK:
-            savePath = dlg.GetPath()
-        else:
-            return False
-
-        # save to temp html file
-        resultToSaveInHtml = self.GetResultInHtml()
-        temp_html = open(os.path.join(os.getcwd(), 'temp', 'temp.html'), 'w+')
-        temp_html.write(resultToSaveInHtml)
-        temp_html.close()
-
-        # due to the Python wrapper of wkhtmltopdf "python_wkhtmltopdf" pre-requires xvfb is not available for Windows, here use commandline to call the tool
-        cmd=[os.path.join(os.getcwd(), 'tools', 'wkhtmltopdf', 'bin', 'wkhtmltopdf'), os.path.join(os.getcwd(), 'temp', 'temp.html'), savePath]
-        process = subprocess.Popen(cmd) #, stdout=subprocess.PIPE)
-        process.wait()
-
-        # remove the temp file
-        # os.remove(os.path.join(os.getcwd(), 'temp', 'temp.html'))
-        os.remove(os.path.join(os.getcwd(), 'temp', 'figureImages.png'))
-        os.remove(os.path.join(os.getcwd(), 'temp', 'figureScatters.png'))
-        os.remove(os.path.join(os.getcwd(), 'temp', 'figureHist_K.png'))
-        os.remove(os.path.join(os.getcwd(), 'temp', 'figureHist_V.png'))
-        os.remove(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
-
-        # show in status bar when export finishes
-        self.SetStatusText('Results exported as PDF file.')
-
-        # enable some widgets
+    def OnLoadCal_T1(self, event):
+        # pass the file path for loading
+        self.path_cal_T1 = self.fileBrowser.GetPath()
+        self.SetStatusText('Calculated Ktrans loaded.')
         self.buttonEvaluate.Enable()
-        self.buttonExport.Enable()
 
-    def OnQuit(self, event):
-        # quit the application
-        self.Close()
-
-    def OnAbout(self, event):
-        # show the information about this application and the related.
-        description = """This is the description of this software."""
-
-        licence = """This is the Licence of the software."""
+    def OnLoadRef_T1(self, event):
+        # pass the file path for loading
+        dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.path_ref_K = dlg.GetPath()
+            self.SetStatusText('Reference T1 loaded.')
+        else:
+            self.SetStatusText('Reference T1 was NOT loaded!')
 
 
-        info = wx.AboutDialogInfo()
+    def DrawHistograms(self):
+        # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
 
-        # set icon here
-        # info.SetIcon(wx.Icon('hunter.png', wx.BITMAP_TYPE_PNG))
+        pixelCountInPatch = self.newModel.patchLen ** 2
+        nrOfBins = 10
 
-        info.SetName('QIBA evaluate tool')
-        info.SetVersion('1.0')
-        info.SetDescription(description)
-        # set copyright here
-        # info.SetCopyright('(C) 2007 - 2011 Jan Bodnar')
+        self.figureHist_T1.suptitle('The histogram of the calculated T1',) # fontsize = 18)
 
-        # set website
-        # info.SetWebSite('http://www.zetcode.com')
-        info.SetLicence(licence)
+        for i in range(self.newModel.nrOfRows):
+            for j in range(self.newModel.nrOfColumns):
+                subPlot_T1 = self.figureHist_T1.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
+                # subPlot_K.clear()
+                subPlot_T1.hist(self.newModel.T1_cal[i][j], nrOfBins)
+                minPatch_T1 = numpy.min(self.newModel.T1_cal[i][j])
+                maxPatch_T1 = numpy.max(self.newModel.T1_cal[i][j])
+                meanPatch_T1 = numpy.mean(self.newModel.T1_cal[i][j])
 
-        # set developer
-        # info.AddDeveloper('Jan Bodnar')
-        # set document writer
-        # info.AddDocWriter('Jan Bodnar')
+                minPatch_T1 = QIBA_functions.formatFloatTo2DigitsString(minPatch_T1)
+                maxPatch_T1 = QIBA_functions.formatFloatTo2DigitsString(maxPatch_T1)
+                meanPatch_T1 = QIBA_functions.formatFloatTo2DigitsString(meanPatch_T1)
 
-        wx.AboutBox(info)
+                subPlot_T1.set_xticks([float(minPatch_T1), float(maxPatch_T1)])
 
-class MainWindow_T1(wx.Frame):
+                subPlot_T1.set_xticklabels([minPatch_T1, maxPatch_T1])
+                subPlot_T1.axvline(float(meanPatch_T1), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+                subPlot_T1.set_ylim([0, pixelCountInPatch])
+                subPlot_T1.text(float(meanPatch_T1) + 0.01 * float(meanPatch_T1), 0.9 * pixelCountInPatch, meanPatch_T1, size = 'x-small') # parameters: location_x, location_y, text, size
+                if i == 0:
+                    subPlot_T1.set_xlabel('Column nr. ' + str(i))
+                    subPlot_T1.xaxis.set_label_position('top')
+                if j == 0:
+                    subPlot_T1.set_ylabel('Row nr. ' + str(j))
 
-    applicationName = "QIBA evaluate tool"
-    def __init__(self, parent):
-        wx.Frame.__init__(self, parent, title = self.applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
+        # self.figureHist_T1.tight_layout()
+        self.figureHist_T1.subplots_adjust(top = 0.94, right = 0.95)
+        self.canvasHist_T1.draw()
+
+    def DrawBoxPlot(self):
+        '''
+        draw box plots of each patch
+        '''
+
+        subPlot_T1 = self.figureBoxPlot.add_subplot(1, 1, 1)
+        subPlot_T1.clear()
+        temp = []
+        referValue_T1 = []
+        for i in range(self.newModel.nrOfRows):
+            temp.extend(self.newModel.T1_cal[i])
+            referValue_T1.append(float('{0:.2f}'.format(self.newModel.T1_ref[i][0][0])))
+        subPlot_T1.boxplot(temp)
+
+        # decorate T1 plot
+        subPlot_T1.set_title('Box plot of calculated T1')
+        subPlot_T1.set_xlabel('The result shows the calculated T1 patched concatenated in rows')
+        subPlot_T1.set_ylabel('Calculated values in patches')
+
+        subPlot_T1.xaxis.set_major_formatter(ticker.NullFormatter())
+        subPlot_T1.xaxis.set_minor_locator(ticker.FixedLocator([3, 8, 13, 18, 23, 28]))
+        subPlot_T1.xaxis.set_minor_formatter(ticker.FixedFormatter(['something']))
+        for i in range(self.newModel.nrOfRows):
+            subPlot_T1.axvline(x = self.newModel.nrOfColumns * i + 0.5, color = 'green', linestyle = 'dashed')
+
+        self.figureBoxPlot.tight_layout()
+        self.canvasBoxPlot.draw()
+        self.rightPanel.Layout()
+
+    def DrawMaps(self):
+        # draw the maps of the preview and error
+        self.PlotPreview([[self.newModel.T1_cal_inRow], [self.newModel.T1_error], [self.newModel.T1_error_normalized],],
+
+                                [['Calculated T1'], ['Error map of T1'], ['Normalized Error map of T1'],],
+
+                                [['bone'], ['rainbow'], ['rainbow'], ],
+
+                                [['T1[sec.]'], ['Delta T1[sec.]'], ['Normalized error[1]'],])
+
+    def DrawScatter(self):
+        # draw the scatters
+        self.PlotScatter([[self.newModel.T1_cal],],
+
+                            [[self.newModel.T1_ref],],
+
+                            [['Reference T1'],],
+
+                            [['Calculated T1'],],
+
+                            [['Distribution plot of T1'],])
+
+    def GetResultInHtml(self):
+        # render the figures, tables into html, for exporting to pdf
+        htmlContent = ''
+        self.figureImagePreview.savefig(os.path.join(os.getcwd(), 'temp', 'figureImages.png'))
+        self.figureScatter.savefig(os.path.join(os.getcwd(), 'temp', 'figureScatters.png'))
+        self.figureHist_T1.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_T1.png'))
+        self.figureBoxPlot.savefig(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
+
+        htmlContent += self.newModel.packInHtml('<h1 align="center">QIBA DRO Evaluation Tool Results Report<br>(T1)</h1>')
+
+        htmlContent += self.newModel.packInHtml('''
+        <h2 align="center">The image view of calculated T1''' +\
+        '''<img src="''' + os.path.join(os.getcwd(), 'temp', 'figureImages.png') + '''" style="width:100%"> <br>'''+\
+        '''<p><font face="verdana">* The first column shows the calculated T1 in black and white. You can have a general impression of the value distribution according to the changing of the parameters. Generally the brighter the pixel is, the higher the calculated value is.<br>
+        <br>The Second column shows the error map between calculated and reference data. Each pixel is the result of corresponding pixel in calculated data being subtracted with that in the reference data. Generally the more the color approaches to the red direction, the larger the error is.<br>
+        <br>The third column shows the normalized error. This is out of the consideration that the error could be related with the original value itself. Therefore normalized error may give a more uniformed standard of the error level. Each pixel's value comes from the division of the error by the reference pixel value. Similarly as the error map, the more the color approaches to the red direction, the larger the normalized error is.
+        </p>''' )
+
+        htmlContent += self.newModel.packInHtml( '''
+        <h2 align="center">The scatter plots of calculated T1</h2>
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureScatters.png') + '''" style="width:100%"> <br>'''+\
+        '''<p><font face="verdana">* For the reference data, the pixel values in rows contains different values(details please refer to the file description). Therefore in the scatter plot it shows that all green dots of a row (or column) overlap to each other. For the calculated data, as they share the same parameter, the blue dots align to the same x-axis. But they may scatter vertically, showing there's variance of the value in a row (or column).<br>
+        <br>From these plots you can see the trend of the values, which offer some information of which model (e.g. linear or logarithmic) the calculated parameter may fit. For example, with the artificial calculated data which were generated from the reference data by adding Gaussian noise, scaling by two and adding 0.5, it can be easily read from the plots that the calculated data follow the linear model, and have scaling factor and extra bias value.
+        </p>''' )
+
+        htmlContent += self.newModel.packInHtml('''
+        <h2 align="center">The histograms of calculated Ktrans and Ve</h2>
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_K.png') + '''" style="width:50%" align="left">''' + '''
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_V.png') + '''" style="width:50%" align="right"> <br>'''+\
+        '''<p><font face="verdana">* All histograms have the uniformed y-axis limits, so that the comparison among different patched is easier.  The minimum and maximum values of a patch are denoted on the x-axis for reference.
+        </p>''')
+
+        htmlContent += self.newModel.packInHtml('''
+        <h2 align="center">The box plots of calculated Ktrans and Ve</h2>
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png') + '''" style="width:100%"> <br>'''+\
+        '''<p><font face="verdana">* The vertical dash lines are used to separate the rows (or columns), as each box plot is responsible for one patch. From these plots you could see (roughly) the statistics of each patch, like the mean value, the 1st and 3rd quartile, the minimum and maximum value. The more precise value of those statistics could be found in the tab "Result in HTML viewer".
+        </p>''')
+
+        htmlContent += self.newModel.StatisticsInHTML
+
+        htmlContent += self.newModel.ModelFittingInHtml
+
+        htmlContent += self.newModel.T_testResultInHTML
+
+        htmlContent += self.newModel.U_testResultInHTML
+
+        htmlContent += self.newModel.ANOVAResultInHTML
+
+        return htmlContent
 
 class MySelectionDialog(wx.Dialog):
     '''
@@ -877,23 +1026,25 @@ if __name__ == "__main__":
     Application = wx.App()
 
     # show the splash window
-    QIBASplashWindow = MySplashScreen()
-    QIBASplashWindow.Show()
-    time.sleep(2)
+    # QIBASplashWindow = MySplashScreen()
+    # QIBASplashWindow.Show()
+    # time.sleep(2)
 
     # the branch selection dialog
     QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['Ktrans-Ve', 'T1'])
 
     if QIBASelectionDialog.ShowModal() == wx.ID_OK:
         if QIBASelectionDialog.GetSelections() == 'Ktrans-Ve':
-            window = MainWindow_KV(None)
+            window = MainWindow_KV("QIBA evaluate tool (Ktrans-Ve)")
         else:
-            window = MainWindow_T1(None)
+            window = MainWindow_T1("QIBA evaluate tool (T1)")
+
+        # show the application's main window
+        window.Show()
+        window.Maximize(True)
+        Application.MainLoop()
+
     else:
         exit(0) # quit the application
 
-    # show the application's main window
-    window.Show()
-    window.Maximize(True)
-    Application.MainLoop()
 

@@ -25,9 +25,6 @@ class Model_KV():
         self.Ktrans_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
         self.Ve_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
 
-        # import files
-        self.ImportFiles(path_ref_K, path_ref_V, path_cal_K, path_cal_V)
-
         # the error map between calculated and reference file
         self.Ktrans_error = []
         self.Ve_error = []
@@ -109,6 +106,9 @@ class Model_KV():
         # the result in HTML
         self.resultInHTML = ''
 
+        # import files
+        self.ImportFiles(path_ref_K, path_ref_V, path_cal_K, path_cal_V)
+
     def Evaluate(self):
         # evaluation
 
@@ -159,9 +159,9 @@ class Model_KV():
         KtransStatisticsTable = \
                         '<h2>The statistics analysis of each patch in calculated Ktrans:</h2>'
 
-        KtransStatisticsTable += self.EditTable('the mean and standard deviation value', ['mean', 'std. deviation'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_deviation])
+        KtransStatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'std. deviation'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_deviation])
 
-        KtransStatisticsTable += self.EditTable('the median, 1st and 3rd quartile, min. and max. values', ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_max])
+        KtransStatisticsTable += QIBA_functions.EditTable('the median, 1st and 3rd quartile, min. and max. values', self.headersHorizontal, self.headersVertical, ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_max])
 
 
 
@@ -170,9 +170,9 @@ class Model_KV():
         VeStatisticsTable = \
                         '<h2>The statistics analysis of each patch in calculated Ve:</h2>'
 
-        VeStatisticsTable += self.EditTable('the mean and standard deviation value', ['mean', 'std. deviation'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_deviation])
+        VeStatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'std. deviation'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_deviation])
 
-        VeStatisticsTable += self.EditTable('the median, 1st and 3rd quartile, min. and max. values', ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ve_cal_patch_min, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_median, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_max])
+        VeStatisticsTable += QIBA_functions.EditTable('the median, 1st and 3rd quartile, min. and max. values', self.headersHorizontal, self.headersVertical, ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ve_cal_patch_min, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_median, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_max])
 
         # put the text into html structure
         self.StatisticsInHTML = self.packInHtml(KtransStatisticsTable + '<br>' + VeStatisticsTable)
@@ -186,7 +186,7 @@ class Model_KV():
 
         for j in range(self.nrOfColumns):
             KtransLinearFitting += '<tr>'
-            KtransLinearFitting += '<th>' + self.headersHorizontal[j] + '</th>'
+            KtransLinearFitting += '<th>' + str(self.headersHorizontal[j]) + '</th>'
 
             KtransLinearFitting += '<td align="right">Ktrans_cal = ('
             KtransLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ktrans[j])
@@ -204,7 +204,7 @@ class Model_KV():
 
         for j in range(self.nrOfColumns):
             KtransLogarithmicFitting += '<tr>'
-            KtransLogarithmicFitting += '<th>' + self.headersHorizontal[j] + '</th>'
+            KtransLogarithmicFitting += '<th>' + str(self.headersHorizontal[j]) + '</th>'
 
             KtransLogarithmicFitting += '<td align="right">Ktrans_cal = ('
             KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ktrans[j])
@@ -223,7 +223,7 @@ class Model_KV():
 
         for i in range(self.nrOfRows):
             VeLinearFitting += '<tr>'
-            VeLinearFitting += '<th>' + self.headersVertical[i] + '</th>'
+            VeLinearFitting += '<th>' + str(self.headersVertical[i]) + '</th>'
 
             VeLinearFitting += '<td align="right">Ve_cal = ('
             VeLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ve[i])
@@ -240,7 +240,7 @@ class Model_KV():
 
         for i in range(self.nrOfRows):
             VeLogarithmicFitting += '<tr>'
-            VeLogarithmicFitting += '<th>' + self.headersVertical[i] + '</th>'
+            VeLogarithmicFitting += '<th>' + str(self.headersVertical[i]) + '</th>'
 
             VeLogarithmicFitting += '<td align="right">Ve_cal = ('
             VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ve[i])
@@ -263,7 +263,7 @@ class Model_KV():
                         '<table border="1" cellspacing="10">'\
                             '<tr>'
         for j in range(self.nrOfColumns):
-            KK_Table += '<th>' + self.headersHorizontal[j] + '</th>'
+            KK_Table += '<th>' + str(self.headersHorizontal[j]) + '</th>'
         KK_Table += '</tr>'
 
         KK_Table += '<tr>'
@@ -281,7 +281,7 @@ class Model_KV():
                         '<table border="1" cellspacing="10">'\
                             '<tr>'
         for i in range(self.nrOfRows):
-            KV_Table += '<th>' + self.headersVertical[i] + '</th>'
+            KV_Table += '<th>' + str(self.headersVertical[i]) + '</th>'
         KV_Table += '</tr>'
 
         KV_Table += '<tr>'
@@ -299,7 +299,7 @@ class Model_KV():
                         '<table border="1" cellspacing="10">'\
                             '<tr>'
         for j in range(self.nrOfColumns):
-            VK_Table += '<th>' + self.headersHorizontal[j] + '</th>'
+            VK_Table += '<th>' + str(self.headersHorizontal[j]) + '</th>'
         VK_Table += '</tr>'
 
         VK_Table += '<tr>'
@@ -317,7 +317,7 @@ class Model_KV():
                         '<table border="1" cellspacing="10">'\
                             '<tr>'
         for i in range(self.nrOfRows):
-            VV_Table += '<th>' + self.headersVertical[i] + '</th>'
+            VV_Table += '<th>' + str(self.headersVertical[i]) + '</th>'
         VV_Table += '</tr>'
 
         VV_Table += '<tr>'
@@ -343,13 +343,13 @@ class Model_KV():
         KtransT_TestTable = \
                         '<h2>The t-test result of each patch in calculated Ktrans map:</h2>'
 
-        KtransT_TestTable += self.EditTable('', ['t-statistic', 'p-value'], [self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p])
+        KtransT_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['t-statistic', 'p-value'], [self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p])
 
         # Ktrans statistics tables
         VeT_TestTable = \
                         '<h2>The t-test result of each patch in calculated Ve map:</h2>'
 
-        VeT_TestTable += self.EditTable('', ['t-statistic', 'p-value'], [self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p])
+        VeT_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['t-statistic', 'p-value'], [self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p])
 
 
         # put the text into html structure
@@ -362,13 +362,13 @@ class Model_KV():
         KtransU_TestTable = \
                         '<h2>The Mann-Whitney U test result of each patch in calculated Ktrans map:</h2>'
 
-        KtransU_TestTable += self.EditTable('', ['U-value', 'p-value'], [self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p])
+        KtransU_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['U-value', 'p-value'], [self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p])
 
         # Ktrans statistics tables
         VeU_TestTable = \
                         '<h2>The Mann-Whitney test result of each patch in calculated Ve map:</h2>'
 
-        VeU_TestTable += self.EditTable('', ['U-value', 'p-value'], [self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p])
+        VeU_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['U-value', 'p-value'], [self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p])
 
 
         # put the text into html structure
@@ -387,7 +387,7 @@ class Model_KV():
                         '<table border="1" cellspacing="10">'\
                             '<tr>'
         for i in range(self.nrOfRows):
-            KtransANOVATable += '<th>' + self.headersVertical[i] + '</th>'
+            KtransANOVATable += '<th>' + str(self.headersVertical[i]) + '</th>'
         KtransANOVATable += '</tr>'
 
         KtransANOVATable += '<tr>'
@@ -406,7 +406,7 @@ class Model_KV():
                         '<table border="1" cellspacing="10">'\
                             '<tr>'
         for j in range(self.nrOfColumns):
-            VeANOVATable += '<th>' + self.headersHorizontal[j] + '</th>'
+            VeANOVATable += '<th>' + str(self.headersHorizontal[j]) + '</th>'
         VeANOVATable += '</tr>'
 
         VeANOVATable += '<tr>'
@@ -437,35 +437,6 @@ class Model_KV():
         </html>
         '''
         return htmlText
-
-    def EditTable(self, caption, entryName, entryData):
-        # edit a table of certain scale in html. return the table part html
-        # for the first line
-        tableText = '<h3>' + caption + '</h3>'
-        tableText += '<table border="1" cellspacing="10">'
-        # tableText += '<caption>' + caption + '</caption>'
-        tableText += '<tr>'
-        tableText +=     '<th></th>'
-        for horizontal in self.headersHorizontal:
-            tableText += '<th>' + horizontal + '</th>'
-        tableText += '</tr>'
-
-        # for the column headers and the table cells.
-        for i, vertical in zip(range(self.nrOfRows), self.headersVertical):
-            tableText += '<tr>'
-            tableText +=    '<th>' + vertical + '</th>'
-            for j in range(self.nrOfColumns):
-                tableText += '<td align="right">'
-                for name, data in zip(entryName, entryData):
-                    tableText += name + ' = ' + QIBA_functions.formatFloatTo4DigitsString(data[i][j]) + '<br>'
-                tableText = tableText[:-4]
-                tableText += '</td>'
-            tableText += '</tr>'
-
-        tableText += '</table>'
-        tableText += '<br>'
-
-        return tableText
 
     def GetStatisticsInHTML(self):
         # getter for the result in HTML.
@@ -593,13 +564,10 @@ class Model_T1():
         # initializes the class
 
         # parameters of the image size
-        self.nrOfRows = 7
+        self.nrOfRows = 6
         self.nrOfColumns = 15
         self.patchLen = 10
         self.METHOD = '' # for patch value decision
-
-        # import the files
-        self.ImportFiles(path_ref_T1, path_cal_T1)
 
         # the raw image data as pixel flow
         self.T1_ref = []
@@ -651,16 +619,10 @@ class Model_T1():
         self.T1_cal_patch_ANOVA_p = []
 
         # covarinace
-        self.cov_KK = []
-        self.cov_VK = []
-        self.cov_KV = []
-        self.cov_VV = []
+        self.cov_T1T1 = []
 
         # covarinace
-        self.corr_KK = []
-        self.corr_VK = []
-        self.corr_KV = []
-        self.corr_VV = []
+        self.corr_T1T1 = []
 
         # the result in HTML
         self.resultInHTML = ''
@@ -668,6 +630,9 @@ class Model_T1():
         # header list for table editing
         self.headersVertical = []
         self.headersHorizontal = []
+
+        # import the files
+        self.ImportFiles(path_ref_T1, path_cal_T1)
 
     def Evaluate(self):
         # evaluation
@@ -680,8 +645,8 @@ class Model_T1():
         # evaluation operations
         self.FittingLinearModelForModel()
         self.FittingLogarithmicModelForModel()
-        # self.CalculateCorrelationForModel()
-        # self.CalculateCovarianceForModel()
+        self.CalculateCorrelationForModel()
+        self.CalculateCovarianceForModel()
         self.CalculateMeanForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
@@ -716,248 +681,134 @@ class Model_T1():
         T1StatisticsTable = \
                         '<h2>The statistics analysis of each patch in calculated T1:</h2>'
 
-        T1StatisticsTable += self.EditTable('the mean and standard deviation value', ['mean', 'std. deviation'], [self.T1_cal_patch_mean, self.T1_cal_patch_deviation])
+        T1StatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'std. deviation'], [self.T1_cal_patch_mean, self.T1_cal_patch_deviation])
 
-        T1StatisticsTable += self.EditTable('the median, 1st and 3rd quartile, min. and max. values', ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.T1_cal_patch_min, self.T1_cal_patch_1stQuartile, self.T1_cal_patch_median, self.T1_cal_patch_3rdQuartile, self.T1_cal_patch_max])
+        T1StatisticsTable += QIBA_functions.EditTable('the median, 1st and 3rd quartile, min. and max. values', self.headersHorizontal, self.headersVertical, ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.T1_cal_patch_min, self.T1_cal_patch_1stQuartile, self.T1_cal_patch_median, self.T1_cal_patch_3rdQuartile, self.T1_cal_patch_max])
 
         # put the text into html structure
-        self.StatisticsInHTML = self.packInHtml(KtransStatisticsTable)
+        self.StatisticsInHTML = self.packInHtml(T1StatisticsTable)
 
     def htmlModelFitting(self):
         # write the model fitting results to html
 
-        # Ktrans planar fitting
+        # T1 linear fitting
 
-        KtransLinearFitting = '<h2>The linear model fitting for calculated Ktrans:</h2>' \
-                            '<p>Ktrans_cal = (' + QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ktrans) + ')  * Ktrans_ref + (' + QIBA_functions.formatFloatTo4DigitsString(self.b_lin_Ktrans) + ') * Ve_ref + (' + QIBA_functions.formatFloatTo4DigitsString(self.c_lin_Ktrans) + ')</p>'
-
-        # Ktrans logarithmic fitting
-        KtransLogarithmicFitting = '<h2>The logarithmic model fitting for calculated Ktrans:</h2>' \
-                                        '<table border="1" cellspacing="10">'
-
-        for j in range(self.nrOfColumns):
-            KtransLogarithmicFitting += '<tr>'
-            KtransLogarithmicFitting += '<th>Ref. Ve = '
-            KtransLogarithmicFitting += QIBA_functions.formatFloatTo2DigitsString(zip(*self.Ve_ref_patchValue)[j][0])
-            KtransLogarithmicFitting += '</th>'
-
-            KtransLogarithmicFitting += '<td align="right">Ktrans_cal = ('
-            KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ktrans[j])
-            KtransLogarithmicFitting += ') + ('
-            KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.corr_KK[j])
-            KtransLogarithmicFitting += ') * log10(Ktrans_ref)'
-            KtransLogarithmicFitting += '</td>'
-            KtransLogarithmicFitting += '</tr>'
-
-        KtransLogarithmicFitting += '</table>'
-
-
-        # Ve planar fitting
-        VeLinearFitting = \
-                        '<h2>The linear model fitting for calculated Ve:</h2>' \
-                            '<p>Ve_cal = (' + QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ve) + ')  * Ktrans_ref + (' + QIBA_functions.formatFloatTo4DigitsString(self.b_lin_Ve) + ') * Ve_ref + (' + QIBA_functions.formatFloatTo4DigitsString(self.c_lin_Ve) + ')</p>'
-
-        # Ve logarithmic fitting
-        VeLogarithmicFitting = '<h2>The logarithmic model fitting for calculated Ve:</h2>'\
-                        '<table border="1" cellspacing="10">'
+        T1LinearFitting = '<h2>The linear model fitting for calculated T1:</h2>' \
+                            '<table border="1" cellspacing="10">'
 
         for i in range(self.nrOfRows):
-            VeLogarithmicFitting += '<tr>'
-            VeLogarithmicFitting += '<th>Ref. Ktrans = '
-            VeLogarithmicFitting += str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))
-            VeLogarithmicFitting += '</th>'
+            T1LinearFitting += '<tr>'
+            T1LinearFitting += '<th>' + str(self.headersVertical[i]) + '</th>'
 
-            VeLogarithmicFitting += '<td align="right">Ve_cal = ('
-            VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ve[i])
-            VeLogarithmicFitting += ') + ('
-            VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.corr_KV[i])
-            VeLogarithmicFitting += ') * log10(Ve_ref)'
-            VeLogarithmicFitting += '</td>'
-            VeLogarithmicFitting += '</tr>'
-        VeLogarithmicFitting += '</table>'
+            T1LinearFitting += '<td align="right">T1_cal = ('
+            T1LinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_lin_T1[i])
+            T1LinearFitting += ') * T1_ref + ('
+            T1LinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_lin_T1[i])
+            T1LinearFitting += ')'
+            T1LinearFitting += '</td>'
+            T1LinearFitting += '</tr>'
+
+        T1LinearFitting += '</table>'
 
 
-        self.ModelFittingInHtml = self.packInHtml(KtransLinearFitting + '<br>' + KtransLogarithmicFitting + '<br>' + VeLinearFitting + '<br>' + VeLogarithmicFitting)
+        # T1 logarithmic fitting
+        T1LogarithmicFitting = '<h2>The logarithmic model fitting for calculated T1:</h2>' \
+                                        '<table border="1" cellspacing="10">'
+
+        for i in range(self.nrOfRows):
+            T1LogarithmicFitting += '<tr>'
+            T1LogarithmicFitting += '<th>' + str(self.headersVertical[i]) + '</th>'
+
+            T1LogarithmicFitting += '<td align="right">T1_cal = ('
+            T1LogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_T1[i])
+            T1LogarithmicFitting += ') + ('
+            T1LogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_log_T1[i])
+            T1LogarithmicFitting += ') * log10(T1_ref)'
+            T1LogarithmicFitting += '</td>'
+            T1LogarithmicFitting += '</tr>'
+
+        T1LogarithmicFitting += '</table>'
+
+        self.ModelFittingInHtml = self.packInHtml(T1LinearFitting + '<br>' + T1LogarithmicFitting)
 
 
     def htmlCovCorrResults(self):
         # write the correlation and covariance results into html
 
-        # relation between cal. K and ref. K
-        KK_Table = '<h2>The correlation and covariance of each column in calculated Ktrans map with reference Ktrans map:</h2>'\
-                        '<table border="1" cellspacing="10">'\
-                            '<tr>'
-        for j in range(self.nrOfColumns):
-            KK_Table += '<th>Ref. Ve = '
-            KK_Table += str('{:3.2f}'.format(zip(*self.Ve_ref_patchValue)[j][0]))
-            KK_Table += '</th>'
-        KK_Table += '</tr>'
-
-        KK_Table += '<tr>'
-        for j in range(self.nrOfColumns):
-            KK_Table += '<td align="right">cov.: '
-            KK_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_KK[j])
-            KK_Table += '<br>corr.: '
-            KK_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_KK[j])
-            KK_Table += '</td>'
-        KK_Table += '</tr>'
-        KK_Table += '</table>'
-
-        # relation between cal. K and ref. V
-        KV_Table = '<h2>The correlation and covariance of each row in calculated Ktrans map with reference Ve map:</h2>'\
+        # relation between cal. T1 and ref. T1
+        T1T1_Table = '<h2>The correlation and covariance of each row in calculated T1 map with reference T1 map:</h2>'\
                         '<table border="1" cellspacing="10">'\
                             '<tr>'
         for i in range(self.nrOfRows):
-            KV_Table += '<th>Ref. Ktrans = '
-            KV_Table += str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))
-            KV_Table += '</th>'
-        KV_Table += '</tr>'
+            T1T1_Table += '<th>' + str(self.headersVertical[i]) + '</th>'
+        T1T1_Table += '</tr>'
 
-        KV_Table += '<tr>'
+        T1T1_Table += '<tr>'
         for i in range(self.nrOfRows):
-            KV_Table += '<td align="right">cov.: '
-            KV_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_KV[i])
-            KV_Table += '<br>corr.: '
-            KV_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_KV[i])
-            KV_Table += '</td>'
-        KV_Table += '</tr>'
-        KV_Table += '</table>'
+            T1T1_Table += '<td align="right">cov.: '
+            T1T1_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_T1T1[i])
+            T1T1_Table += '<br>corr.: '
+            T1T1_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_T1T1[i])
+            T1T1_Table += '</td>'
+        T1T1_Table += '</tr>'
+        T1T1_Table += '</table>'
 
-        # relation between cal. V and ref. K
-        VK_Table = '<h2>The correlation and covariance of each column in calculated Ve map with reference Ktrans map:</h2>'\
-                        '<table border="1" cellspacing="10">'\
-                            '<tr>'
-        for j in range(self.nrOfColumns):
-            VK_Table += '<th>Ref. Ve = '
-            VK_Table += str('{:3.2f}'.format(zip(*self.Ve_ref_patchValue)[j][0]))
-            VK_Table += '</th>'
-        VK_Table += '</tr>'
-
-        VK_Table += '<tr>'
-        for j in range(self.nrOfColumns):
-            VK_Table += '<td align="right">cov.: '
-            VK_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_VK[j])
-            VK_Table += '<br>corr.: '
-            VK_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_VK[j])
-            VK_Table += '</td>'
-        VK_Table += '</tr>'
-        VK_Table += '</table>'
-
-        # relation between cal. V and ref. V
-        VV_Table = '<h2>The correlation and covariance of each row in calculated Ve map with reference Ve map:</h2>'\
-                        '<table border="1" cellspacing="10">'\
-                            '<tr>'
-        for i in range(self.nrOfRows):
-            VV_Table += '<th>Ref. Ktrans = '
-            VV_Table += str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))
-            VV_Table += '</th>'
-        VV_Table += '</tr>'
-
-        VV_Table += '<tr>'
-        for i in range(self.nrOfRows):
-            VV_Table += '<td align="right">cov.: '
-            VV_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_VV[i])
-            VV_Table += '<br>corr.: '
-            VV_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_VV[i])
-            VV_Table += '</td>'
-        VV_Table += '</tr>'
-        VV_Table += '</table>'
-
-        self.covCorrResultsInHtml = self.packInHtml(KK_Table + '<br>' + KV_Table + '<br>' + VK_Table + '<br>' + VV_Table)
+        self.covCorrResultsInHtml = self.packInHtml(T1T1_Table)
 
     def htmlT_TestResults(self):
         # write the t-test results into HTML form
 
         statisticsNames = [ 't-test: t-statistic', 't-test: p-value']
-        statisticsData = [[self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p],
-                          [ self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p]]
+        statisticsData = [[ self.T1_cal_patch_ttest_t, self.T1_cal_patch_ttest_p],]
 
-        # Ktrans statistics tables
-        KtransT_TestTable = \
-                        '<h2>The t-test result of each patch in calculated Ktrans map:</h2>'
+        # T1 t-test results tables
+        T1_T_TestTable = \
+                        '<h2>The t-test result of each patch in calculated T1 map:</h2>'
 
-        KtransT_TestTable += self.EditTable('', ['t-statistic', 'p-value'], [self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p])
-
-        # Ktrans statistics tables
-        VeT_TestTable = \
-                        '<h2>The t-test result of each patch in calculated Ve map:</h2>'
-
-        VeT_TestTable += self.EditTable('', ['t-statistic', 'p-value'], [self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p])
-
+        T1_T_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['t-statistic', 'p-value'], [self.T1_cal_patch_ttest_t, self.T1_cal_patch_ttest_p])
 
         # put the text into html structure
-        self.T_testResultInHTML = self.packInHtml(KtransT_TestTable + '<br>' + VeT_TestTable)
+        self.T_testResultInHTML = self.packInHtml(T1_T_TestTable)
 
     def htmlU_TestResults(self):
         # write the U-test results into HTML form
 
-        # Ktrans statistics tables
-        KtransU_TestTable = \
-                        '<h2>The Mann-Whitney U test result of each patch in calculated Ktrans map:</h2>'
+        # T1 u-test results tables
+        T1_U_TestTable = \
+                        '<h2>The Mann-Whitney U test result of each patch in calculated T1 map:</h2>'
 
-        KtransU_TestTable += self.EditTable('', ['U-value', 'p-value'], [self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p])
-
-        # Ktrans statistics tables
-        VeU_TestTable = \
-                        '<h2>The Mann-Whitney test result of each patch in calculated Ve map:</h2>'
-
-        VeU_TestTable += self.EditTable('', ['U-value', 'p-value'], [self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p])
-
+        T1_U_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['U-value', 'p-value'], [self.T1_cal_patch_Utest_u, self.T1_cal_patch_Utest_p])
 
         # put the text into html structure
-        self.U_testResultInHTML = self.packInHtml(KtransU_TestTable + '<br>' + VeU_TestTable)
+        self.U_testResultInHTML = self.packInHtml(T1_U_TestTable)
 
     def htmlANOVAResults(self):
         # write the ANOVA results into HTML form
 
         statisticsNames = [ 'ANOVA: f-value', 'ANOVA: p-value']
-        statisticsData = [[self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p],
-                          [ self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p]]
+        statisticsData = [[self.T1_cal_patch_ANOVA_f, self.T1_cal_patch_ANOVA_p],]
 
-        # Ktrans ANOVA tables
-        KtransANOVATable = \
-                        '<h2>The ANOVA result of each row in calculated Ktrans map:</h2>'\
-                        '<table border="1" cellspacing="10">'\
-                            '<tr>'
-        for i in range(self.nrOfRows):
-            KtransANOVATable += '<th>Ktrans = '
-            KtransANOVATable += str('{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]))
-            KtransANOVATable += '</th>'
-        KtransANOVATable += '</tr>'
-
-        KtransANOVATable += '<tr>'
-        for i in range(self.nrOfRows):
-            KtransANOVATable += '<td align="right">f-value: '
-            KtransANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_f[i])
-            KtransANOVATable += '<br>p-value: '
-            KtransANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_p[i])
-            KtransANOVATable += '</td>'
-        KtransANOVATable += '</tr>'
-        KtransANOVATable += '</table>'
-
-        # Ve ANOVA tables
-        VeANOVATable = \
-                        '<h2>The ANOVA result of each column in calculated Ve map:</h2>'\
+        # T1 ANOVA tables
+        T1ANOVATable = \
+                        '<h2>The ANOVA result of each row in calculated Ve map:</h2>'\
                         '<table border="1" cellspacing="10">'\
                             '<tr>'
         for j in range(self.nrOfColumns):
-            VeANOVATable += '<th>Ve = '
-            VeANOVATable += str('{:3.2f}'.format(zip(*self.Ve_ref_patchValue)[j][0]))
-            VeANOVATable += '</th>'
-        VeANOVATable += '</tr>'
+            T1ANOVATable += '<th>' + str(self.headersHorizontal[j]) + '</th>'
+        T1ANOVATable += '</tr>'
 
-        VeANOVATable += '<tr>'
+        T1ANOVATable += '<tr>'
         for j in range(self.nrOfColumns):
-            VeANOVATable += '<td align="right">f-value: '
-            VeANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_f[j])
-            VeANOVATable += '<br>p-value: '
-            VeANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_p[j])
-            VeANOVATable += '</td>'
-        VeANOVATable += '</tr>'
-        VeANOVATable += '</table>'
+            T1ANOVATable += '<td align="right">f-value: '
+            T1ANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.T1_cal_patch_ANOVA_f[j])
+            T1ANOVATable += '<br>p-value: '
+            T1ANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.T1_cal_patch_ANOVA_p[j])
+            T1ANOVATable += '</td>'
+        T1ANOVATable += '</tr>'
+        T1ANOVATable += '</table>'
 
         # put the text into html structure
-        self.ANOVAResultInHTML = self.packInHtml(KtransANOVATable + '<br>' + VeANOVATable)
+        self.ANOVAResultInHTML = self.packInHtml(T1ANOVATable)
 
     def packInHtml(self, content):
         # pack the content into html, so that the exported pdf can start a new page.
@@ -974,35 +825,6 @@ class Model_T1():
         </html>
         '''
         return htmlText
-
-    def EditTable(self, caption, entryName, entryData):
-        # edit a table of certain scale in html. return the table part html
-        # for the first line
-        tableText = '<h3>' + caption + '</h3>'
-        tableText += '<table border="1" cellspacing="10">'
-        # tableText += '<caption>' + caption + '</caption>'
-        tableText += '<tr>'
-        tableText +=     '<th></th>'
-        for Ve in self.Ve_ref_patchValue[0]:
-            tableText += '<th>Ve = ' + '{:3.2f}'.format(Ve) + '</th>'
-        tableText += '</tr>'
-
-        # for the column headers and the table cells.
-        for i in range(self.nrOfRows):
-            tableText += '<tr>'
-            tableText +=    '<th>Ktrans = ' + '{:3.2f}'.format(self.Ktrans_ref_patchValue[i][0]) + '</th>'
-            for j in range(self.nrOfColumns):
-                tableText += '<td align="right">'
-                for name, data in zip(entryName, entryData):
-                    tableText += name + ' = ' + QIBA_functions.formatFloatTo4DigitsString(data[i][j]) + '<br>'
-                tableText = tableText[:-4]
-                tableText += '</td>'
-            tableText += '</tr>'
-
-        tableText += '</table>'
-        tableText += '<br>'
-
-        return tableText
 
     def GetStatisticsInHTML(self):
         # getter for the result in HTML.
@@ -1045,69 +867,51 @@ class Model_T1():
 
     def FittingLinearModelForModel(self):
         # fit a planar for the calculated Ktrans and Ve maps
-        self.a_lin_T1, self.b_lin_T1 = QIBA_functions.FittingLinearModel(self.T1_cal_patchValue,self.T1_ref, self.nrOfRows)
+        self.a_lin_T1, self.b_lin_T1 = QIBA_functions.FittingLinearModel(self.T1_cal_patchValue,self.T1_ref_patchValue, self.nrOfRows)
 
     def FittingLogarithmicModelForModel(self):
         # fitting logarithmic model
         self.a_log_T1,self.b_log_T1 = QIBA_functions.FittingLogarithmicModel(self.T1_cal_patchValue, self.T1_ref_patchValue, self.nrOfRows) # , self.c_log_Ve
 
     def CalculateCorrelationForModel(self):
-        # calculate the correlation between the calculated parameters and the reference parameters
-        # 'Corre_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
-
-        for i in range(self.nrOfColumns):
-            self.corr_KK.append(QIBA_functions.CalCorrMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-            self.corr_VK.append(QIBA_functions.CalCorrMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+        # calculate the correlation between the calculated parameters and the reference parameter.
         for j in range(self.nrOfRows):
-            self.corr_VV.append(QIBA_functions.CalCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-            self.corr_KV.append(QIBA_functions.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.corr_T1T1.append(QIBA_functions.CalCorrMatrix(self.T1_cal_patchValue[j], self.T1_ref_patchValue[j])[0][1])
 
     def CalculateCovarianceForModel(self):
         # calculate the covariance between the calculated parameters and the reference parameters
-        # e.g. 'cov_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
 
-        for i in range(self.nrOfColumns):
-            self.cov_KK.append(QIBA_functions.CalCovMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-            self.cov_VK.append(QIBA_functions.CalCovMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
         for j in range(self.nrOfRows):
-            self.cov_VV.append(QIBA_functions.CalCovMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-            self.cov_KV.append(QIBA_functions.CalCovMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.cov_T1T1.append(QIBA_functions.CalCovMatrix(self.T1_cal_patchValue[j], self.T1_ref_patchValue[j])[0][1])
 
     def CalculateMeanForModel(self):
         # call the mean calculation function
-        self.Ktrans_cal_patch_mean = QIBA_functions.CalculateMean(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_mean = QIBA_functions.CalculateMean(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_mean = QIBA_functions.CalculateMean(self.T1_cal, self.nrOfRows, self.nrOfColumns)
 
     def CalculateMedianForModel(self):
         # call the median calculation function
-        self.Ktrans_cal_patch_median = QIBA_functions.CalculateMedian(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_median = QIBA_functions.CalculateMedian(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_median = QIBA_functions.CalculateMedian(self.T1_cal, self.nrOfRows, self.nrOfColumns)
 
     def CalculateSTDDeviationForModel(self):
         # call the std deviation calculation function
-        self.Ktrans_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.T1_cal, self.nrOfRows, self.nrOfColumns)
 
     def Calculate1stAnd3rdQuartileForModel(self):
         # call the 1st and 3rd quartile calculation function
-        self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_1stQuartile, self.T1_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.T1_cal, self.nrOfRows, self.nrOfColumns)
 
     def CalculateMinAndMaxForModel(self):
-        self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_min, self.Ve_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_min, self.T1_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.T1_cal, self.nrOfRows, self.nrOfColumns)
 
     def T_TestForModel(self):
-        # call the Ttest function
-        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.Ktrans_cal, self.Ktrans_ref_patchValue, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.Ve_cal, self.Ve_ref_patchValue, self.nrOfRows, self.nrOfColumns)
+        # call the T test function
+        self.T1_cal_patch_ttest_t, self.T1_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.T1_cal, self.T1_ref_patchValue, self.nrOfRows, self.nrOfColumns)
 
     def U_TestForModel(self):
         # call the U test function
-        self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_Utest_u, self.T1_cal_patch_Utest_p = QIBA_functions.U_Test(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns)
 
     def ANOVAForModel(self):
         # call the ANOVA function
-        self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.Ve_cal), self.nrOfColumns, self.nrOfRows)
+        #self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_ANOVA_f, self.T1_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.T1_cal), self.nrOfColumns, self.nrOfRows)

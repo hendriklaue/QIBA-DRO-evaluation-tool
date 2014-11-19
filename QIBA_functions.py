@@ -241,3 +241,35 @@ def ANOVA_OneWay(inPatch, dimensionIndex1, dimensionIndex2):
             temp_f.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4], inPatch[i][5])[0])
             temp_p.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4], inPatch[i][5])[1])
     return temp_f, temp_p
+
+def EditTable(caption, headersHorizontal, headersVertical, entryName, entryData):
+        # edit a table of certain scale in html. return the table part html
+        nrOfRows = len(headersVertical)
+        nrOfColumns = len(headersHorizontal)
+
+        # for the first line
+        tableText = '<h3>' + caption + '</h3>'
+        tableText += '<table border="1" cellspacing="10">'
+        # tableText += '<caption>' + caption + '</caption>'
+        tableText += '<tr>'
+        tableText +=     '<th></th>'
+        for horizontal in headersHorizontal:
+            tableText += '<th>' + horizontal + '</th>'
+        tableText += '</tr>'
+
+        # for the column headers and the table cells.
+        for i, vertical in zip(range(nrOfRows), headersVertical):
+            tableText += '<tr>'
+            tableText +=    '<th>' + vertical + '</th>'
+            for j in range(nrOfColumns):
+                tableText += '<td align="right">'
+                for name, data in zip(entryName, entryData):
+                    tableText += name + ' = ' + formatFloatTo4DigitsString(data[i][j]) + '<br>'
+                tableText = tableText[:-4]
+                tableText += '</td>'
+            tableText += '</tr>'
+
+        tableText += '</table>'
+        tableText += '<br>'
+
+        return tableText
