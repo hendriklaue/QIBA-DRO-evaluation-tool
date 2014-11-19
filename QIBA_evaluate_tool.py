@@ -1030,9 +1030,9 @@ if __name__ == "__main__":
     Application = wx.App()
 
     # show the splash window
-    # QIBASplashWindow = MySplashScreen()
-    # QIBASplashWindow.Show()
-    # time.sleep(2)
+    QIBASplashWindow = MySplashScreen()
+    QIBASplashWindow.Show()
+    time.sleep(2)
 
     # the branch selection dialog
     QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['Ktrans-Ve', 'T1'])
