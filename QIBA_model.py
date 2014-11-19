@@ -667,9 +667,9 @@ class Model_T1():
     def PrepareHeaders(self):
         # prepare the headers for table editing
         for i in range(self.nrOfRows):
-            self.headersVertical.append('Row = ' + str(i))
+            self.headersVertical.append('Row = ' + str(i+1))
         for j in range(self.nrOfColumns):
-            self.headersHorizontal.append('Column = ' + str(j))
+            self.headersHorizontal.append('Column = ' + str(j+1))
 
     def htmlStatistics(self):
         # write the statistics to html form

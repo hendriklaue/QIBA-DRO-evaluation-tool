@@ -48,6 +48,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
 import subprocess
+import wx.lib.scrolledpanel as scrolled
 
 import QIBA_functions
 import QIBA_model
@@ -606,10 +607,10 @@ class MainWindow_KV(MainWindow):
                 subPlot_K.set_ylim([0, pixelCountInPatch])
                 subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
-                    subPlot_K.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
+                    subPlot_K.set_xlabel(self.newModel.headersHorizontal[j])
                     subPlot_K.xaxis.set_label_position('top')
                 if j == 0:
-                    subPlot_K.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
+                    subPlot_K.set_ylabel(self.newModel.headersVertical[i])
 
                 subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1 )
                 # subPlot_V.clear()
@@ -627,10 +628,10 @@ class MainWindow_KV(MainWindow):
                 subPlot_V.set_ylim([0, pixelCountInPatch])
                 subPlot_V.text(float(meanPatch_V) + 0.01 * float(meanPatch_V), 0.9 * pixelCountInPatch, meanPatch_V, size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
-                    subPlot_V.set_xlabel('Ve = ' + str(self.newModel.Ve_ref[i][j][0]))
+                    subPlot_V.set_xlabel(self.newModel.headersHorizontal[j])
                     subPlot_V.xaxis.set_label_position('top')
                 if j == 0:
-                    subPlot_V.set_ylabel('Ktrans = ' + str(self.newModel.Ktrans_ref[i][j][0]))
+                    subPlot_V.set_ylabel(self.newModel.headersVertical[i])
 
 
         self.figureHist_Ve.tight_layout()
@@ -803,12 +804,14 @@ class MainWindow_T1(MainWindow):
 
     def SetupPage_Histogram(self):
         # setup the histogram page
+
         self.figureHist_T1 = Figure()
         self.canvasHist_T1 = FigureCanvas(self.pageHistogram,-1, self.figureHist_T1)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvasHist_T1, 1, wx.EXPAND)
         self.pageHistogram.SetSizer(sizer)
+
 
     def ClearPage_Histogram(self):
         # clear the histogram page
@@ -855,7 +858,7 @@ class MainWindow_T1(MainWindow):
             for j in range(self.newModel.nrOfColumns):
                 subPlot_T1 = self.figureHist_T1.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
                 # subPlot_K.clear()
-                subPlot_T1.hist(self.newModel.T1_cal[i][j], nrOfBins)
+                subPlot_T1.hist(self.newModel.T1_cal[i][j], nrOfBins) # normed=True if want the bars to be normalized
                 minPatch_T1 = numpy.min(self.newModel.T1_cal[i][j])
                 maxPatch_T1 = numpy.max(self.newModel.T1_cal[i][j])
                 meanPatch_T1 = numpy.mean(self.newModel.T1_cal[i][j])
@@ -869,16 +872,17 @@ class MainWindow_T1(MainWindow):
                 subPlot_T1.set_xticklabels([minPatch_T1, maxPatch_T1])
                 subPlot_T1.axvline(float(meanPatch_T1), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
                 subPlot_T1.set_ylim([0, pixelCountInPatch])
-                subPlot_T1.text(float(meanPatch_T1) + 0.01 * float(meanPatch_T1), 0.9 * pixelCountInPatch, meanPatch_T1, size = 'x-small') # parameters: location_x, location_y, text, size
+                subPlot_T1.text(float(meanPatch_T1), 0.9 * pixelCountInPatch, meanPatch_T1, size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
-                    subPlot_T1.set_xlabel('Column nr. ' + str(i))
+                    subPlot_T1.set_xlabel('Col. ' + str(j+1))
                     subPlot_T1.xaxis.set_label_position('top')
                 if j == 0:
-                    subPlot_T1.set_ylabel('Row nr. ' + str(j))
+                    subPlot_T1.set_ylabel('Row ' + str(i+1))
 
-        # self.figureHist_T1.tight_layout()
-        self.figureHist_T1.subplots_adjust(top = 0.94, right = 0.95)
+        self.figureHist_T1.tight_layout(pad=0.4, w_pad=0.1, h_pad=1.0)
+        self.figureHist_T1.subplots_adjust(top = 0.94)
         self.canvasHist_T1.draw()
+
 
     def DrawBoxPlot(self):
         '''
@@ -900,8 +904,8 @@ class MainWindow_T1(MainWindow):
         subPlot_T1.set_ylabel('Calculated values in patches')
 
         subPlot_T1.xaxis.set_major_formatter(ticker.NullFormatter())
-        subPlot_T1.xaxis.set_minor_locator(ticker.FixedLocator([3, 8, 13, 18, 23, 28]))
-        subPlot_T1.xaxis.set_minor_formatter(ticker.FixedFormatter(['something']))
+        subPlot_T1.xaxis.set_minor_locator(ticker.FixedLocator([8, 23, 38, 53, 68, 83]))
+        subPlot_T1.xaxis.set_minor_formatter(ticker.FixedFormatter(self.newModel.headersVertical))
         for i in range(self.newModel.nrOfRows):
             subPlot_T1.axvline(x = self.newModel.nrOfColumns * i + 0.5, color = 'green', linestyle = 'dashed')
 
