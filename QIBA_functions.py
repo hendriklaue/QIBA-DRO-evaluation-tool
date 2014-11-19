@@ -127,38 +127,17 @@ def EstimatePatch(dataInPatch, patchValueMethod, nrOfRows, nrOfColumns):
             for j in range (nrOfColumns):
                 temp[i].append(numpy.median(dataInPatch[i][j]))
     return temp
+def FittingLinearModel(calculated, reference, dimensionIndex):
+    # fitting the linear model
+    temp_slope = []
+    temp_intercept = []
 
-def FittingLinearModel(calculatedPatchValue, Ktrans_ref, Ve_ref, nrOfRows, nrOfColumns):
-    # fitting the linear model, i.e. Ktrans_ref, Ve_ref, Ktrans_cal(Ve_cal). So that the parameter dependency could be seen
-    # the fitting algorithm relies on the paper 'least squares fitting of data', David Eberly, Geometric tools, LLC
-    # assume x, y, z denote Ktrans_ref, Ve_ref and Ktrans_cal(Ve_cal) respectively.
-    x = []
-    y = []
-    z = []
-    xx = []
-    yy = []
-    xy = []
-    xz = []
-    yz = []
+    for i in range(dimensionIndex):
+        slope, intercept, r, p, stderr = stats.linregress(reference[i], calculated[i])
+        temp_slope.append(slope)
+        temp_intercept.append(intercept)
 
-    for i in range(nrOfRows):
-        for j in range(nrOfColumns):
-            xCurrent = Ktrans_ref[i][j][0]
-            yCurrent = Ve_ref[i][j][0]
-            zCurrent = calculatedPatchValue[i][j]
-            x.append(xCurrent)
-            y.append(yCurrent)
-            z.append(zCurrent)
-            xx.append(xCurrent**2)
-            yy.append(yCurrent**2)
-            xy.append(xCurrent * yCurrent)
-            xz.append(xCurrent * zCurrent)
-            yz.append(yCurrent * zCurrent)
-    left = numpy.matrix([[numpy.sum(xx), numpy.sum(xy), numpy.sum(x)], [numpy.sum(xy), numpy.sum(yy), numpy.sum(y)], [numpy.sum(x), numpy.sum(y), nrOfRows * nrOfColumns]])
-    right = numpy.matrix([[numpy.sum(xz)], [numpy.sum(yz)], [numpy.sum(z)]])
-
-    [a, b ,c] = numpy.squeeze(numpy.array( numpy.linalg.inv(left) * right ))
-    return a, b, c
+    return temp_slope, temp_intercept
 
 def func_for_log_calculation(x, a, b):
     # assistant function for calculating logarithmic model fitting
