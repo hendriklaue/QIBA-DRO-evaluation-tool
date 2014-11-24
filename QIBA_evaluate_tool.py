@@ -306,7 +306,7 @@ class MainWindow(wx.Frame):
         self.figureImagePreview.tight_layout()
         self.canvasImagePreview.draw()
 
-    def PlotScatter(self, dataList, refDataList, xLabelList, yLabelList, titleList):
+    def PlotScatter(self, dataList, refDataList, xLabelList, yLabelList, titleList, xLim, yLim):
         '''
         the scatter plots to show the distribution of the calculated values
         '''
@@ -319,6 +319,8 @@ class MainWindow(wx.Frame):
                 subPlot.scatter(refDataList[i][j], dataList[i][j], color = 'b', alpha = 0.25, label = 'calculated value')
                 subPlot.scatter(refDataList[i][j], refDataList[i][j], color = 'g', alpha = 0.25, label = 'reference value')
                 subPlot.legend(loc = 'upper left')
+                subPlot.set_xlim(xLim[i])
+                subPlot.set_ylim(yLim[i])
                 subPlot.set_xlabel(xLabelList[i][j])
                 subPlot.set_ylabel(yLabelList[i][j])
                 subPlot.set_title(titleList[i][j])
@@ -708,6 +710,19 @@ class MainWindow_KV(MainWindow):
 
     def DrawScatter(self):
         # draw the scatters
+        minLim_x_K = numpy.min(self.newModel.Ktrans_ref_patchValue)
+        maxLim_x_K = numpy.max(self.newModel.Ktrans_ref_patchValue)
+        minLim_y_K = numpy.min( [numpy.min(self.newModel.Ktrans_ref_patchValue), numpy.min(self.newModel.Ktrans_cal_patchValue)])
+        maxLim_y_K = numpy.max( [numpy.max(self.newModel.Ktrans_ref_patchValue), numpy.max(self.newModel.Ktrans_cal_patchValue)])
+        spacing_x_K = (maxLim_x_K - minLim_x_K) * 0.05
+        spacing_y_K = (maxLim_y_K - minLim_y_K) * 0.05
+
+        minLim_x_V = numpy.min(self.newModel.Ve_ref_patchValue)
+        maxLim_x_V = numpy.max(self.newModel.Ve_ref_patchValue)
+        minLim_y_V = numpy.min( [numpy.min(self.newModel.Ve_ref_patchValue), numpy.min(self.newModel.Ve_cal_patchValue)])
+        maxLim_y_V = numpy.max( [numpy.max(self.newModel.Ve_ref_patchValue), numpy.max(self.newModel.Ve_cal_patchValue)])
+        spacing_x_V = (maxLim_x_V - minLim_x_V) * 0.05
+        spacing_y_V = (maxLim_y_V - minLim_y_V) * 0.05
         self.PlotScatter([[self.newModel.Ktrans_cal], [self.newModel.Ve_cal]],
 
                             [[self.newModel.Ktrans_ref], [self.newModel.Ve_ref]],
@@ -716,7 +731,11 @@ class MainWindow_KV(MainWindow):
 
                             [['Calculated Ktrans'], ['Calculated Ve']],
 
-                            [['Distribution plot of Ktrans'], ['Distribution plot of Ve']])
+                            [['Distribution plot of Ktrans'], ['Distribution plot of Ve']],
+
+                            [[minLim_x_K - spacing_x_K, maxLim_x_K + spacing_x_K], [minLim_x_V - spacing_x_V, maxLim_x_V + spacing_x_V]],
+
+                            [[minLim_y_K - spacing_y_K, maxLim_y_K + 2*spacing_y_K], [minLim_y_V - spacing_y_V, maxLim_y_V + 2*spacing_y_V]])
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
@@ -925,6 +944,12 @@ class MainWindow_T1(MainWindow):
 
     def DrawScatter(self):
         # draw the scatters
+        minLim_x = numpy.min(self.newModel.T1_ref_patchValue)
+        maxLim_x = numpy.max(self.newModel.T1_ref_patchValue)
+        minLim_y = numpy.min(self.newModel.T1_ref_patchValue)
+        maxLim_y = numpy.max(self.newModel.T1_ref_patchValue)
+        spacing_x = (maxLim_x - minLim_x) * 0.05
+        spacing_y = (maxLim_y - minLim_y) * 0.05
         self.PlotScatter([[self.newModel.T1_cal],],
 
                             [[self.newModel.T1_ref],],
@@ -933,7 +958,11 @@ class MainWindow_T1(MainWindow):
 
                             [['Calculated T1'],],
 
-                            [['Distribution plot of T1'],])
+                            [['Distribution plot of T1'],],
+
+                            [[minLim_x - spacing_x, maxLim_x + spacing_x],],
+
+                            [[minLim_y - spacing_x, maxLim_y + spacing_y],])
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
