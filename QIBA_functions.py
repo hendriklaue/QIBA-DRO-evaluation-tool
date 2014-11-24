@@ -262,9 +262,9 @@ def EditTable(caption, headersHorizontal, headersVertical, entryName, entryData)
             tableText += '<tr>'
             tableText +=    '<th>' + vertical + '</th>'
             for j in range(nrOfColumns):
-                tableText += '<td align="right">'
+                tableText += '<td align="left">'
                 for name, data in zip(entryName, entryData):
-                    tableText += name + ' = ' + formatFloatTo4DigitsString(data[i][j]) + '<br>'
+                    tableText += name + ' = ' + formatFloatTo2DigitsString(data[i][j]) + '<br>'
                 tableText = tableText[:-4]
                 tableText += '</td>'
             tableText += '</tr>'

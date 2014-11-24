@@ -149,28 +149,20 @@ class Model_KV():
     def htmlStatistics(self):
         # write the statistics to html form
 
-        statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile', 'min.', 'max.']
-        statisticsData = [[self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_deviation, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max],
-                          [self.Ve_cal_patch_mean, self.Ve_cal_patch_median, self.Ve_cal_patch_deviation, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_min, self.Ve_cal_patch_max]]
-
-
-
         # Ktrans statistics tables
         KtransStatisticsTable = \
                         '<h2>The statistics analysis of each patch in calculated Ktrans:</h2>'
 
-        KtransStatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'std. deviation'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_deviation])
+        KtransStatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'SR'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_deviation])
 
         KtransStatisticsTable += QIBA_functions.EditTable('the median, 1st and 3rd quartile, min. and max. values', self.headersHorizontal, self.headersVertical, ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_max])
-
-
 
 
         # Ve statistics table
         VeStatisticsTable = \
                         '<h2>The statistics analysis of each patch in calculated Ve:</h2>'
 
-        VeStatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'std. deviation'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_deviation])
+        VeStatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'SR'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_deviation])
 
         VeStatisticsTable += QIBA_functions.EditTable('the median, 1st and 3rd quartile, min. and max. values', self.headersHorizontal, self.headersVertical, ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ve_cal_patch_min, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_median, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_max])
 
@@ -188,7 +180,7 @@ class Model_KV():
             KtransLinearFitting += '<tr>'
             KtransLinearFitting += '<th>' + str(self.headersHorizontal[j]) + '</th>'
 
-            KtransLinearFitting += '<td align="right">Ktrans_cal = ('
+            KtransLinearFitting += '<td align="left">Ktrans_cal = ('
             KtransLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ktrans[j])
             KtransLinearFitting += ') * Ktrans_ref + ('
             KtransLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_lin_Ktrans[j])
@@ -206,7 +198,7 @@ class Model_KV():
             KtransLogarithmicFitting += '<tr>'
             KtransLogarithmicFitting += '<th>' + str(self.headersHorizontal[j]) + '</th>'
 
-            KtransLogarithmicFitting += '<td align="right">Ktrans_cal = ('
+            KtransLogarithmicFitting += '<td align="left">Ktrans_cal = ('
             KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ktrans[j])
             KtransLogarithmicFitting += ') + ('
             KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.corr_KK[j])
@@ -225,7 +217,7 @@ class Model_KV():
             VeLinearFitting += '<tr>'
             VeLinearFitting += '<th>' + str(self.headersVertical[i]) + '</th>'
 
-            VeLinearFitting += '<td align="right">Ve_cal = ('
+            VeLinearFitting += '<td align="left">Ve_cal = ('
             VeLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ve[i])
             VeLinearFitting += ') * Ve_ref + ('
             VeLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_lin_Ve[i])
@@ -242,7 +234,7 @@ class Model_KV():
             VeLogarithmicFitting += '<tr>'
             VeLogarithmicFitting += '<th>' + str(self.headersVertical[i]) + '</th>'
 
-            VeLogarithmicFitting += '<td align="right">Ve_cal = ('
+            VeLogarithmicFitting += '<td align="left">Ve_cal = ('
             VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ve[i])
             VeLogarithmicFitting += ') + ('
             VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.corr_KV[i])
@@ -268,10 +260,10 @@ class Model_KV():
 
         KK_Table += '<tr>'
         for j in range(self.nrOfColumns):
-            KK_Table += '<td align="right">cov.: '
-            KK_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_KK[j])
+            KK_Table += '<td align="left">cov.: '
+            KK_Table += QIBA_functions.formatFloatTo2DigitsString(self.cov_KK[j])
             KK_Table += '<br>corr.: '
-            KK_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_KK[j])
+            KK_Table += QIBA_functions.formatFloatTo2DigitsString(self.corr_KK[j])
             KK_Table += '</td>'
         KK_Table += '</tr>'
         KK_Table += '</table>'
@@ -286,10 +278,10 @@ class Model_KV():
 
         KV_Table += '<tr>'
         for i in range(self.nrOfRows):
-            KV_Table += '<td align="right">cov.: '
-            KV_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_KV[i])
+            KV_Table += '<td align="left">cov.: '
+            KV_Table += QIBA_functions.formatFloatTo2DigitsString(self.cov_KV[i])
             KV_Table += '<br>corr.: '
-            KV_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_KV[i])
+            KV_Table += QIBA_functions.formatFloatTo2DigitsString(self.corr_KV[i])
             KV_Table += '</td>'
         KV_Table += '</tr>'
         KV_Table += '</table>'
@@ -304,10 +296,10 @@ class Model_KV():
 
         VK_Table += '<tr>'
         for j in range(self.nrOfColumns):
-            VK_Table += '<td align="right">cov.: '
-            VK_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_VK[j])
+            VK_Table += '<td align="left">cov.: '
+            VK_Table += QIBA_functions.formatFloatTo2DigitsString(self.cov_VK[j])
             VK_Table += '<br>corr.: '
-            VK_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_VK[j])
+            VK_Table += QIBA_functions.formatFloatTo2DigitsString(self.corr_VK[j])
             VK_Table += '</td>'
         VK_Table += '</tr>'
         VK_Table += '</table>'
@@ -322,10 +314,10 @@ class Model_KV():
 
         VV_Table += '<tr>'
         for i in range(self.nrOfRows):
-            VV_Table += '<td align="right">cov.: '
-            VV_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_VV[i])
+            VV_Table += '<td align="left">cov.: '
+            VV_Table += QIBA_functions.formatFloatTo2DigitsString(self.cov_VV[i])
             VV_Table += '<br>corr.: '
-            VV_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_VV[i])
+            VV_Table += QIBA_functions.formatFloatTo2DigitsString(self.corr_VV[i])
             VV_Table += '</td>'
         VV_Table += '</tr>'
         VV_Table += '</table>'
@@ -392,10 +384,10 @@ class Model_KV():
 
         KtransANOVATable += '<tr>'
         for i in range(self.nrOfRows):
-            KtransANOVATable += '<td align="right">f-value: '
-            KtransANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_f[i])
+            KtransANOVATable += '<td align="left">f-value: '
+            KtransANOVATable += QIBA_functions.formatFloatTo2DigitsString(self.Ktrans_cal_patch_ANOVA_f[i])
             KtransANOVATable += '<br>p-value: '
-            KtransANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ktrans_cal_patch_ANOVA_p[i])
+            KtransANOVATable += QIBA_functions.formatFloatTo2DigitsString(self.Ktrans_cal_patch_ANOVA_p[i])
             KtransANOVATable += '</td>'
         KtransANOVATable += '</tr>'
         KtransANOVATable += '</table>'
@@ -411,7 +403,7 @@ class Model_KV():
 
         VeANOVATable += '<tr>'
         for j in range(self.nrOfColumns):
-            VeANOVATable += '<td align="right">f-value: '
+            VeANOVATable += '<td align="left">f-value: '
             VeANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_f[j])
             VeANOVATable += '<br>p-value: '
             VeANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.Ve_cal_patch_ANOVA_p[j])
@@ -674,14 +666,11 @@ class Model_T1():
     def htmlStatistics(self):
         # write the statistics to html form
 
-        statisticsNames = ['Mean', 'Median', 'std. Derivative', '1st Quartile', '3rd Quartile', 'min.', 'max.']
-        statisticsData = [[self.T1_cal_patch_mean, self.T1_cal_patch_median, self.T1_cal_patch_deviation, self.T1_cal_patch_1stQuartile, self.T1_cal_patch_3rdQuartile, self.T1_cal_patch_min, self.T1_cal_patch_max],]
-
         # T1 statistics tables
         T1StatisticsTable = \
                         '<h2>The statistics analysis of each patch in calculated T1:</h2>'
 
-        T1StatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'std. deviation'], [self.T1_cal_patch_mean, self.T1_cal_patch_deviation])
+        T1StatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'SR'], [self.T1_cal_patch_mean, self.T1_cal_patch_deviation])
 
         T1StatisticsTable += QIBA_functions.EditTable('the median, 1st and 3rd quartile, min. and max. values', self.headersHorizontal, self.headersVertical, ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.T1_cal_patch_min, self.T1_cal_patch_1stQuartile, self.T1_cal_patch_median, self.T1_cal_patch_3rdQuartile, self.T1_cal_patch_max])
 
@@ -700,7 +689,7 @@ class Model_T1():
             T1LinearFitting += '<tr>'
             T1LinearFitting += '<th>' + str(self.headersVertical[i]) + '</th>'
 
-            T1LinearFitting += '<td align="right">T1_cal = ('
+            T1LinearFitting += '<td align="left">T1_cal = ('
             T1LinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_lin_T1[i])
             T1LinearFitting += ') * T1_ref + ('
             T1LinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_lin_T1[i])
@@ -719,7 +708,7 @@ class Model_T1():
             T1LogarithmicFitting += '<tr>'
             T1LogarithmicFitting += '<th>' + str(self.headersVertical[i]) + '</th>'
 
-            T1LogarithmicFitting += '<td align="right">T1_cal = ('
+            T1LogarithmicFitting += '<td align="left">T1_cal = ('
             T1LogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_T1[i])
             T1LogarithmicFitting += ') + ('
             T1LogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_log_T1[i])
@@ -745,10 +734,10 @@ class Model_T1():
 
         T1T1_Table += '<tr>'
         for i in range(self.nrOfRows):
-            T1T1_Table += '<td align="right">cov.: '
-            T1T1_Table += QIBA_functions.formatFloatTo4DigitsString(self.cov_T1T1[i])
+            T1T1_Table += '<td align="left">cov.: '
+            T1T1_Table += QIBA_functions.formatFloatTo2DigitsString(self.cov_T1T1[i])
             T1T1_Table += '<br>corr.: '
-            T1T1_Table += QIBA_functions.formatFloatTo4DigitsString(self.corr_T1T1[i])
+            T1T1_Table += QIBA_functions.formatFloatTo2DigitsString(self.corr_T1T1[i])
             T1T1_Table += '</td>'
         T1T1_Table += '</tr>'
         T1T1_Table += '</table>'
@@ -799,10 +788,10 @@ class Model_T1():
 
         T1ANOVATable += '<tr>'
         for j in range(self.nrOfColumns):
-            T1ANOVATable += '<td align="right">f-value: '
-            T1ANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.T1_cal_patch_ANOVA_f[j])
+            T1ANOVATable += '<td align="left">f-value: '
+            T1ANOVATable += QIBA_functions.formatFloatTo2DigitsString(self.T1_cal_patch_ANOVA_f[j])
             T1ANOVATable += '<br>p-value: '
-            T1ANOVATable += QIBA_functions.formatFloatTo4DigitsString(self.T1_cal_patch_ANOVA_p[j])
+            T1ANOVATable += QIBA_functions.formatFloatTo2DigitsString(self.T1_cal_patch_ANOVA_p[j])
             T1ANOVATable += '</td>'
         T1ANOVATable += '</tr>'
         T1ANOVATable += '</table>'
