@@ -38,7 +38,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os.path
-from sys import exit
+from sys import argv, exit
 import wx
 import wx.html
 import numpy
@@ -1025,11 +1025,11 @@ class MySelectionDialog(wx.Dialog):
         self.SetTitle(caption)
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.branchChoices = wx.RadioBox(self, -1, label = message, choices = choices, style=wx.RA_SPECIFY_ROWS)
-        self.showUpCheckBox = wx.CheckBox(self, -1, 'Do not show this dialog any more when start.')
+        # self.showUpCheckBox = wx.CheckBox(self, -1, 'Do not show this dialog any more when start.')
         self.buttons = self.CreateSeparatedButtonSizer(wx.OK | wx.CANCEL)
 
         sizer.Add(self.branchChoices, 1, wx.ALL | wx.EXPAND, 5)
-        sizer.Add(self.showUpCheckBox, 1, wx.ALL | wx.EXPAND, 5)
+        # sizer.Add(self.showUpCheckBox, 1, wx.ALL | wx.EXPAND, 5)
         sizer.Add(self.buttons, 1, wx.ALL | wx.EXPAND, 5)
         self.SetSizer(sizer)
 
@@ -1064,21 +1064,25 @@ if __name__ == "__main__":
     QIBASplashWindow.Show()
     time.sleep(2)
 
-    # the branch selection dialog
-    QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['Ktrans-Ve', 'T1'])
-
-    if QIBASelectionDialog.ShowModal() == wx.ID_OK:
-        if QIBASelectionDialog.GetSelections() == 'Ktrans-Ve':
+    if len(argv) == 2:
+        if argv[1] == 'KV':
             window = MainWindow_KV("QIBA evaluate tool (Ktrans-Ve)")
-        else:
+        elif argv[1] == 'T1':
             window = MainWindow_T1("QIBA evaluate tool (T1)")
-
-        # show the application's main window
-        window.Show()
-        window.Maximize(True)
-        Application.MainLoop()
-
+        else:
+            exit(0)
     else:
-        exit(0) # quit the application
+        QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['Ktrans-Ve', 'T1'])
+        if QIBASelectionDialog.ShowModal() == wx.ID_OK:
+            if QIBASelectionDialog.GetSelections() == 'Ktrans-Ve':
+                window = MainWindow_KV("QIBA evaluate tool (Ktrans-Ve)")
+            elif QIBASelectionDialog.GetSelections() == 'T1':
+                window = MainWindow_T1("QIBA evaluate tool (T1)")
+        else:
+            exit(0)
 
+    # show the application's main window
+    window.Show()
+    window.Maximize(True)
+    Application.MainLoop()
 
