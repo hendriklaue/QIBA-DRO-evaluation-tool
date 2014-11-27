@@ -893,10 +893,10 @@ class MainWindow_T1(MainWindow):
                 subPlot_T1.set_ylim([0, pixelCountInPatch])
                 subPlot_T1.text(float(meanPatch_T1), 0.9 * pixelCountInPatch, meanPatch_T1, size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
-                    subPlot_T1.set_xlabel('Col. ' + str(j+1))
+                    subPlot_T1.set_xlabel(self.newModel.headersHorizontal[j])
                     subPlot_T1.xaxis.set_label_position('top')
                 if j == 0:
-                    subPlot_T1.set_ylabel('Row ' + str(i+1))
+                    subPlot_T1.set_ylabel(self.newModel.headersVertical[i])
 
         self.figureHist_T1.tight_layout(pad=0.4, w_pad=0.1, h_pad=1.0)
         self.figureHist_T1.subplots_adjust(top = 0.94)
@@ -908,25 +908,26 @@ class MainWindow_T1(MainWindow):
         draw box plots of each patch
         '''
 
-        subPlot_T1 = self.figureBoxPlot.add_subplot(1, 1, 1)
-        subPlot_T1.clear()
+        subPlot_R1 = self.figureBoxPlot.add_subplot(1, 1, 1)
+        subPlot_R1.clear()
         temp = []
-        referValue_T1 = []
-        for i in range(self.newModel.nrOfRows):
-            temp.extend(self.newModel.T1_cal[i])
-            referValue_T1.append(float('{0:.2f}'.format(self.newModel.T1_ref[i][0][0])))
-        subPlot_T1.boxplot(temp)
+        # referValue_R1 = []
+        for j in range(self.newModel.nrOfColumns):
+            temp.extend(zip(*self.newModel.R1_cal)[j])
+            # referValue_R1.append(QIBA_functions.formatFloatTo2DigitsString(self.newModel.T1_ref[j][0][0]))
+        subPlot_R1.boxplot(temp)
 
-        # decorate T1 plot
-        subPlot_T1.set_title('Box plot of calculated T1')
-        subPlot_T1.set_xlabel('The result shows the calculated T1 patched concatenated in rows')
-        subPlot_T1.set_ylabel('Calculated values in patches')
+        # decorate R1 plot
+        subPlot_R1.set_title('Box plot of R1 from calculated T1')
+        subPlot_R1.set_xlabel('The result shows the R1 patches from calculated T1, concatenated in columns')
+        subPlot_R1.set_ylabel('Calculated values in patches')
 
-        subPlot_T1.xaxis.set_major_formatter(ticker.NullFormatter())
-        subPlot_T1.xaxis.set_minor_locator(ticker.FixedLocator([8, 23, 38, 53, 68, 83]))
-        subPlot_T1.xaxis.set_minor_formatter(ticker.FixedFormatter(self.newModel.headersVertical))
-        for i in range(self.newModel.nrOfRows):
-            subPlot_T1.axvline(x = self.newModel.nrOfColumns * i + 0.5, color = 'green', linestyle = 'dashed')
+        subPlot_R1.xaxis.set_major_formatter(ticker.NullFormatter())
+        # subPlot_R1.xaxis.set_minor_locator(ticker.FixedLocator([8, 23, 38, 53, 68, 83]))
+        subPlot_R1.xaxis.set_minor_locator(ticker.FixedLocator([4, 10, 16, 22, 28, 34, 40, 46, 52, 58, 64, 70, 76, 82, 88]))
+        subPlot_R1.xaxis.set_minor_formatter(ticker.FixedFormatter(self.newModel.headersHorizontal))
+        for j in range(self.newModel.nrOfColumns):
+            subPlot_R1.axvline(x = self.newModel.nrOfRows * j + 0.5, color = 'green', linestyle = 'dashed')
 
         self.figureBoxPlot.tight_layout()
         self.canvasBoxPlot.draw()
@@ -940,7 +941,7 @@ class MainWindow_T1(MainWindow):
 
                                 [['bone'], ['rainbow'], ['rainbow'], ],
 
-                                [['T1[sec.]'], ['Delta T1[sec.]'], ['Normalized error[1]'],])
+                                [['T1[ms]'], ['Delta T1[ms]'], ['Normalized error[1]'],])
 
     def DrawScatter(self):
         # draw the scatters

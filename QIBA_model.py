@@ -626,12 +626,17 @@ class Model_T1():
         # import the files
         self.ImportFiles(path_ref_T1, path_cal_T1)
 
+        # R1 value from T1
+        self.R1_cal = []
+        self.R1_ref = []
+
     def Evaluate(self):
         # evaluation
 
         # pre-process for the imported files
         self.CalculateErrorForModel()
         self.EstimatePatchForModel('MEAN')
+        self.CalculateR1()
         self.PrepareHeaders()
 
         # evaluation operations
@@ -661,7 +666,7 @@ class Model_T1():
         for i in range(self.nrOfRows):
             self.headersVertical.append('Row = ' + str(i+1))
         for j in range(self.nrOfColumns):
-            self.headersHorizontal.append('Column = ' + str(j+1))
+            self.headersHorizontal.append('R1 = ' + QIBA_functions.formatFloatTo4DigitsString(self.R1_ref[0][j][0]))
 
     def htmlStatistics(self):
         # write the statistics to html form
@@ -904,3 +909,27 @@ class Model_T1():
         # call the ANOVA function
         #self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
         self.T1_cal_patch_ANOVA_f, self.T1_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.T1_cal), self.nrOfColumns, self.nrOfRows)
+
+    def CalculateR1(self):
+        # calculate the R1 from T1, as R1 = 1 / T1
+        tempPatch_cal = []
+        tempPatch_ref = []
+        tempRow_cal = []
+        tempRow_ref = []
+        temp_cal = []
+        temp_ref = []
+        for i in range(self.nrOfRows):
+            for j in range(self.nrOfColumns):
+                for k in range(self.patchLen*self.patchLen):
+                    tempPatch_cal.append(1 / self.T1_cal[i][j][k])
+                    tempPatch_ref.append(1 / self.T1_ref[i][j][k])
+                tempRow_cal.append(tempPatch_cal)
+                tempRow_ref.append(tempPatch_ref)
+                tempPatch_cal = []
+                tempPatch_ref = []
+            temp_cal.append(tempRow_cal)
+            temp_ref.append(tempRow_ref)
+            tempRow_cal = []
+            tempRow_ref = []
+        self.R1_cal = temp_cal
+        self.R1_ref = temp_ref
