@@ -61,7 +61,9 @@ class MainWindow(wx.Frame):
     def __init__(self, parent, applicationName):
         wx.Frame.__init__(self, parent, title = applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
 
-        # decide the interface according to the BRANCH
+        self.nrOfRow = 0
+        self.nrOfColumn = 0
+        self.WARNINGTEXT = False
 
         self.CenterOnScreen()
 
@@ -101,6 +103,57 @@ class MainWindow(wx.Frame):
         self.menubar.Append(fileMenu, "&File")
         self.menubar.Append(aboutMenu, "&About")
         self.SetMenuBar(self.menubar)
+
+    def OnEditImageDimension(self, event):
+        # edit the dimension of the images
+        self.dlg = wx.Dialog(self, title = 'Edit the dimension of the image...')
+
+        self.sizer0 = wx.BoxSizer(wx.VERTICAL)
+        self.sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.text1 = wx.StaticText(self.dlg, label="number of the rows:")
+        self.textCtrl1 = wx.TextCtrl(self.dlg, -1, str(self.nrOfRow))
+        self.sizer1.Add(self.text1, 0)
+        self.sizer1.Add(self.textCtrl1, 1)
+
+        self.text2 = wx.StaticText(self.dlg, label="number of the columns:")
+        self.textCtrl2 = wx.TextCtrl(self.dlg, -1, str(self.nrOfColumn))
+        self.sizer2.Add(self.text2, 0)
+        self.sizer2.Add(self.textCtrl2, 1)
+
+        self.buttonOK = wx.Button(self.dlg, label = 'Ok')
+        self.buttonOK.Bind(wx.EVT_BUTTON, self.OnEditDimension_OK)
+        self.sizer0.Add(self.sizer1, 1)
+        self.sizer0.Add(self.sizer2, 1)
+        self.sizer0.Add(self.buttonOK, 1)
+        self.sizer0.Fit(self.dlg)
+        self.dlg.SetSizer(self.sizer0)
+
+        self.dlg.Center()
+        self.WARNINGTEXT = False
+
+        self.dlg.ShowModal()
+
+    def OnEditDimension_OK(self, event):
+        # when the OK is clicked in the dimension edit dialog
+
+        if (QIBA_functions.IsPositiveInteger(self.textCtrl1.GetValue()) and QIBA_functions.IsPositiveInteger(self.textCtrl2.GetValue()) ):
+            self.SetStatusText('Image dimension is set successfully!')
+            self.nrOfRow = self.textCtrl1.GetValue()
+            self.nrOfColumn = self.textCtrl2.GetValue()
+            self.dlg.Destroy()
+        else:
+            self.SetStatusText('Image dimension is not set correctly!')
+            if self.WARNINGTEXT == False:
+                self.textWarning = wx.StaticText(self.dlg, label="Please input a proper integer!")
+                self.sizer0.Insert(2, self.textWarning)
+                self.sizer0.Fit(self.dlg)
+                self.dlg.SetSizer(self.sizer0)
+                self.WARNINGTEXT = True
+                self.dlg.Update()
+            return
+
 
     def SetupLayoutMain(self):
         '''
@@ -337,6 +390,12 @@ class MainWindow(wx.Frame):
 
     def OnEvaluate(self, event):
         # start to evaluate
+
+        # check the image dimension parameter validation
+        if self.WARNINGTEXT:
+            self.SetStatusText('Please input correct dimension of the image!')
+            return
+
         # clear the interface if they were used before
         self.ClearInterface()
 
@@ -479,6 +538,10 @@ class MainWindow_KV(MainWindow):
         # instance of the main window
         MainWindow.__init__(self, None, appName)
 
+        self.nrOfRow = 6
+        self.nrOfColumn = 5
+        self.WARNINGTEXT = False
+
         # default files' paths
         self.path_ref_K = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
         self.path_ref_V = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
@@ -493,8 +556,12 @@ class MainWindow_KV(MainWindow):
     def SetupEditMenu(self):
         # setup the edit menu in the menu bar
         editMenu = wx.Menu()
+
+        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Eidt the dimension of the images...')
+        editMenu.AppendSeparator()
         OnLoadRef_K = editMenu.Append(wx.ID_ANY, 'Load reference Ktrans...')
         OnLoadRef_V = editMenu.Append(wx.ID_ANY, 'Load reference Ve...')
+        self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
         self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_K, OnLoadRef_K)
         self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_V, OnLoadRef_V)
         self.menubar.Insert(1,editMenu, "&Edit")
@@ -537,7 +604,7 @@ class MainWindow_KV(MainWindow):
 
     def GenerateModel(self):
         # generate the model for evaluation
-        self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V)
+        self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V, [self.nrOfRow, self.nrOfColumn])
 
     def OnRightClick(self, event):
         # the right click action on the file list
@@ -795,6 +862,10 @@ class MainWindow_T1(MainWindow):
     def __init__(self, appName):
         MainWindow.__init__(self, None, appName)
 
+        self.nrOfRow = 6
+        self.nrOfColumn = 15
+        self.WARNINGTEXT = False
+
         # default files' paths
         self.path_ref_T1 = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
         self.path_cal_T1 = ''
@@ -807,7 +878,11 @@ class MainWindow_T1(MainWindow):
     def SetupEditMenu(self):
         # setup the edit menu in the menu bar
         editMenu = wx.Menu()
+
+        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Eidt the dimension of the images...')
+        editMenu.AppendSeparator()
         OnLoadRef_T1 = editMenu.Append(wx.ID_ANY, 'Load reference T1...')
+        self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
         self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_T1, OnLoadRef_T1)
         self.menubar.Insert(1,editMenu, "&Edit")
         self.SetMenuBar(self.menubar)
@@ -1031,6 +1106,8 @@ class MySelectionDialog(wx.Dialog):
         sizer.Add(self.branchChoices, 1, wx.ALL | wx.EXPAND, 5)
         # sizer.Add(self.showUpCheckBox, 1, wx.ALL | wx.EXPAND, 5)
         sizer.Add(self.buttons, 1, wx.ALL | wx.EXPAND, 5)
+
+        sizer.Fit(self)
         self.SetSizer(sizer)
 
     def GetSelections(self):

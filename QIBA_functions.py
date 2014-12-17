@@ -4,6 +4,18 @@ import dicom
 import numpy
 import os.path
 
+def IsPositiveInteger(input):
+    # decide is the input a positive integer or not
+    try:
+        int(input)
+        if int(input) > 0:
+            return True
+        else:
+            return False
+
+    except ValueError:
+        return False
+
 def formatFloatTo4DigitsString(input):
     # format the float input into a string with 4 digits string
     if abs(input) < 0.0001:
