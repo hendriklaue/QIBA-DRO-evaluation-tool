@@ -140,8 +140,8 @@ class MainWindow(wx.Frame):
 
         if (QIBA_functions.IsPositiveInteger(self.textCtrl1.GetValue()) and QIBA_functions.IsPositiveInteger(self.textCtrl2.GetValue()) ):
             self.SetStatusText('Image dimension is set successfully!')
-            self.nrOfRow = self.textCtrl1.GetValue()
-            self.nrOfColumn = self.textCtrl2.GetValue()
+            self.nrOfRow = int(self.textCtrl1.GetValue())
+            self.nrOfColumn = int(self.textCtrl2.GetValue())
             self.dlg.Destroy()
         else:
             self.SetStatusText('Image dimension is not set correctly!')
@@ -188,7 +188,7 @@ class MainWindow(wx.Frame):
         # setup the tree control widget for file viewing and selection
 
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
-                                             filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw")
+                                             filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif")
 
         # self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
 
@@ -412,7 +412,11 @@ class MainWindow(wx.Frame):
         #EvaluateProgressDialog.Update(10)
 
         # call the method to execute evaluation
-        self.newModel.Evaluate()
+        try:
+            self.newModel.Evaluate()
+        except RuntimeError:
+            self.SetStatusText('RuntimeError occurs. Evaluation terminated.')
+            return False
         #EvaluateProgressDialog.Update(20)
 
         # show the results in the main window
@@ -428,7 +432,7 @@ class MainWindow(wx.Frame):
         self.buttonExport.Enable()
 
     def GenerateModel(self):
-        self.newModel = QIBA_model.Model_KV('', '', '', '')
+        self.newModel = QIBA_model.Model_KV('', '', '', '', [self.nrOfRow, self.nrOfColumn])
 
     def ShowResults(self):
         # show the results in the main window
@@ -608,7 +612,7 @@ class MainWindow_KV(MainWindow):
 
     def OnRightClick(self, event):
         # the right click action on the file list
-        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in ['.dcm', '.bin', '.raw']):
+        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in ['.dcm', '.bin', '.raw', '.tif']):
             wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, self.OnLoadCal_K)
             wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, self.OnLoadCal_V)
             self.PopupMenu(self.popupMenu, event.GetPosition())
@@ -631,7 +635,7 @@ class MainWindow_KV(MainWindow):
 
     def OnLoadRef_K(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_K = dlg.GetPath()
             self.SetStatusText('Reference Ktrans loaded.')
@@ -640,7 +644,7 @@ class MainWindow_KV(MainWindow):
 
     def OnLoadRef_V(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_V = dlg.GetPath()
             self.SetStatusText('Reference Ve loaded.')
@@ -879,7 +883,7 @@ class MainWindow_T1(MainWindow):
         # setup the edit menu in the menu bar
         editMenu = wx.Menu()
 
-        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Eidt the dimension of the images...')
+        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Edit the dimension of the images...')
         editMenu.AppendSeparator()
         OnLoadRef_T1 = editMenu.Append(wx.ID_ANY, 'Load reference T1...')
         self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
@@ -914,11 +918,11 @@ class MainWindow_T1(MainWindow):
 
     def GenerateModel(self):
         # generate the model for evaluation
-        self.newModel = QIBA_model.Model_T1(self.path_ref_T1, self.path_cal_T1)
+        self.newModel = QIBA_model.Model_T1(self.path_ref_T1, self.path_cal_T1, [self.nrOfRow, self.nrOfColumn])
 
     def OnRightClick(self, event):
         # the right click action on the file list
-        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in ['.dcm', '.bin', '.raw']):
+        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in ['.dcm', '.bin', '.raw', '.tif']):
             wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_T1, self.OnLoadCal_T1)
             self.PopupMenu(self.popupMenu, event.GetPosition())
         else:
@@ -927,14 +931,14 @@ class MainWindow_T1(MainWindow):
     def OnLoadCal_T1(self, event):
         # pass the file path for loading
         self.path_cal_T1 = self.fileBrowser.GetPath()
-        self.SetStatusText('Calculated Ktrans loaded.')
+        self.SetStatusText('Calculated T1 loaded.')
         self.buttonEvaluate.Enable()
 
     def OnLoadRef_T1(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.path_ref_K = dlg.GetPath()
+            self.path_ref_T1 = dlg.GetPath()
             self.SetStatusText('Reference T1 loaded.')
         else:
             self.SetStatusText('Reference T1 was NOT loaded!')

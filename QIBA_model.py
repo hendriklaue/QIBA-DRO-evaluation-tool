@@ -1,5 +1,7 @@
 # this package contains the models to be evaluated, with respect to the parameter of Ktrans-Ve or T1.
 import QIBA_functions
+
+
 class Model_KV():
     '''
     the class for Ktrans-Ve model.
@@ -551,12 +553,11 @@ class Model_T1():
     '''
     the class for T1 model.
     '''
-    def __init__(self, path_ref_T1, path_cal_T1):
+    def __init__(self, path_ref_T1, path_cal_T1, dimension):
         # initializes the class
 
         # parameters of the image size
-        self.nrOfRows = 6
-        self.nrOfColumns = 15
+        self.nrOfRows, self.nrOfColumns = dimension
         self.patchLen = 10
         self.METHOD = '' # for patch value decision
 

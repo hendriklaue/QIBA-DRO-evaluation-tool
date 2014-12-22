@@ -3,6 +3,7 @@ import struct
 import dicom
 import numpy
 import os.path
+from PIL import Image
 
 def IsPositiveInteger(input):
     # decide is the input a positive integer or not
@@ -39,8 +40,7 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
         rescaled = rescaled[patchLen:-patchLen] # get rid of the first and the last row
         rearranged = Rearrange(rescaled, nrOfRows, nrOfColumns, patchLen)
         return rescaled, rearranged
-
-    elif fileExtension == '.bin' or '.raw':
+    elif fileExtension in ('.bin' or '.raw'):
         binaryData = []
         rawData = open(path, 'rb').read()
         fileLength = os.stat(path).st_size
@@ -51,7 +51,6 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
             dataType = 'd'
         else:
             dataType = 'f'
-
         for i in range(fileLength / dataLength):
             data = rawData[i * dataLength : (i + 1) * dataLength]
             binaryData.append(struct.unpack(dataType, data)[0])
@@ -59,6 +58,13 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
         sectioned = sectioned[patchLen:-patchLen] # get rid of the first and the last row
         rearranged = Rearrange(sectioned, nrOfRows, nrOfColumns, patchLen)
         return sectioned, rearranged
+    elif fileExtension == '.tif':
+        im = Image.open(path)
+        imArray = numpy.array(im)
+        rescaled = imArray[patchLen:-patchLen]
+        rearranged = Rearrange(rescaled, nrOfRows, nrOfColumns, patchLen)
+        return rescaled, rearranged
+
 
 def RescaleDICOM(ds, patchLen):
     # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.
