@@ -70,6 +70,10 @@ class MainWindow(wx.Frame):
         self.CreateStatusBar()
         self.SetStatusText("Welcome to " + applicationName + "!")
 
+
+        # scatter plot switch
+        self.SCATTER_SWITCH = True
+
         self.SetupMenubar()
 
         self.SetupLayoutMain()
@@ -250,10 +254,13 @@ class MainWindow(wx.Frame):
 
         # page scatter
         self.figureScatter = Figure()
-        self.canvasScatter = FigureCanvas(self.pageScatter,-1, self.figureScatter)
+        self.canvasScatter = FigureCanvas(self.pageScatter, -1, self.figureScatter)
+        self.buttonSwitch = wx.Button(self.pageScatter, -1, label = 'Switch viewing', size = (90, 30))
+        self.buttonSwitch.Bind(wx.EVT_BUTTON, self.OnSwitchViewing)
 
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.canvasScatter, 1, wx.EXPAND)
+        sizer.Add(self.buttonSwitch, 0, wx.EXPAND)
         self.pageScatter.SetSizer(sizer)
 
         # page histogram
@@ -315,6 +322,15 @@ class MainWindow(wx.Frame):
         self.rightPanel.SetSizer(sizer)
         self.rightPanel.Layout()
 
+    def OnSwitchViewing(self, event):
+        # switch the viewing in scatter plot page
+        self.SetStatusText("Rearranging the scatter plot...")
+        self.SCATTER_SWITCH = not self.SCATTER_SWITCH
+        self.buttonSwitch.Disable()
+        self.DrawScatter()
+        self.buttonSwitch.Enable()
+        self.SetStatusText("Rearranging the scatter plot finished.")
+
     def ClearInterface(self):
         # clear the plots in the interface, so that when the evaluated models are cleared, the interface will also be cleaned.
         self.figureImagePreview.clear()
@@ -365,6 +381,7 @@ class MainWindow(wx.Frame):
         '''
         nrOfSubFigRows = len(dataList)
         nrOfSubFigColumns = len(dataList[0])
+        self.figureScatter.clear()
 
         for i in range(nrOfSubFigRows):
             for j in range(nrOfSubFigColumns):
@@ -781,17 +798,29 @@ class MainWindow_KV(MainWindow):
 
     def DrawScatter(self):
         # draw the scatters
-        minLim_x_K = numpy.min(self.newModel.Ktrans_ref_patchValue)
-        maxLim_x_K = numpy.max(self.newModel.Ktrans_ref_patchValue)
-        minLim_y_K = numpy.min( [numpy.min(self.newModel.Ktrans_ref_patchValue), numpy.min(self.newModel.Ktrans_cal_patchValue)])
-        maxLim_y_K = numpy.max( [numpy.max(self.newModel.Ktrans_ref_patchValue), numpy.max(self.newModel.Ktrans_cal_patchValue)])
+        if self.SCATTER_SWITCH:
+            minLim_x_K = numpy.min(self.newModel.Ktrans_ref_inRow)
+            maxLim_x_K = numpy.max(self.newModel.Ktrans_ref_inRow)
+            minLim_y_K = numpy.min( [numpy.min(self.newModel.Ktrans_ref_inRow), numpy.min(self.newModel.Ktrans_cal_inRow)])
+            maxLim_y_K = numpy.max( [numpy.max(self.newModel.Ktrans_ref_inRow), numpy.max(self.newModel.Ktrans_cal_inRow)])
+
+            minLim_x_V = numpy.min(self.newModel.Ve_ref_inRow)
+            maxLim_x_V = numpy.max(self.newModel.Ve_ref_inRow)
+            minLim_y_V = numpy.min( [numpy.min(self.newModel.Ve_ref_inRow), numpy.min(self.newModel.Ve_cal_inRow)])
+            maxLim_y_V = numpy.max( [numpy.max(self.newModel.Ve_ref_inRow), numpy.max(self.newModel.Ve_cal_inRow)])
+        else:
+            minLim_x_K = numpy.min(self.newModel.Ktrans_ref_patchValue)
+            maxLim_x_K = numpy.max(self.newModel.Ktrans_ref_patchValue)
+            minLim_y_K = numpy.min( [numpy.min(self.newModel.Ktrans_ref_patchValue), numpy.min(self.newModel.Ktrans_cal_patchValue)])
+            maxLim_y_K = numpy.max( [numpy.max(self.newModel.Ktrans_ref_patchValue), numpy.max(self.newModel.Ktrans_cal_patchValue)])
+
+            minLim_x_V = numpy.min(self.newModel.Ve_ref_patchValue)
+            maxLim_x_V = numpy.max(self.newModel.Ve_ref_patchValue)
+            minLim_y_V = numpy.min( [numpy.min(self.newModel.Ve_ref_patchValue), numpy.min(self.newModel.Ve_cal_patchValue)])
+            maxLim_y_V = numpy.max( [numpy.max(self.newModel.Ve_ref_patchValue), numpy.max(self.newModel.Ve_cal_patchValue)])
         spacing_x_K = (maxLim_x_K - minLim_x_K) * 0.05
         spacing_y_K = (maxLim_y_K - minLim_y_K) * 0.05
 
-        minLim_x_V = numpy.min(self.newModel.Ve_ref_patchValue)
-        maxLim_x_V = numpy.max(self.newModel.Ve_ref_patchValue)
-        minLim_y_V = numpy.min( [numpy.min(self.newModel.Ve_ref_patchValue), numpy.min(self.newModel.Ve_cal_patchValue)])
-        maxLim_y_V = numpy.max( [numpy.max(self.newModel.Ve_ref_patchValue), numpy.max(self.newModel.Ve_cal_patchValue)])
         spacing_x_V = (maxLim_x_V - minLim_x_V) * 0.05
         spacing_y_V = (maxLim_y_V - minLim_y_V) * 0.05
         self.PlotScatter([[self.newModel.Ktrans_cal], [self.newModel.Ve_cal]],
@@ -873,6 +902,7 @@ class MainWindow_T1(MainWindow):
         # default files' paths
         self.path_ref_T1 = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
         self.path_cal_T1 = ''
+
 
         # customize the main window
         self.SetupEditMenu()
@@ -1024,10 +1054,17 @@ class MainWindow_T1(MainWindow):
 
     def DrawScatter(self):
         # draw the scatters
-        minLim_x = numpy.min(self.newModel.T1_ref_patchValue)
-        maxLim_x = numpy.max(self.newModel.T1_ref_patchValue)
-        minLim_y = numpy.min(self.newModel.T1_ref_patchValue)
-        maxLim_y = numpy.max(self.newModel.T1_ref_patchValue)
+        if self.SCATTER_SWITCH:
+            minLim_x = numpy.min(self.newModel.T1_ref_inRow)
+            maxLim_x = numpy.max(self.newModel.T1_ref_inRow)
+            minLim_y = numpy.min([numpy.min(self.newModel.T1_ref_inRow), numpy.min(self.newModel.T1_cal_inRow)])
+            maxLim_y = numpy.max([numpy.max(self.newModel.T1_ref_inRow), numpy.max(self.newModel.T1_cal_inRow)])
+        else:
+            minLim_x = numpy.min(self.newModel.T1_ref_patchValue)
+            maxLim_x = numpy.max(self.newModel.T1_ref_patchValue)
+            minLim_y = numpy.min([numpy.min(self.newModel.T1_ref_patchValue), numpy.min(self.newModel.T1_cal_patchValue)])
+            maxLim_y = numpy.max([numpy.max(self.newModel.T1_ref_patchValue), numpy.max(self.newModel.T1_cal_patchValue)])
+
         spacing_x = (maxLim_x - minLim_x) * 0.05
         spacing_y = (maxLim_y - minLim_y) * 0.05
         self.PlotScatter([[self.newModel.T1_cal],],
@@ -1042,7 +1079,7 @@ class MainWindow_T1(MainWindow):
 
                             [[minLim_x - spacing_x, maxLim_x + spacing_x],],
 
-                            [[minLim_y - spacing_x, maxLim_y + spacing_y],])
+                            [[minLim_y - spacing_y, maxLim_y + spacing_y],])
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
