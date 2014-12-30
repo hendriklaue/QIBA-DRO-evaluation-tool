@@ -48,7 +48,6 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
 import subprocess
-import wx.lib.scrolledpanel as scrolled
 
 import QIBA_functions
 import QIBA_model
@@ -434,6 +433,7 @@ class MainWindow(wx.Frame):
         except RuntimeError:
             self.SetStatusText('RuntimeError occurs. Evaluation terminated.')
             return False
+
         #EvaluateProgressDialog.Update(20)
 
         # show the results in the main window
@@ -449,7 +449,7 @@ class MainWindow(wx.Frame):
         self.buttonExport.Enable()
 
     def GenerateModel(self):
-        self.newModel = QIBA_model.Model_KV('', '', '', '', [self.nrOfRow, self.nrOfColumn])
+        pass
 
     def ShowResults(self):
         # show the results in the main window
@@ -625,7 +625,10 @@ class MainWindow_KV(MainWindow):
 
     def GenerateModel(self):
         # generate the model for evaluation
-        self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V, [self.nrOfRow, self.nrOfColumn])
+        try:
+            self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V, [self.nrOfRow, self.nrOfColumn])
+        except:
+            self.SetStatusText('Error occours. New evaluation object wasn\'t generated successfully.')
 
     def OnRightClick(self, event):
         # the right click action on the file list
@@ -948,7 +951,10 @@ class MainWindow_T1(MainWindow):
 
     def GenerateModel(self):
         # generate the model for evaluation
-        self.newModel = QIBA_model.Model_T1(self.path_ref_T1, self.path_cal_T1, [self.nrOfRow, self.nrOfColumn])
+        try:
+            self.newModel = QIBA_model.Model_T1(self.path_ref_T1, self.path_cal_T1, [self.nrOfRow, self.nrOfColumn])
+        except:
+            self.SetStatusText('Error occours. New evaluation object wasn\'t generated successfully.')
 
     def OnRightClick(self, event):
         # the right click action on the file list
