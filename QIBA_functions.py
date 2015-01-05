@@ -43,7 +43,7 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
         rescaled = rescaled[patchLen:-patchLen] # get rid of the first and the last row
         rearranged = Rearrange(rescaled, nrOfRows, nrOfColumns, patchLen)
         return rescaled, rearranged
-    elif fileExtension in ('.bin' or '.raw'):
+    elif fileExtension in ['.bin', '.raw']:
         binaryData = []
         rawData = open(path, 'rb').read()
         fileLength = os.stat(path).st_size
@@ -70,6 +70,8 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
         rescaled = imArray[patchLen:-patchLen]
         rearranged = Rearrange(rescaled, nrOfRows, nrOfColumns, patchLen)
         return rescaled, rearranged
+    else:
+        return False, False
 
 
 def RescaleDICOM(ds, patchLen):
@@ -310,13 +312,13 @@ def RandomIndex(length):
         index.remove(tempRandom)
     return randIndex
 
-def ScrambleAndMap(image, nrOfRow, nrOfColumn):
+def ScrambleAndMap(image, nrOfRow, nrOfColumn, patchLen):
     '''
     generate a map with random indexes of the given size, and scramble the image accordingly
     '''
     pixels = [].extend(image[i] for i in range(nrOfRow))
 
-    mapRandomIndex = RandomIndex(nrOfColumn * nrOfRow)
+    mapRandomIndex = RandomIndex(nrOfColumn * nrOfRow * patchLen *patchLen)
     newImage = [].append(pixels[k] for k in mapRandomIndex)
 
     newImage =  []

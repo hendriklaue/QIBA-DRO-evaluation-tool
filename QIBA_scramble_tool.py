@@ -4,7 +4,10 @@ import wx
 import os
 import QIBA_functions
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.figure import Figure
+from os.path import isfile, join
+
 
 
 class MyWindow(wx.Frame):
@@ -16,8 +19,13 @@ class MyWindow(wx.Frame):
         self.SetStatusText("Welcome to QIBA scramble tool!")
         self.SetupMenuBar()
 
-        self.currentPage = 0
+        self.currentPage = -1
         self.pageNumber = 0
+        self.nrOfRow = 0
+        self.nrOfColumn = 0
+        self.patchLen = 10
+        self.fileList = []
+        self.imageList = []
         self.SetupMainUI()
 
     def SetupMenuBar(self):
@@ -30,12 +38,15 @@ class MyWindow(wx.Frame):
         OnExit = fileMenu.Append(wx.ID_ANY, "&Quit\tCtrl+Q", "Quit")
 
         editMenu = wx.Menu()
+        OnEditImageDimension = editMenu.Append(wx.ID_ANY, "Change the image dimension...")
+        editMenu.AppendSeparator()
         OnChangeSourceFolder = editMenu.Append(wx.ID_ANY, "Change the source folder...")
         OnChangeDestinationFolder = editMenu.Append(wx.ID_ANY, "Change the destination folder...")
 
         aboutMenu = wx.Menu()
         OnAboutApp = aboutMenu.Append(wx.ID_ANY, "About this application")
 
+        self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
         self.menubar.Bind(wx.EVT_MENU, self.OnChangeSourceFolder, OnChangeSourceFolder)
         self.menubar.Bind(wx.EVT_MENU, self.OnChangeDestinationFolder, OnChangeDestinationFolder)
         self.menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
@@ -55,7 +66,7 @@ class MyWindow(wx.Frame):
         sizerPaths = wx.FlexGridSizer(cols = 3, hgap = 6, vgap = 6 )
         sizerButtons = wx.FlexGridSizer(cols = 1, vgap = 20)
         sizerViewer = wx.BoxSizer(wx.HORIZONTAL)
-        sizerSelector = wx.FlexGridSizer(rows = 1, vgap = 20)
+        self.sizerSelector = wx.FlexGridSizer(rows = 1, vgap = 20)
 
         # sizer for paths
         SourceLocationText = wx.StaticText(self.mainPanel, -1, "Source folder:")
@@ -105,54 +116,112 @@ class MyWindow(wx.Frame):
         buttonToEnd = wx.Button(self.mainPanel, -1, ">>|")
         buttonToEnd.Bind(wx.EVT_BUTTON, self.OnToEnd)
 
-        self.CurrentPageText = wx.TextCtrl(self.mainPanel, -1, str(self.currentPage), size = (25, -1))
+        self.currentPageText = wx.TextCtrl(self.mainPanel, -1, str(self.currentPage + 1), size = (25, -1))
         self.pageNumberText = wx.StaticText(self.mainPanel, -1, '/'+str(self.pageNumber), size = (30, -1))
 
-        sizerSelector.AddMany([buttonToHead, buttonToPrevious, self.CurrentPageText, self.pageNumberText, buttonToNext, buttonToEnd])
+        self.sizerSelector.AddMany([buttonToHead, buttonToPrevious, self.currentPageText, self.pageNumberText, buttonToNext, buttonToEnd])
         # self.mainPanel.SetSizer(sizerSelector)
 
         # main sizer
-        sizerMain.AddMany([sizerPaths, sizerViewer, sizerSelector])
+        sizerMain.AddMany([sizerPaths, sizerViewer, self.sizerSelector])
         sizerMain.Fit(self.mainPanel)
         self.mainPanel.SetSizer(sizerMain)
 
-    def OnScramble(event, self):
+    def OnEditImageDimension(self, event):
+        # edit the dimension of the images
+        self.dlg = wx.Dialog(self, title = 'Edit the dimension of the image...')
+
+        self.sizer0 = wx.BoxSizer(wx.VERTICAL)
+        self.sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.text1 = wx.StaticText(self.dlg, label="number of the rows:")
+        self.textCtrl1 = wx.TextCtrl(self.dlg, -1, str(self.nrOfRow))
+        self.sizer1.Add(self.text1, 0)
+        self.sizer1.Add(self.textCtrl1, 1)
+
+        self.text2 = wx.StaticText(self.dlg, label="number of the columns:")
+        self.textCtrl2 = wx.TextCtrl(self.dlg, -1, str(self.nrOfColumn))
+        self.sizer2.Add(self.text2, 0)
+        self.sizer2.Add(self.textCtrl2, 1)
+
+        self.buttonOK = wx.Button(self.dlg, label = 'Ok')
+        self.buttonOK.Bind(wx.EVT_BUTTON, self.OnEditDimension_OK)
+        self.sizer0.Add(self.sizer1, 1)
+        self.sizer0.Add(self.sizer2, 1)
+        self.sizer0.Add(self.buttonOK, 1)
+        self.sizer0.Fit(self.dlg)
+        self.dlg.SetSizer(self.sizer0)
+
+        self.dlg.Center()
+        self.WARNINGTEXT = False
+
+        self.dlg.ShowModal()
+
+    def OnEditDimension_OK(self, event):
+        # when the OK is clicked in the dimension edit dialog
+
+        if (QIBA_functions.IsPositiveInteger(self.textCtrl1.GetValue()) and QIBA_functions.IsPositiveInteger(self.textCtrl2.GetValue()) ):
+            self.SetStatusText('Image dimension is set successfully!')
+            self.nrOfRow = int(self.textCtrl1.GetValue())
+            self.nrOfColumn = int(self.textCtrl2.GetValue())
+            self.dlg.Destroy()
+        else:
+            self.SetStatusText('Image dimension is not set correctly!')
+            if self.WARNINGTEXT == False:
+                self.textWarning = wx.StaticText(self.dlg, label="Please input a proper integer!")
+                self.sizer0.Insert(2, self.textWarning)
+                self.sizer0.Fit(self.dlg)
+                self.dlg.SetSizer(self.sizer0)
+                self.WARNINGTEXT = True
+                self.dlg.Update()
+            return
+
+    def OnScramble(self, event):
         '''
         scramble the images under the selected folder
         '''
-        pass
+        try:
+            if self.fileList == []:
+                self.SetStatusText('Please select a valid source folder!')
+                return False
+            for f in self.fileList:
+                rescaled, image = QIBA_functions.ImportFile(f, self.nrOfRow, self.nrOfColumn, self.patchLen)
+                # newImage, mapRandomIndex = QIBA_functions.ScrambleAndMap(image, self.nrOfRow, self.nrOfColumn, self.pageNumber)
+        except:
+            self.SetStatusText('Please select a valid source folder!')
 
-    def OnUnscramble(event, self):
+    def OnUnscramble(self, event):
         '''
         unscramble the images under the selected folder
         '''
         pass
 
-    def OnSave(event, self):
+    def OnSave(self, event):
         '''
         save the scrambled/unscrambled images
         '''
         pass
 
-    def OnToHead(event, self):
+    def OnToHead(self, event):
         '''
         jump to the head image
         '''
         pass
 
-    def OnToPrevious(event, self):
+    def OnToPrevious(self, event):
         '''
         jump to the previous image
         '''
         pass
 
-    def OnToNext(event, self):
+    def OnToNext(self, event):
         '''
         jump to the next image
         '''
         pass
 
-    def OnToEnd(event, self):
+    def OnToEnd(self, event):
         '''
         jump to the end image
         '''
@@ -164,10 +233,38 @@ class MyWindow(wx.Frame):
         '''
         dlg = wx.DirDialog(self, 'Change the source folder:', style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
         if dlg.ShowModal() == wx.ID_OK:
-            self.SourceLocationTextControl.SetValue(dlg.GetPath())
+            path = dlg.GetPath()
+            fileTypeList = ['.dcm', '.bin', '.raw', '.tif']
+            self.SourceLocationTextControl.SetValue(path)
+            for f in os.listdir(path):
+                if (isfile(join(path, f)) and (os.path.splitext(f)[1] in fileTypeList)):
+                    filePath = join(path, f)
+                    rescaled, rearranged = QIBA_functions.ImportFile(filePath, self.nrOfRow, self.nrOfColumn, self.patchLen)
+                    self.imageList.append(rescaled)
+                else:
+                    pass
+            self.pageNumber = len(self.imageList)
+            if self.pageNumber:
+                self.currentPage = 0
+                self.ShowSourceImage(self.imageList[self.currentPage])
+            else:
+                self.pageNumber = 0
+                self.currentPage = -1
+            self.pageNumberText.SetLabel('/' + str(self.pageNumber))
+            self.currentPageText.AppendText(str(self.currentPage + 1))
             self.SetStatusText('Source folder refreshed.')
         else:
             self.SetStatusText('Source folder not refreshed.')
+
+    def ShowSourceImage(self, image):
+        '''
+        show the image
+        '''
+        subplot = self.figurePreviewerSource.add_subplot(111)
+        handler = subplot.imshow(image, cmap = 'bone', interpolation='nearest')
+
+        self.figurePreviewerSource.tight_layout()
+        self.canvasPreviewerSource.draw()
 
     def OnChangeDestinationFolder(self, event):
         '''
@@ -199,4 +296,5 @@ if __name__ == "__main__":
     # window.Maximize(True)
     Application.MainLoop()
 
+# TODO make the buttons clickable/ unclickable logically
 
