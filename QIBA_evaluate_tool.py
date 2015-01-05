@@ -191,7 +191,8 @@ class MainWindow(wx.Frame):
         # setup the tree control widget for file viewing and selection
 
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
-                                             filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif")
+                                             # filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif")
+                                             filter="Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif")
 
         # self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
 
@@ -655,7 +656,7 @@ class MainWindow_KV(MainWindow):
 
     def OnLoadRef_K(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_K = dlg.GetPath()
             self.SetStatusText('Reference Ktrans loaded.')
@@ -664,7 +665,7 @@ class MainWindow_KV(MainWindow):
 
     def OnLoadRef_V(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_V = dlg.GetPath()
             self.SetStatusText('Reference Ve loaded.')
@@ -972,7 +973,7 @@ class MainWindow_T1(MainWindow):
 
     def OnLoadRef_T1(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_T1 = dlg.GetPath()
             self.SetStatusText('Reference T1 loaded.')
