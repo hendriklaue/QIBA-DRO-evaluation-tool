@@ -48,6 +48,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
 import subprocess
+import wx.lib.scrolledpanel as scrolled
 
 import QIBA_functions
 import QIBA_model
@@ -191,8 +192,7 @@ class MainWindow(wx.Frame):
         # setup the tree control widget for file viewing and selection
 
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
-                                             # filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif")
-                                             filter="Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif")
+                                             filter="DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif")
 
         # self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
 
@@ -434,7 +434,6 @@ class MainWindow(wx.Frame):
         except RuntimeError:
             self.SetStatusText('RuntimeError occurs. Evaluation terminated.')
             return False
-
         #EvaluateProgressDialog.Update(20)
 
         # show the results in the main window
@@ -450,7 +449,7 @@ class MainWindow(wx.Frame):
         self.buttonExport.Enable()
 
     def GenerateModel(self):
-        pass
+        self.newModel = QIBA_model.Model_KV('', '', '', '', [self.nrOfRow, self.nrOfColumn])
 
     def ShowResults(self):
         # show the results in the main window
@@ -626,10 +625,7 @@ class MainWindow_KV(MainWindow):
 
     def GenerateModel(self):
         # generate the model for evaluation
-        try:
-            self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V, [self.nrOfRow, self.nrOfColumn])
-        except:
-            self.SetStatusText('Error occours. New evaluation object wasn\'t generated successfully.')
+        self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V, [self.nrOfRow, self.nrOfColumn])
 
     def OnRightClick(self, event):
         # the right click action on the file list
@@ -656,7 +652,7 @@ class MainWindow_KV(MainWindow):
 
     def OnLoadRef_K(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_K = dlg.GetPath()
             self.SetStatusText('Reference Ktrans loaded.')
@@ -665,7 +661,7 @@ class MainWindow_KV(MainWindow):
 
     def OnLoadRef_V(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_V = dlg.GetPath()
             self.SetStatusText('Reference Ve loaded.')
@@ -952,10 +948,7 @@ class MainWindow_T1(MainWindow):
 
     def GenerateModel(self):
         # generate the model for evaluation
-        try:
-            self.newModel = QIBA_model.Model_T1(self.path_ref_T1, self.path_cal_T1, [self.nrOfRow, self.nrOfColumn])
-        except:
-            self.SetStatusText('Error occours. New evaluation object wasn\'t generated successfully.')
+        self.newModel = QIBA_model.Model_T1(self.path_ref_T1, self.path_cal_T1, [self.nrOfRow, self.nrOfColumn])
 
     def OnRightClick(self, event):
         # the right click action on the file list
@@ -973,7 +966,7 @@ class MainWindow_T1(MainWindow):
 
     def OnLoadRef_T1(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "DICOM files (*.dcm)|*.dcm|Binary files (*.bin *.raw )|*.bin;*.raw|TIFF (*.tif)|*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_T1 = dlg.GetPath()
             self.SetStatusText('Reference T1 loaded.')

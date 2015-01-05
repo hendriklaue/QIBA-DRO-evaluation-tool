@@ -3,9 +3,7 @@ import struct
 import dicom
 import numpy
 import os.path
-import Image
-import TiffImagePlugin
-import ImageFile
+from PIL import Image
 
 def IsPositiveInteger(input):
     # decide is the input a positive integer or not
@@ -62,8 +60,6 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
         return sectioned, rearranged
     elif fileExtension == '.tif':
         im = Image.open(path)
-        if not im.mode=="F":
-            im.mode = "F"
         imArray = numpy.array(im)
         rescaled = imArray[patchLen:-patchLen]
         rearranged = Rearrange(rescaled, nrOfRows, nrOfColumns, patchLen)
