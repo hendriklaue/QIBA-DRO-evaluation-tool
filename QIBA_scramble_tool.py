@@ -21,8 +21,8 @@ class MyWindow(wx.Frame):
 
         self.currentPage = -1
         self.pageNumber = 0
-        self.nrOfRow = 0
-        self.nrOfColumn = 0
+        self.nrOfRow = 6
+        self.nrOfColumn = 15
         self.patchLen = 10
         self.fileList = []
         self.imageList = []
@@ -107,19 +107,19 @@ class MyWindow(wx.Frame):
         sizerViewer.Fit(self.mainPanel)
 
         # viewer selector
-        buttonToHead = wx.Button(self.mainPanel, -1, "|<<")
-        buttonToHead.Bind(wx.EVT_BUTTON, self.OnToHead)
-        buttonToPrevious = wx.Button(self.mainPanel, -1, "Previous")
-        buttonToPrevious.Bind(wx.EVT_BUTTON, self.OnToPrevious)
-        buttonToNext = wx.Button(self.mainPanel, -1, "Next")
-        buttonToNext.Bind(wx.EVT_BUTTON, self.OnToNext)
-        buttonToEnd = wx.Button(self.mainPanel, -1, ">>|")
-        buttonToEnd.Bind(wx.EVT_BUTTON, self.OnToEnd)
+        self.buttonToHead = wx.Button(self.mainPanel, -1, "|<<")
+        self.buttonToHead.Bind(wx.EVT_BUTTON, self.OnToHead)
+        self.buttonToPrevious = wx.Button(self.mainPanel, -1, "Previous")
+        self.buttonToPrevious.Bind(wx.EVT_BUTTON, self.OnToPrevious)
+        self.buttonToNext = wx.Button(self.mainPanel, -1, "Next")
+        self.buttonToNext.Bind(wx.EVT_BUTTON, self.OnToNext)
+        self.buttonToEnd = wx.Button(self.mainPanel, -1, ">>|")
+        self.buttonToEnd.Bind(wx.EVT_BUTTON, self.OnToEnd)
 
         self.currentPageText = wx.TextCtrl(self.mainPanel, -1, str(self.currentPage + 1), size = (25, -1))
         self.pageNumberText = wx.StaticText(self.mainPanel, -1, '/'+str(self.pageNumber), size = (30, -1))
 
-        self.sizerSelector.AddMany([buttonToHead, buttonToPrevious, self.currentPageText, self.pageNumberText, buttonToNext, buttonToEnd])
+        self.sizerSelector.AddMany([self.buttonToHead, self.buttonToPrevious, self.currentPageText, self.pageNumberText, self.buttonToNext, self.buttonToEnd])
         # self.mainPanel.SetSizer(sizerSelector)
 
         # main sizer
@@ -181,15 +181,7 @@ class MyWindow(wx.Frame):
         '''
         scramble the images under the selected folder
         '''
-        try:
-            if self.fileList == []:
-                self.SetStatusText('Please select a valid source folder!')
-                return False
-            for f in self.fileList:
-                rescaled, image = QIBA_functions.ImportFile(f, self.nrOfRow, self.nrOfColumn, self.patchLen)
-                # newImage, mapRandomIndex = QIBA_functions.ScrambleAndMap(image, self.nrOfRow, self.nrOfColumn, self.pageNumber)
-        except:
-            self.SetStatusText('Please select a valid source folder!')
+        pass
 
     def OnUnscramble(self, event):
         '''
@@ -213,13 +205,29 @@ class MyWindow(wx.Frame):
         '''
         jump to the previous image
         '''
-        pass
+
+        self.currentPage = self.currentPage - 1
+        self.ShowSourceImage(self.imageList[self.currentPage])
+        self.currentPageText.SetValue(str(self.currentPage + 1))
+        if self.currentPage - 1 == -1:
+            self.buttonToPrevious.Disable()
+        if not (self.currentPage  + 1 == self.pageNumber):
+            self.buttonToNext.Enable()
+
+        print self.currentPage
 
     def OnToNext(self, event):
         '''
         jump to the next image
         '''
-        pass
+        self.currentPage = self.currentPage + 1
+        self.ShowSourceImage(self.imageList[self.currentPage])
+        self.currentPageText.SetValue(str(self.currentPage + 1))
+        if self.currentPage + 1 == self.pageNumber:
+            self.buttonToNext.Disable()
+        if not (self.currentPage - 1 == -1):
+            self.buttonToPrevious.Enable()
+        print self.currentPage
 
     def OnToEnd(self, event):
         '''
@@ -239,8 +247,7 @@ class MyWindow(wx.Frame):
             for f in os.listdir(path):
                 if (isfile(join(path, f)) and (os.path.splitext(f)[1] in fileTypeList)):
                     filePath = join(path, f)
-                    rescaled, rearranged = QIBA_functions.ImportFile(filePath, self.nrOfRow, self.nrOfColumn, self.patchLen)
-                    self.imageList.append(rescaled)
+                    self.imageList.append(QIBA_functions.ImportFile(filePath, self.nrOfRow, self.nrOfColumn, self.patchLen)[0])
                 else:
                     pass
             self.pageNumber = len(self.imageList)
@@ -251,7 +258,7 @@ class MyWindow(wx.Frame):
                 self.pageNumber = 0
                 self.currentPage = -1
             self.pageNumberText.SetLabel('/' + str(self.pageNumber))
-            self.currentPageText.AppendText(str(self.currentPage + 1))
+            self.currentPageText.SetValue(str(self.currentPage + 1))
             self.SetStatusText('Source folder refreshed.')
         else:
             self.SetStatusText('Source folder not refreshed.')
@@ -282,8 +289,6 @@ class MyWindow(wx.Frame):
 
     def OnQuit(self, event):
         self.Close()
-
-
 
 if __name__ == "__main__":
     # generate the application object

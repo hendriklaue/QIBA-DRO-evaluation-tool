@@ -66,7 +66,6 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
         if not im.mode == "F":
             im.mode = "F"
         imArray = numpy.array(im)
-        print imArray
         rescaled = imArray[patchLen:-patchLen]
         rearranged = Rearrange(rescaled, nrOfRows, nrOfColumns, patchLen)
         return rescaled, rearranged
