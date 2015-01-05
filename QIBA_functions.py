@@ -6,6 +6,7 @@ import os.path
 import Image
 import TiffImagePlugin
 import ImageFile
+import random
 
 def IsPositiveInteger(input):
     # decide is the input a positive integer or not
@@ -65,6 +66,7 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
         if not im.mode == "F":
             im.mode = "F"
         imArray = numpy.array(im)
+        print imArray
         rescaled = imArray[patchLen:-patchLen]
         rearranged = Rearrange(rescaled, nrOfRows, nrOfColumns, patchLen)
         return rescaled, rearranged
@@ -295,3 +297,30 @@ def EditTable(caption, headersHorizontal, headersVertical, entryName, entryData)
         tableText += '<br>'
 
         return tableText
+
+def RandomIndex(length):
+    '''
+    generate a random index of the given size
+    '''
+    index = range(length)
+    randIndex = []
+    for i in range(length):
+        tempRandom = random.choice(index)
+        randIndex.append(tempRandom)
+        index.remove(tempRandom)
+    return randIndex
+
+def ScrambleAndMap(image, nrOfRow, nrOfColumn):
+    '''
+    generate a map with random indexes of the given size, and scramble the image accordingly
+    '''
+    pixels = [].extend(image[i] for i in range(nrOfRow))
+
+    mapRandomIndex = RandomIndex(nrOfColumn * nrOfRow)
+    newImage = [].append(pixels[k] for k in mapRandomIndex)
+
+    newImage =  []
+    for i in nrOfRow:
+        newImage.append([newImage[i * nrOfColumn + j] for j in range(nrOfColumn)])
+
+    return newImage, mapRandomIndex
