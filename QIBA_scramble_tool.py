@@ -199,7 +199,11 @@ class MyWindow(wx.Frame):
         '''
         jump to the head image
         '''
-        pass
+        self.currentPage = 0
+        self.ShowSourceImage(self.imageList[self.currentPage])
+        self.currentPageText.SetValue(str(self.currentPage + 1))
+        self.buttonToNext.Enable()
+        self.buttonToPrevious.Disable()
 
     def OnToPrevious(self, event):
         '''
@@ -214,8 +218,6 @@ class MyWindow(wx.Frame):
         if not (self.currentPage  + 1 == self.pageNumber):
             self.buttonToNext.Enable()
 
-        print self.currentPage
-
     def OnToNext(self, event):
         '''
         jump to the next image
@@ -227,13 +229,16 @@ class MyWindow(wx.Frame):
             self.buttonToNext.Disable()
         if not (self.currentPage - 1 == -1):
             self.buttonToPrevious.Enable()
-        print self.currentPage
 
     def OnToEnd(self, event):
         '''
         jump to the end image
         '''
-        pass
+        self.currentPage = self.pageNumber -  1
+        self.ShowSourceImage(self.imageList[self.currentPage])
+        self.currentPageText.SetValue(str(self.currentPage + 1))
+        self.buttonToNext.Disable()
+        self.buttonToPrevious.Enable()
 
     def OnChangeSourceFolder(self, event):
         '''
