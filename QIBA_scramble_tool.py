@@ -211,15 +211,9 @@ class MyWindow(wx.Frame):
             newFilePath = os.path.join(self.DestinationLocation, fileNameWithExtension)
             if fileExtension == '.dcm':
                 ds =  QIBA_functions.dicom.read_file(newFilePath)
-                print ds.pixel_array
-                print '**********'
-                # ds.pixel_array = self.imageList2[index]
                 for i, row in enumerate(self.imageList2[index]):
                     ds.pixel_array[i] = row
-                print self.imageList2[index]
-                print '**********'
                 ds.PixelData = ds.pixel_array.tostring()
-                print ds.pixel_array
                 ds.save_as(newFilePath)
             elif fileExtension == '.tif':
                 newImage = QIBA_functions.Image.fromarray(self.imageList2[index])
