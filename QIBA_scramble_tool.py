@@ -13,7 +13,7 @@ import shutil
 class MyWindow(wx.Frame):
 
     def  __init__(self, parent = None):
-        wx.Frame.__init__(self, parent = None, title = "QIBA scramble tool", size = (905, 600), style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
+        wx.Frame.__init__(self, parent = None, title = "QIBA scramble tool", size = (905, 600), style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
         self.fileTypeList = ['.dcm', '.bin', '.raw', '.tif']
         self.fileType = ""
         self.CenterOnScreen()
@@ -209,20 +209,27 @@ class MyWindow(wx.Frame):
             fileName, fileExtension = os.path.splitext(sourceFilePath)
             dir, fileNameWithExtension = os.path.split(sourceFilePath)
             newFilePath = os.path.join(self.DestinationLocation, fileNameWithExtension)
-            print newFilePath
             if fileExtension == '.dcm':
                 ds =  QIBA_functions.dicom.read_file(newFilePath)
-                ds.pixel_array = self.imageList2[index]
+                print ds.pixel_array
+                print '**********'
+                # ds.pixel_array = self.imageList2[index]
+                for i, row in enumerate(self.imageList2[index]):
+                    ds.pixel_array[i] = row
+                print self.imageList2[index]
+                print '**********'
                 ds.PixelData = ds.pixel_array.tostring()
+                print ds.pixel_array
                 ds.save_as(newFilePath)
             elif fileExtension == '.tif':
                 newImage = QIBA_functions.Image.fromarray(self.imageList2[index])
-                # newImage.save(newFilePath)
+                newImage.save(newFilePath)
             elif fileExtension in ['.bin', '.raw']:
                 pass
             else:
-                pass
-
+                self.SetStatusText('New images are not saved!')
+                return
+        self.SetStatusText('New Images are saved!')
         # save the map
 
 
