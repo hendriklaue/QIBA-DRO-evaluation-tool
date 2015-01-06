@@ -7,13 +7,15 @@ from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.figure import Figure
 from os.path import isfile, join
-
+import shutil
 
 
 class MyWindow(wx.Frame):
 
     def  __init__(self, parent = None):
         wx.Frame.__init__(self, parent = None, title = "QIBA scramble tool", size = (905, 600), style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
+        self.fileTypeList = ['.dcm', '.bin', '.raw', '.tif']
+        self.fileType = ""
         self.CenterOnScreen()
         self.CreateStatusBar()
         self.SetStatusText("Welcome to QIBA scramble tool!")
@@ -21,12 +23,13 @@ class MyWindow(wx.Frame):
 
         self.currentPage = -1
         self.pageNumber = 0
-        self.nrOfRow = 6
-        self.nrOfColumn = 15
+        self.nrOfRow = 0
+        self.nrOfColumn = 0
         self.patchLen = 10
-        self.imageList = []
-        self.scrambledImageList = []
-        self.scrambleMap = []
+        self.imageList1 = []
+        self.imageList2 = []
+        self.imagePathListSource = []
+        self.mapScrambleIndex = []
         self.SetupMainUI()
 
     def SetupMenuBar(self):
@@ -182,9 +185,12 @@ class MyWindow(wx.Frame):
         '''
         scramble the images under the selected folder
         '''
-        self.scrambledImageList, self.scrambleMap = QIBA_functions.ScrambleAndMap(self.imageList, self.nrOfRow, self.nrOfColumn, self.patchLen)
-        self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
-        self.SetStatusText('Images are scrambled!')
+        try:
+            self.imageList2, self.scrambleMap = QIBA_functions.ScrambleAndMap(self.imageList1, self.nrOfRow, self.nrOfColumn, self.patchLen)
+        except:
+            self.SetStatusText('Please make sure the image dimension fits!')
+        self.ShowDestinationImage(self.imageList2[self.currentPage])
+        self.SetStatusText('Images are scrambled.')
 
     def OnUnscramble(self, event):
         '''
@@ -196,16 +202,39 @@ class MyWindow(wx.Frame):
         '''
         save the scrambled/unscrambled images
         '''
-        pass
+
+        for (index, sourceFilePath) in list(enumerate(self.imagePathListSource)):
+            shutil.copy(sourceFilePath, self.DestinationLocation)
+
+            fileName, fileExtension = os.path.splitext(sourceFilePath)
+            dir, fileNameWithExtension = os.path.split(sourceFilePath)
+            newFilePath = os.path.join(self.DestinationLocation, fileNameWithExtension)
+            print newFilePath
+            if fileExtension == '.dcm':
+                ds =  QIBA_functions.dicom.read_file(newFilePath)
+                ds.pixel_array = self.imageList2[index]
+                ds.PixelData = ds.pixel_array.tostring()
+                ds.save_as(newFilePath)
+            elif fileExtension == '.tif':
+                newImage = QIBA_functions.Image.fromarray(self.imageList2[index])
+                # newImage.save(newFilePath)
+            elif fileExtension in ['.bin', '.raw']:
+                pass
+            else:
+                pass
+
+        # save the map
+
+
 
     def OnToHead(self, event):
         '''
         jump to the head image
         '''
         self.currentPage = 0
-        self.ShowSourceImage(self.imageList[self.currentPage])
-        if not( self.scrambledImageList == []):
-            self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
+        self.ShowSourceImage(self.imageList1[self.currentPage])
+        if not( self.imageList2 == []):
+            self.ShowDestinationImage(self.imageList2[self.currentPage])
         self.currentPageText.SetValue(str(self.currentPage + 1))
         self.buttonToNext.Enable()
         self.buttonToPrevious.Disable()
@@ -216,9 +245,9 @@ class MyWindow(wx.Frame):
         '''
 
         self.currentPage = self.currentPage - 1
-        self.ShowSourceImage(self.imageList[self.currentPage])
-        if not( self.scrambledImageList == []):
-            self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
+        self.ShowSourceImage(self.imageList1[self.currentPage])
+        if not( self.imageList2 == []):
+            self.ShowDestinationImage(self.imageList2[self.currentPage])
 
         self.currentPageText.SetValue(str(self.currentPage + 1))
         if self.currentPage - 1 == -1:
@@ -231,9 +260,9 @@ class MyWindow(wx.Frame):
         jump to the next image
         '''
         self.currentPage = self.currentPage + 1
-        self.ShowSourceImage(self.imageList[self.currentPage])
-        if not( self.scrambledImageList == []):
-            self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
+        self.ShowSourceImage(self.imageList1[self.currentPage])
+        if not( self.imageList2 == []):
+            self.ShowDestinationImage(self.imageList2[self.currentPage])
 
         self.currentPageText.SetValue(str(self.currentPage + 1))
         if self.currentPage + 1 == self.pageNumber:
@@ -246,9 +275,9 @@ class MyWindow(wx.Frame):
         jump to the end image
         '''
         self.currentPage = self.pageNumber -  1
-        self.ShowSourceImage(self.imageList[self.currentPage])
-        if not( self.scrambledImageList == []):
-            self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
+        self.ShowSourceImage(self.imageList1[self.currentPage])
+        if not( self.imageList2 == []):
+            self.ShowDestinationImage(self.imageList2[self.currentPage])
         self.currentPageText.SetValue(str(self.currentPage + 1))
         self.buttonToNext.Disable()
         self.buttonToPrevious.Enable()
@@ -257,30 +286,32 @@ class MyWindow(wx.Frame):
         '''
         change the source folder
         '''
-        dlg = wx.DirDialog(self, 'Change the source folder:', style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+        dlg = wx.DirDialog(self, 'Change the source folder:', style = wx.DD_DEFAULT_STYLE |  wx.DD_NEW_DIR_BUTTON)
         if dlg.ShowModal() == wx.ID_OK:
             self.ClearPreview()
+
             path = dlg.GetPath()
-            fileTypeList = ['.dcm', '.bin', '.raw', '.tif']
             self.SourceLocationTextControl.SetValue(path)
             for f in os.listdir(path):
-                if (isfile(join(path, f)) and (os.path.splitext(f)[1] in fileTypeList)):
+                if (isfile(join(path, f)) and (os.path.splitext(f)[1] in self.fileTypeList)):
+                    self.fileType = os.path.splitext(f)[1]
                     filePath = join(path, f)
-                    self.imageList.append(QIBA_functions.ImportFile(filePath, self.nrOfRow, self.nrOfColumn, self.patchLen)[0])
+                    self.imagePathListSource.append(filePath)
+                    rawFile, self.nrOfRow, self.nrOfColumn = QIBA_functions.ImportRawFile(filePath, self.patchLen)
+                    self.imageList1.append(rawFile)
                 else:
                     pass
-            self.pageNumber = len(self.imageList)
+            self.pageNumber = len(self.imageList1)
             if self.pageNumber:
                 self.currentPage = 0
-                self.ShowSourceImage(self.imageList[self.currentPage])
-                self.SetStatusText('Source folder refreshed.')
+                self.ShowSourceImage(self.imageList1[self.currentPage])
+                self.SetStatusText(str(len(self.imageList1)) + 'loaded.')
             else:
                 self.pageNumber = 0
                 self.currentPage = -1
                 self.SetStatusText('Source folder contains no valid file!.')
             self.pageNumberText.SetLabel('/' + str(self.pageNumber))
             self.currentPageText.SetValue(str(self.currentPage + 1))
-
         else:
             self.SetStatusText('Source folder not refreshed.')
 
@@ -288,8 +319,9 @@ class MyWindow(wx.Frame):
         '''
         clear the preview
         '''
-        self.scrambledImageList = []
-        self.imageList = []
+        self.imageList2 = []
+        self.imageList1 = []
+        self.imagePathListSource = []
         self.figurePreviewerSource.clear()
         self.canvasPreviewerSource.draw()
         self.figurePreviewerDestination.clear()
@@ -298,8 +330,6 @@ class MyWindow(wx.Frame):
         self.pageNumber = 0
         self.currentPageText.SetValue(str(self.currentPage + 1))
         self.pageNumberText.SetLabel('/' + str(self.pageNumber))
-
-
 
     def ShowSourceImage(self, image):
         '''
@@ -327,10 +357,11 @@ class MyWindow(wx.Frame):
         '''
         dlg = wx.DirDialog(self, 'Change the destination folder:', style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
         if dlg.ShowModal() == wx.ID_OK:
+            self.DestinationLocation = dlg.GetPath()
             self.DestinationLocationTextControl.SetValue(dlg.GetPath())
-            self.SetStatusText('Destination folder refreshed.')
+            self.SetStatusText('Destination folder selected.')
         else:
-            self.SetStatusText('Destination folder not refreshed.')
+            self.SetStatusText('Destination folder not selected.')
 
     def OnAbout(self, event):
         pass

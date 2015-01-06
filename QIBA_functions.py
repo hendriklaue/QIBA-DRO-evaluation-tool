@@ -72,6 +72,24 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
     else:
         return False, False
 
+def ImportRawFile(path, patchLen):
+    # import a file without cutting the head and tail lines, nor rescale. And return the dimension of the image.
+    fileName, fileExtension = os.path.splitext(path)
+    if fileExtension == '.dcm':
+        ds =  dicom.read_file(path)
+        nrOfRow, nrOfColumn = ds.pixel_array.shape
+        return ds.pixel_array,  nrOfRow / patchLen, nrOfColumn / patchLen
+    elif fileExtension in ['.bin', '.raw']:
+        pass
+    elif fileExtension == '.tif':
+        im = Image.open(path)
+        if not im.mode == "F":
+            im.mode = "F"
+        imArray = numpy.array(im)
+        nrOfRow, nrOfColumn = imArray.shape
+        return imArray, nrOfRow / patchLen, nrOfColumn / patchLen
+    else:
+        return False, False, False
 
 def RescaleDICOM(ds, patchLen):
     # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.
@@ -329,6 +347,6 @@ def ScrambleAndMap(imageList, nrOfRow, nrOfColumn, patchLen):
         newImage =  []
         for i in range(nrOfRow * patchLen):
             newImage.append([newImageInLine[i * nrOfColumn * patchLen  + j] for j in range(nrOfColumn * patchLen)])
-        newImageList.append(newImage)
+        newImageList.append(numpy.array(newImage))
 
     return newImageList, mapRandomIndex
