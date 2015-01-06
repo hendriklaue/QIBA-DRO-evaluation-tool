@@ -311,17 +311,24 @@ def RandomIndex(length):
         index.remove(tempRandom)
     return randIndex
 
-def ScrambleAndMap(image, nrOfRow, nrOfColumn, patchLen):
+def ScrambleAndMap(imageList, nrOfRow, nrOfColumn, patchLen):
     '''
     generate a map with random indexes of the given size, and scramble the image accordingly
     '''
-    pixels = [].extend(image[i] for i in range(nrOfRow))
-
     mapRandomIndex = RandomIndex(nrOfColumn * nrOfRow * patchLen *patchLen)
-    newImage = [].append(pixels[k] for k in mapRandomIndex)
+    newImageList = []
+    for image in imageList:
+        pixels = []
+        for i in range(nrOfRow * patchLen):
+            pixels.extend(image[i])
 
-    newImage =  []
-    for i in nrOfRow:
-        newImage.append([newImage[i * nrOfColumn + j] for j in range(nrOfColumn)])
+        newImageInLine = []
+        for k in mapRandomIndex:
+            newImageInLine.append(pixels[k])
 
-    return newImage, mapRandomIndex
+        newImage =  []
+        for i in range(nrOfRow * patchLen):
+            newImage.append([newImageInLine[i * nrOfColumn * patchLen  + j] for j in range(nrOfColumn * patchLen)])
+        newImageList.append(newImage)
+
+    return newImageList, mapRandomIndex

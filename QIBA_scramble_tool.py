@@ -13,7 +13,7 @@ from os.path import isfile, join
 class MyWindow(wx.Frame):
 
     def  __init__(self, parent = None):
-        wx.Frame.__init__(self, parent = None, title = "QIBA scramble tool", size = (905, 600))
+        wx.Frame.__init__(self, parent = None, title = "QIBA scramble tool", size = (905, 600), style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX)
         self.CenterOnScreen()
         self.CreateStatusBar()
         self.SetStatusText("Welcome to QIBA scramble tool!")
@@ -24,8 +24,9 @@ class MyWindow(wx.Frame):
         self.nrOfRow = 6
         self.nrOfColumn = 15
         self.patchLen = 10
-        self.fileList = []
         self.imageList = []
+        self.scrambledImageList = []
+        self.scrambleMap = []
         self.SetupMainUI()
 
     def SetupMenuBar(self):
@@ -181,7 +182,9 @@ class MyWindow(wx.Frame):
         '''
         scramble the images under the selected folder
         '''
-        pass
+        self.scrambledImageList, self.scrambleMap = QIBA_functions.ScrambleAndMap(self.imageList, self.nrOfRow, self.nrOfColumn, self.patchLen)
+        self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
+        self.SetStatusText('Images are scrambled!')
 
     def OnUnscramble(self, event):
         '''
@@ -201,6 +204,8 @@ class MyWindow(wx.Frame):
         '''
         self.currentPage = 0
         self.ShowSourceImage(self.imageList[self.currentPage])
+        if not( self.scrambledImageList == []):
+            self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
         self.currentPageText.SetValue(str(self.currentPage + 1))
         self.buttonToNext.Enable()
         self.buttonToPrevious.Disable()
@@ -212,6 +217,9 @@ class MyWindow(wx.Frame):
 
         self.currentPage = self.currentPage - 1
         self.ShowSourceImage(self.imageList[self.currentPage])
+        if not( self.scrambledImageList == []):
+            self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
+
         self.currentPageText.SetValue(str(self.currentPage + 1))
         if self.currentPage - 1 == -1:
             self.buttonToPrevious.Disable()
@@ -224,6 +232,9 @@ class MyWindow(wx.Frame):
         '''
         self.currentPage = self.currentPage + 1
         self.ShowSourceImage(self.imageList[self.currentPage])
+        if not( self.scrambledImageList == []):
+            self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
+
         self.currentPageText.SetValue(str(self.currentPage + 1))
         if self.currentPage + 1 == self.pageNumber:
             self.buttonToNext.Disable()
@@ -236,6 +247,8 @@ class MyWindow(wx.Frame):
         '''
         self.currentPage = self.pageNumber -  1
         self.ShowSourceImage(self.imageList[self.currentPage])
+        if not( self.scrambledImageList == []):
+            self.ShowDestinationImage(self.scrambledImageList[self.currentPage])
         self.currentPageText.SetValue(str(self.currentPage + 1))
         self.buttonToNext.Disable()
         self.buttonToPrevious.Enable()
@@ -246,6 +259,7 @@ class MyWindow(wx.Frame):
         '''
         dlg = wx.DirDialog(self, 'Change the source folder:', style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
         if dlg.ShowModal() == wx.ID_OK:
+            self.ClearPreview()
             path = dlg.GetPath()
             fileTypeList = ['.dcm', '.bin', '.raw', '.tif']
             self.SourceLocationTextControl.SetValue(path)
@@ -259,24 +273,53 @@ class MyWindow(wx.Frame):
             if self.pageNumber:
                 self.currentPage = 0
                 self.ShowSourceImage(self.imageList[self.currentPage])
+                self.SetStatusText('Source folder refreshed.')
             else:
                 self.pageNumber = 0
                 self.currentPage = -1
+                self.SetStatusText('Source folder contains no valid file!.')
             self.pageNumberText.SetLabel('/' + str(self.pageNumber))
             self.currentPageText.SetValue(str(self.currentPage + 1))
-            self.SetStatusText('Source folder refreshed.')
+
         else:
             self.SetStatusText('Source folder not refreshed.')
+
+    def ClearPreview(self):
+        '''
+        clear the preview
+        '''
+        self.scrambledImageList = []
+        self.imageList = []
+        self.figurePreviewerSource.clear()
+        self.canvasPreviewerSource.draw()
+        self.figurePreviewerDestination.clear()
+        self.canvasPreviewerDestination.draw()
+        self.currentPage = -1
+        self.pageNumber = 0
+        self.currentPageText.SetValue(str(self.currentPage + 1))
+        self.pageNumberText.SetLabel('/' + str(self.pageNumber))
+
+
 
     def ShowSourceImage(self, image):
         '''
         show the image
         '''
         subplot = self.figurePreviewerSource.add_subplot(111)
-        handler = subplot.imshow(image, cmap = 'bone', interpolation='nearest')
+        subplot.imshow(image, cmap = 'bone', interpolation='nearest')
 
         self.figurePreviewerSource.tight_layout()
         self.canvasPreviewerSource.draw()
+
+    def ShowDestinationImage(self, image):
+        '''
+        show the image
+        '''
+        subplot = self.figurePreviewerDestination.add_subplot(111)
+        subplot.imshow(image, cmap = 'bone', interpolation='nearest')
+
+        self.figurePreviewerDestination.tight_layout()
+        self.canvasPreviewerDestination.draw()
 
     def OnChangeDestinationFolder(self, event):
         '''
@@ -305,6 +348,3 @@ if __name__ == "__main__":
     window.Show()
     # window.Maximize(True)
     Application.MainLoop()
-
-# TODO make the buttons clickable/ unclickable logically
-
