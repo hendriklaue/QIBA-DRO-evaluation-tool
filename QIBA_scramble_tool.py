@@ -85,18 +85,23 @@ class MyWindow(wx.Frame):
         buttonBrowse2 = wx.Button(self.mainPanel, -1, "Browse...")
         buttonBrowse2.Bind(wx.EVT_BUTTON, self.OnChangeDestinationFolder)
 
-        sizerPaths.AddMany([SourceLocationText, self.SourceLocationTextControl, buttonBrowse1, DestinationLocationText, self.DestinationLocationTextControl, buttonBrowse2])
-        # self.mainPanel.SetSizer(sizerPaths)
+        MapPathText = wx.StaticText(self.mainPanel, -1, "Index map path:")
+        self.MapPath = os.getcwd()
+        self.MapPathTextControl = wx.TextCtrl(self.mainPanel, -1, self.MapPath, size = (650, -1))
+        buttonBrowse3 = wx.Button(self.mainPanel, -1, "Browse...")
+        buttonBrowse3.Bind(wx.EVT_BUTTON, self.OnChangeMapPath)
+
+        sizerPaths.AddMany([SourceLocationText, self.SourceLocationTextControl, buttonBrowse1, DestinationLocationText, self.DestinationLocationTextControl, buttonBrowse2, MapPathText, self.MapPathTextControl, buttonBrowse3])
 
         # sizer for image previews
-        buttonScramble = wx.Button(self.mainPanel, -1, "Scramble")
-        buttonScramble.Bind(wx.EVT_BUTTON, self.OnScramble)
-        buttonUnscramble = wx.Button(self.mainPanel, -1, "Unscramble")
-        buttonUnscramble.Bind(wx.EVT_BUTTON, self.OnUnscramble)
-        buttonSave = wx.Button(self.mainPanel, -1, "Save")
-        buttonSave.Bind(wx.EVT_BUTTON, self.OnSave)
-        sizerButtons.AddMany([buttonScramble, buttonUnscramble, buttonSave])
-        # self.mainPanel.SetSizer(sizerButtons)
+        self.buttonScramble = wx.Button(self.mainPanel, -1, "Scramble")
+        self.buttonScramble.Bind(wx.EVT_BUTTON, self.OnScramble)
+        self.buttonUnscramble = wx.Button(self.mainPanel, -1, "Unscramble")
+        self.buttonUnscramble.Bind(wx.EVT_BUTTON, self.OnUnscramble)
+        self.buttonSave = wx.Button(self.mainPanel, -1, "Save")
+        self.buttonSave.Bind(wx.EVT_BUTTON, self.OnSave)
+        sizerButtons.AddMany([self.buttonScramble, self.buttonUnscramble, self.buttonSave])
+
 
         self.figurePreviewerSource = Figure()
         self.figurePreviewerSource.set_figwidth(5)
@@ -107,7 +112,6 @@ class MyWindow(wx.Frame):
         self.figurePreviewerDestination.set_figheight(5)
         self.canvasPreviewerDestination = FigureCanvas(self.mainPanel, -1, self.figurePreviewerDestination)
         sizerViewer.AddMany([self.canvasPreviewerSource, sizerButtons, self.canvasPreviewerDestination])
-        # self.mainPanel.SetSizer(sizerViewer)
         sizerViewer.Fit(self.mainPanel)
 
         # viewer selector
@@ -124,12 +128,14 @@ class MyWindow(wx.Frame):
         self.pageNumberText = wx.StaticText(self.mainPanel, -1, '/'+str(self.pageNumber), size = (30, -1))
 
         self.sizerSelector.AddMany([self.buttonToHead, self.buttonToPrevious, self.currentPageText, self.pageNumberText, self.buttonToNext, self.buttonToEnd])
-        # self.mainPanel.SetSizer(sizerSelector)
 
         # main sizer
         sizerMain.AddMany([sizerPaths, sizerViewer, self.sizerSelector])
         sizerMain.Fit(self.mainPanel)
         self.mainPanel.SetSizer(sizerMain)
+
+        # execute the button management
+        self.ManageButtons()
 
     def OnEditImageDimension(self, event):
         # edit the dimension of the images
@@ -225,8 +231,8 @@ class MyWindow(wx.Frame):
                 return
 
         # save the map
-        mapFilePath = os.path.join(self.DestinationLocation, "indexMap")
-        QIBA_functions.numpy.savetxt(mapFilePath, self.scrambleMap, fmt='%i')
+        print self.MapPath
+        QIBA_functions.numpy.savetxt(self.MapPath, self.scrambleMap, fmt='%i')
 
         self.SetStatusText('New Images and map are saved!')
 
@@ -239,8 +245,7 @@ class MyWindow(wx.Frame):
         if not( self.imageList2 == []):
             self.ShowDestinationImage(self.imageList2[self.currentPage])
         self.currentPageText.SetValue(str(self.currentPage + 1))
-        self.buttonToNext.Enable()
-        self.buttonToPrevious.Disable()
+        self.ManageButtons()
 
     def OnToPrevious(self, event):
         '''
@@ -253,10 +258,8 @@ class MyWindow(wx.Frame):
             self.ShowDestinationImage(self.imageList2[self.currentPage])
 
         self.currentPageText.SetValue(str(self.currentPage + 1))
-        if self.currentPage - 1 == -1:
-            self.buttonToPrevious.Disable()
-        if not (self.currentPage  + 1 == self.pageNumber):
-            self.buttonToNext.Enable()
+
+        self.ManageButtons()
 
     def OnToNext(self, event):
         '''
@@ -268,22 +271,64 @@ class MyWindow(wx.Frame):
             self.ShowDestinationImage(self.imageList2[self.currentPage])
 
         self.currentPageText.SetValue(str(self.currentPage + 1))
-        if self.currentPage + 1 == self.pageNumber:
-            self.buttonToNext.Disable()
-        if not (self.currentPage - 1 == -1):
-            self.buttonToPrevious.Enable()
+        self.ManageButtons()
 
     def OnToEnd(self, event):
         '''
         jump to the end image
         '''
+
         self.currentPage = self.pageNumber -  1
         self.ShowSourceImage(self.imageList1[self.currentPage])
         if not( self.imageList2 == []):
             self.ShowDestinationImage(self.imageList2[self.currentPage])
         self.currentPageText.SetValue(str(self.currentPage + 1))
-        self.buttonToNext.Disable()
-        self.buttonToPrevious.Enable()
+
+        self.ManageButtons()
+
+    def ManageButtons(self):
+        '''
+        manage the enable/disable properties of the buttons
+        '''
+
+        # the functional buttons
+        if len(self.imageList1) == 0:
+            self.buttonToNext.Disable()
+            self.buttonToEnd.Disable()
+            self.buttonToPrevious.Disable()
+            self.buttonToHead.Disable()
+
+            self.buttonScramble.Disable()
+            self.buttonUnscramble.Disable()
+            self.buttonSave.Disable()
+        else:
+            self.buttonScramble.Enable()
+            self.buttonUnscramble.Enable()
+            self.buttonSave.Enable()
+
+        # the page index buttons
+        if self.pageNumber == 1: # there's only one page
+            self.buttonToNext.Disable()
+            self.buttonToEnd.Disable()
+            self.buttonToPrevious.Disable()
+            self.buttonToHead.Disable()
+        else:
+            if self.currentPage + 1 == self.pageNumber: # the last page
+                self.buttonToNext.Disable()
+                self.buttonToEnd.Disable()
+                self.buttonToHead.Enable()
+                self.buttonToPrevious.Enable()
+            elif self.currentPage - 1 == -1: # the first page
+                self.buttonToPrevious.Disable()
+                self.buttonToHead.Disable()
+                self.buttonToEnd.Enable()
+                self.buttonToNext.Enable()
+            else:
+                self.buttonToHead.Enable()
+                self.buttonToPrevious.Enable()
+                self.buttonToEnd.Enable()
+                self.buttonToNext.Enable()
+
 
     def OnChangeSourceFolder(self, event):
         '''
@@ -292,9 +337,10 @@ class MyWindow(wx.Frame):
         dlg = wx.DirDialog(self, 'Change the source folder:', style = wx.DD_DEFAULT_STYLE |  wx.DD_NEW_DIR_BUTTON)
         if dlg.ShowModal() == wx.ID_OK:
             self.ClearPreview()
-
             path = dlg.GetPath()
             self.SourceLocationTextControl.SetValue(path)
+
+            # organize the source images into list
             for f in os.listdir(path):
                 if (isfile(join(path, f)) and (os.path.splitext(f)[1] in self.fileTypeList)):
                     self.fileType = os.path.splitext(f)[1]
@@ -305,6 +351,8 @@ class MyWindow(wx.Frame):
                 else:
                     pass
             self.pageNumber = len(self.imageList1)
+
+            # show the images
             if self.pageNumber:
                 self.currentPage = 0
                 self.ShowSourceImage(self.imageList1[self.currentPage])
@@ -315,8 +363,35 @@ class MyWindow(wx.Frame):
                 self.SetStatusText('Source folder contains no valid file!.')
             self.pageNumberText.SetLabel('/' + str(self.pageNumber))
             self.currentPageText.SetValue(str(self.currentPage + 1))
+
         else:
             self.SetStatusText('Source folder not refreshed.')
+
+        self.ManageButtons()
+
+    def OnChangeDestinationFolder(self, event):
+        '''
+        change the destination folder
+        '''
+        dlg = wx.DirDialog(self, 'Change the destination folder:', style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.DestinationLocation = dlg.GetPath()
+            self.DestinationLocationTextControl.SetValue(dlg.GetPath())
+            self.SetStatusText('Destination folder selected.')
+        else:
+            self.SetStatusText('Destination folder not selected.')
+
+    def OnChangeMapPath(self, event):
+        '''
+        change the map path
+        '''
+        dlg = wx.FileDialog(self, 'Change the index map path:', wildcard='Index Map (*.indexmap)|*.indexmap', style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.MapPath = dlg.GetPath()
+            self.MapPathTextControl.SetValue(dlg.GetPath())
+            self.SetStatusText('Index map changed.')
+        else:
+            self.SetStatusText('Index map not changed.')
 
     def ClearPreview(self):
         '''
@@ -354,17 +429,6 @@ class MyWindow(wx.Frame):
         self.figurePreviewerDestination.tight_layout()
         self.canvasPreviewerDestination.draw()
 
-    def OnChangeDestinationFolder(self, event):
-        '''
-        change the destination folder
-        '''
-        dlg = wx.DirDialog(self, 'Change the destination folder:', style = wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.DestinationLocation = dlg.GetPath()
-            self.DestinationLocationTextControl.SetValue(dlg.GetPath())
-            self.SetStatusText('Destination folder selected.')
-        else:
-            self.SetStatusText('Destination folder not selected.')
 
     def OnAbout(self, event):
         pass
