@@ -31,6 +31,8 @@ class MyWindow(wx.Frame):
         self.imagePathListSource = []
         self.mapScrambleIndex = []
         self.SetupMainUI()
+        self.LASTOPERATION = '' # either 'SCRAMBLE' or UNSCRAMBLE
+        self.indexMap = []
 
     def SetupMenuBar(self):
         '''
@@ -194,47 +196,69 @@ class MyWindow(wx.Frame):
         try:
             self.imageList2, self.scrambleMap = QIBA_functions.ScrambleAndMap(self.imageList1, self.nrOfRow, self.nrOfColumn, self.patchLen)
         except:
-            self.SetStatusText('Please make sure the image dimension fits!')
+            self.SetStatusText('Scrambling the images failed!')
+            return
         self.ShowDestinationImage(self.imageList2[self.currentPage])
         self.SetStatusText('Images are scrambled.')
+        self.LASTOPERATION = 'SCRAMBLE'
 
     def OnUnscramble(self, event):
         '''
         unscramble the images under the selected folder
         '''
-        pass
+        try:
+            self.indexMap = QIBA_functions.numpy.loadtxt(self.MapPath, dtype = 'i')
+        except:
+            self.SetStatusText('Unable to load the index map.')
+            return
+
+        if not len(self.indexMap)==self.nrOfRow * self.nrOfColumn * self.patchLen * self.patchLen:
+            self.SetStatusText('Please import an index map with suitable dimension!')
+            return
+        try:
+            # validate the map file
+            self.imageList2 = QIBA_functions.Unscramble(self.imageList1, self.indexMap, self.nrOfRow, self.nrOfColumn, self.patchLen)
+        except:
+            self.SetStatusText('Unscrambling the images failed!')
+            return
+        self.ShowDestinationImage(self.imageList2[self.currentPage])
+        self.SetStatusText('Images are scrambled.')
+        self.LASTOPERATION = 'UNSCRAMBLE'
 
     def OnSave(self, event):
         '''
         save the scrambled/unscrambled images
         '''
+        if not self.LASTOPERATION:
+            return
+        else:
+            for (index, sourceFilePath) in list(enumerate(self.imagePathListSource)):
+                shutil.copy(sourceFilePath, self.DestinationLocation)
 
-        for (index, sourceFilePath) in list(enumerate(self.imagePathListSource)):
-            shutil.copy(sourceFilePath, self.DestinationLocation)
+                fileName, fileExtension = os.path.splitext(sourceFilePath)
+                dir, fileNameWithExtension = os.path.split(sourceFilePath)
+                newFilePath = os.path.join(self.DestinationLocation, fileNameWithExtension)
+                if fileExtension == '.dcm':
+                    ds =  QIBA_functions.dicom.read_file(newFilePath)
+                    for i, row in enumerate(self.imageList2[index]):
+                        ds.pixel_array[i] = row
+                    ds.PixelData = ds.pixel_array.tostring()
+                    ds.save_as(newFilePath)
+                elif fileExtension == '.tif':
+                    newImage = QIBA_functions.Image.fromarray(self.imageList2[index])
+                    newImage.save(newFilePath)
+                elif fileExtension in ['.bin', '.raw']:
+                    pass
+                else:
+                    self.SetStatusText('New images are not saved!')
+                    return
 
-            fileName, fileExtension = os.path.splitext(sourceFilePath)
-            dir, fileNameWithExtension = os.path.split(sourceFilePath)
-            newFilePath = os.path.join(self.DestinationLocation, fileNameWithExtension)
-            if fileExtension == '.dcm':
-                ds =  QIBA_functions.dicom.read_file(newFilePath)
-                for i, row in enumerate(self.imageList2[index]):
-                    ds.pixel_array[i] = row
-                ds.PixelData = ds.pixel_array.tostring()
-                ds.save_as(newFilePath)
-            elif fileExtension == '.tif':
-                newImage = QIBA_functions.Image.fromarray(self.imageList2[index])
-                newImage.save(newFilePath)
-            elif fileExtension in ['.bin', '.raw']:
-                pass
+            if self.LASTOPERATION == 'SCRAMBLE':
+                # save the map
+                QIBA_functions.numpy.savetxt(self.MapPath, self.scrambleMap, fmt='%i')
+                self.SetStatusText('Scrambled images and index map are saved!')
             else:
-                self.SetStatusText('New images are not saved!')
-                return
-
-        # save the map
-        print self.MapPath
-        QIBA_functions.numpy.savetxt(self.MapPath, self.scrambleMap, fmt='%i')
-
-        self.SetStatusText('New Images and map are saved!')
+                self.SetStatusText('Unscrambled images are saved!')
 
     def OnToHead(self, event):
         '''

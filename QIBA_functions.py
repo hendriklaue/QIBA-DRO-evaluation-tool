@@ -350,3 +350,24 @@ def ScrambleAndMap(imageList, nrOfRow, nrOfColumn, patchLen):
         newImageList.append(numpy.array(newImage))
 
     return newImageList, mapRandomIndex
+
+def Unscramble(imageList, indexMap, nrOfRow, nrOfColumn, patchLen):
+    '''
+    unscramble the images according to the index map
+    '''
+    newImageList = []
+    for image in imageList:
+        pixels = []
+        for i in range(nrOfRow * patchLen):
+            pixels.extend(image[i])
+
+        newImageInLine = [0] * nrOfColumn * nrOfRow * patchLen *patchLen
+        for k in range(nrOfColumn * nrOfRow * patchLen *patchLen):
+            newImageInLine[indexMap[k]] = pixels[k]
+
+        newImage =  []
+        for i in range(nrOfRow * patchLen):
+            newImage.append([newImageInLine[i * nrOfColumn * patchLen  + j] for j in range(nrOfColumn * patchLen)])
+        newImageList.append(numpy.array(newImage))
+
+    return newImageList
