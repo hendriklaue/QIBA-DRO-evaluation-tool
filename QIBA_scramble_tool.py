@@ -13,7 +13,7 @@ import shutil
 class MyWindow(wx.Frame):
 
     def  __init__(self, parent = None):
-        wx.Frame.__init__(self, parent = None, title = "QIBA scramble tool", size = (905, 600), style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
+        wx.Frame.__init__(self, parent = None, title = "QIBA scramble tool", size = (895, 600), style= wx.SYSTEM_MENU | wx.CAPTION | wx.CLOSE_BOX | wx.MINIMIZE_BOX)
         self.fileTypeList = ['.dcm', '.bin', '.raw', '.tif']
         self.fileType = ""
         self.CenterOnScreen()
@@ -230,6 +230,7 @@ class MyWindow(wx.Frame):
         save the scrambled/unscrambled images
         '''
         if not self.LASTOPERATION:
+            self.SetStatusText('Nothing to save.')
             return
         else:
             for (index, sourceFilePath) in list(enumerate(self.imagePathListSource)):
@@ -325,6 +326,7 @@ class MyWindow(wx.Frame):
             self.buttonScramble.Disable()
             self.buttonUnscramble.Disable()
             self.buttonSave.Disable()
+            return
         else:
             self.buttonScramble.Enable()
             self.buttonUnscramble.Enable()
