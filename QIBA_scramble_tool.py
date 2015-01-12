@@ -223,10 +223,12 @@ class MyWindow(wx.Frame):
             else:
                 self.SetStatusText('New images are not saved!')
                 return
-        self.SetStatusText('New Images are saved!')
+
         # save the map
+        mapFilePath = os.path.join(self.DestinationLocation, "indexMap")
+        QIBA_functions.numpy.savetxt(mapFilePath, self.scrambleMap, fmt='%i')
 
-
+        self.SetStatusText('New Images and map are saved!')
 
     def OnToHead(self, event):
         '''
