@@ -98,15 +98,22 @@ class MainWindow(wx.Frame):
         # self.SetupEditMenu()
 
         aboutMenu = wx.Menu()
+        OnManual = aboutMenu.Append(wx.ID_ANY, 'Open the manual...')
+        aboutMenu.AppendSeparator()
         OnAboutApp = aboutMenu.Append(wx.ID_ANY, "About this application")
 
         self.menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
         self.menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
         self.menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
+        self.menubar.Bind(wx.EVT_MENU, self.OnManual, OnManual)
 
         self.menubar.Append(fileMenu, "&File")
         self.menubar.Append(aboutMenu, "&About")
         self.SetMenuBar(self.menubar)
+
+    def OnManual(self, event):
+        # open the manual file
+        os.startfile(os.path.join(os.getcwd(), 'tools', 'Manual.pdf'))
 
     def OnEditImageDimension(self, event):
         # edit the dimension of the images
