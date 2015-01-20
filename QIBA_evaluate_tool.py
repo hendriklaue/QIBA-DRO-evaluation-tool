@@ -448,6 +448,9 @@ class MainWindow(wx.Frame):
         except RuntimeError:
             self.SetStatusText('RuntimeError occurs. Evaluation terminated.')
             return False
+        except:
+            self.SetStatusText('Error occurs. Evaluation terminated.')
+            return False
         #EvaluateProgressDialog.Update(20)
 
         # show the results in the main window
@@ -699,7 +702,7 @@ class MainWindow_KV(MainWindow):
         # setup the edit menu in the menu bar
         editMenu = wx.Menu()
 
-        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Eidt the dimension of the images...')
+        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Eidt the dimensions of the images...')
         editMenu.AppendSeparator()
         OnLoadRef_K = editMenu.Append(wx.ID_ANY, 'Load reference Ktrans...')
         OnLoadRef_V = editMenu.Append(wx.ID_ANY, 'Load reference Ve...')
@@ -1138,8 +1141,7 @@ class MainWindow_T1(MainWindow):
     def __init__(self, appName):
         MainWindow.__init__(self, None, appName)
 
-        self.nrOfRow = 6
-        self.nrOfColumn = 15
+        self.patchLen = 10
         self.WARNINGTEXT = False
 
         # default files' paths
@@ -1148,15 +1150,96 @@ class MainWindow_T1(MainWindow):
 
 
         # customize the main window
+        self.LoadRef()
+        self.SetupStartPage()
         self.SetupEditMenu()
         self.SetupRightClickMenu()
         self.SetupPage_Histogram()
+
+    def LoadRef(self):
+        '''
+        load the reference data, and get the image size
+        '''
+        self.ref_T1, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_T1, self.patchLen)
+        self.nrOfRow = nrOfRow - 2
+        self.nrOfColumn = nrOfColumn
+
+    def SetupStartPage(self):
+        '''
+        setup the start page
+        '''
+        sizerRef_T1_path = wx.BoxSizer(wx.HORIZONTAL)
+        sizerRef_T1_image = wx.BoxSizer(wx.HORIZONTAL)
+        sizerRef_T1 = wx.BoxSizer(wx.VERTICAL)
+        sizerMiddle = wx.BoxSizer(wx.HORIZONTAL)
+
+        panelRef_T1 = wx.Panel(self.pageStart, style = wx.SIMPLE_BORDER)
+
+        # setup the reference data paths
+        sizerRef_T1_path.Add(wx.StaticText(panelRef_T1, -1, 'Reference T1: '))
+        self.textCtrlRefPath_T1 = wx.TextCtrl(panelRef_T1, -1, self.path_ref_T1, size = (400, -1))
+        sizerRef_T1_path.Add(self.textCtrlRefPath_T1)
+        buttonLoadRefT1 = wx.Button(panelRef_T1, -1, 'Select...')
+        buttonLoadRefT1.Bind(wx.EVT_BUTTON, self.OnLoadRef_T1)
+        sizerRef_T1_path.Add(buttonLoadRefT1)
+
+        self.figureRefViewer_T1 = Figure()
+        self.canvasRefViewer_T1 = FigureCanvas(panelRef_T1, -1, self.figureRefViewer_T1)
+        sizerRef_T1_image.Add(self.canvasRefViewer_T1, 1, wx.EXPAND)
+
+        sizerRef_T1.Add(sizerRef_T1_path, 0)
+        sizerRef_T1.Add(sizerRef_T1_image, 1, wx.EXPAND)
+        panelRef_T1.SetSizer(sizerRef_T1)
+
+        # the upper part of the page
+        self.ShowRef()
+        sizerMiddle.Add(panelRef_T1, 1, wx.EXPAND)
+
+        # button to start evaluation
+        self.buttonEvaluate = wx.Button(self.pageStart, wx.ID_ANY, 'Evaluate')
+        self.Bind(wx.EVT_BUTTON, self.OnEvaluate, self.buttonEvaluate)
+
+        # text area
+        header = wx.StaticText(self.pageStart, -1, 'Welcome to QIBA Evaluate Tool(Flip Angle T1)!', style=wx.ALIGN_CENTER_HORIZONTAL)
+        instruction1 = wx.StaticText(self.pageStart, -1, '- left-click to select and right-click to import the calculated file from the file tree on the left.')
+        instruction2 = wx.StaticText(self.pageStart, -1, '- change the reference data under if necessary.')
+        instruction3 = wx.StaticText(self.pageStart, -1, '- press the button "Evaluate" at the bottom to start evaluation.')
+        fontHeader = wx.Font(22, wx.DECORATIVE, style = wx.FONTSTYLE_NORMAL, weight = wx.FONTWEIGHT_NORMAL)
+        fontText = wx.Font(14, wx.DECORATIVE, style = wx.FONTSTYLE_NORMAL, weight = wx.FONTWEIGHT_NORMAL)
+        header.SetFont(fontHeader)
+        instruction1.SetFont(fontText)
+        instruction2.SetFont(fontText)
+        instruction3.SetFont(fontText)
+        sizerTop = wx.BoxSizer(wx.VERTICAL)
+        sizerTop.Add(header, flag = wx.CENTER)
+        sizerTop.Add(instruction1)
+        sizerTop.Add(instruction2)
+        sizerTop.Add(instruction3)
+
+        # the page sizer
+        sizerPage = wx.BoxSizer(wx.VERTICAL)
+        sizerPage.Add(sizerTop, 2, wx.EXPAND)
+        sizerPage.Add(sizerMiddle, 19, wx.EXPAND)
+        sizerPage.Add(self.buttonEvaluate, 1, wx.EXPAND)
+        self.buttonEvaluate.Disable()
+
+        self.pageStart.SetSizer(sizerPage)
+        self.pageStart.Fit()
+
+    def ShowRef(self):
+        '''
+        show the reference images in the start page
+        '''
+        subplot_Ref_K = self.figureRefViewer_T1.add_subplot(1,1,1)
+        subplot_Ref_K.imshow(self.ref_T1, cmap = 'bone', interpolation='nearest')
+        self.figureRefViewer_T1.tight_layout()
+        self.canvasRefViewer_T1.draw()
 
     def SetupEditMenu(self):
         # setup the edit menu in the menu bar
         editMenu = wx.Menu()
 
-        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Edit the dimension of the images...')
+        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Edit the dimensions of the images...')
         editMenu.AppendSeparator()
         OnLoadRef_T1 = editMenu.Append(wx.ID_ANY, 'Load reference T1...')
         self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
@@ -1212,10 +1295,70 @@ class MainWindow_T1(MainWindow):
         dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_T1 = dlg.GetPath()
+            self.textCtrlRefPath_T1.SetValue(self.path_ref_T1)
+            imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_T1, self.patchLen)
+            if imageData == 'binary':
+                self.OnImportBinaryDialog_T1()
+            elif imageData.any() == False:
+                self.SetStatusText('Please import a valid image!')
+            else:
+                self.ref_T1 = imageData
+                self.nrOfRow = nrOfRow - 2
+                self.nrOfColumn = nrOfColumn
+            self.ShowRef()
             self.SetStatusText('Reference T1 loaded.')
         else:
             self.SetStatusText('Reference T1 was NOT loaded!')
 
+    def OnImportBinaryDialog_T1(self):
+        # edit the dimension of the images for importing the binary images
+        self.dlg = wx.Dialog(self, title = 'Please insert the size of the binary image...')
+
+        self.sizer0 = wx.BoxSizer(wx.VERTICAL)
+        self.sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.text1 = wx.StaticText(self.dlg, label="number of the rows:")
+        self.textCtrl1 = wx.TextCtrl(self.dlg, -1, str(self.nrOfRow))
+        self.sizer1.Add(self.text1, 0)
+        self.sizer1.Add(self.textCtrl1, 1)
+
+        self.text2 = wx.StaticText(self.dlg, label="number of the columns:")
+        self.textCtrl2 = wx.TextCtrl(self.dlg, -1, str(self.nrOfColumn))
+        self.sizer2.Add(self.text2, 0)
+        self.sizer2.Add(self.textCtrl2, 1)
+
+        self.buttonOK = wx.Button(self.dlg, label = 'Ok')
+        self.buttonOK.Bind(wx.EVT_BUTTON, self.OnImportBinaryDialog_OK_T1)
+        self.sizer0.Add(self.sizer1, 1)
+        self.sizer0.Add(self.sizer2, 1)
+        self.sizer0.Add(self.buttonOK, 1)
+        self.sizer0.Fit(self.dlg)
+        self.dlg.SetSizer(self.sizer0)
+
+        self.dlg.Center()
+        self.WARNINGTEXT = False
+
+        self.dlg.ShowModal()
+
+    def OnImportBinaryDialog_OK_T1(self, event):
+        # when the OK is clicked in the dimension edit dialog
+
+        if (QIBA_functions.IsPositiveInteger(self.textCtrl1.GetValue()) and QIBA_functions.IsPositiveInteger(self.textCtrl2.GetValue()) ):
+            self.nrOfRow = int(self.textCtrl1.GetValue())
+            self.nrOfColumn = int(self.textCtrl2.GetValue())
+            self.dlg.Destroy()
+            self.ref_T1 = QIBA_functions.ImportFile(self.path_ref_T1, self.nrOfRow, self.nrOfColumn, self.patchLen)[0]
+        else:
+            self.SetStatusText('Image dimension is not set correctly!')
+            if self.WARNINGTEXT == False:
+                self.textWarning = wx.StaticText(self.dlg, label="Please input a proper integer!")
+                self.sizer0.Insert(2, self.textWarning)
+                self.sizer0.Fit(self.dlg)
+                self.dlg.SetSizer(self.sizer0)
+                self.WARNINGTEXT = True
+                self.dlg.Update()
+            return
 
     def DrawHistograms(self):
         # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
