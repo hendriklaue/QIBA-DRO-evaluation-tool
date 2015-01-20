@@ -79,8 +79,8 @@ def ImportRawFile(path, patchLen):
         ds =  dicom.read_file(path)
         nrOfRow, nrOfColumn = ds.pixel_array.shape
         return ds.pixel_array,  nrOfRow / patchLen, nrOfColumn / patchLen
-    elif fileExtension in ['.bin', '.raw']:
-        pass
+    elif fileExtension in ['.bin', '.raw']: # TODO: deal with binary files
+        return 'binary', 0, 0
     elif fileExtension == '.tif':
         im = Image.open(path)
         if not im.mode == "F":
@@ -89,7 +89,7 @@ def ImportRawFile(path, patchLen):
         nrOfRow, nrOfColumn = imArray.shape
         return imArray, nrOfRow / patchLen, nrOfColumn / patchLen
     else:
-        return False, False, False
+        return False, 0, 0
 
 def RescaleDICOM(ds, patchLen):
     # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.

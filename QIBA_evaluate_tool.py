@@ -193,43 +193,50 @@ class MainWindow(wx.Frame):
     def SetupLeft(self):
         '''
         set up the left panel.
-        show the directories and files list to load calculated DICOMs
+        show the directories and files list to load calculated data
         '''
+
+        sizerLeft = wx.BoxSizer(wx.VERTICAL)
+        sizerButton = wx.BoxSizer(wx.HORIZONTAL)
+
         self.selectedFilePath = ''
         # setup the tree control widget for file viewing and selection
-
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
                                              filter="Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif")
-
-        # self.Bind(wx.EVT_TREE_SEL_CHANGED, self.GetFilePath)
 
         # setup the right click function
         self.SetupRightClickMenu()
 
-        # setup 'evaluate' and 'export result' buttons
-        self.buttonEvaluate = wx.Button(self.leftPanel, wx.ID_ANY, 'Evaluate')
-        self.buttonExport = wx.Button(self.leftPanel, wx.ID_ANY, 'Export result')
-        self.Bind(wx.EVT_BUTTON, self.OnEvaluate, self.buttonEvaluate)
-        self.Bind(wx.EVT_BUTTON, self.OnExport, self.buttonExport)
+        sizerLeft.Add(self.fileBrowser, 1, wx.EXPAND)
 
-        sizerButton = wx.BoxSizer(wx.HORIZONTAL)
-        sizerButton.Add(self.buttonEvaluate, 1, wx.ALIGN_LEFT)
-        sizerButton.Add(self.buttonExport, 1, wx.ALIGN_RIGHT)
+        self.leftPanel.SetSizer(sizerLeft)
 
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.fileBrowser, 1, wx.EXPAND)
-        sizer.Add(sizerButton)
-        self.leftPanel.SetSizer(sizer)
 
-        # disable the export/evaluate button in start up
-        self.buttonExport.Disable()
-        self.buttonEvaluate.Disable()
+    def SetupCalPath(self):
+        '''
+        setup the calculated data path part
+        '''
+        pass
+
+    def SetupRefPath(self):
+        '''
+        setup the calculated data path part
+        '''
+        pass
+
+    def SetupDimEdit(self):
+        '''
+        setup the calculated data path part
+        '''
+        pass
+
 
     def SetupRight(self):
         '''
         set up the right panel
         '''
         self.noteBookRight = wx.Notebook(self.rightPanel)  #, style=wx.SUNKEN_BORDER)
+        self.pageStart = wx.Panel(self.noteBookRight)
         self.pageImagePreview = wx.Panel(self.noteBookRight)
         self.pageScatter = wx.Panel(self.noteBookRight)
         self.pageHistogram = wx.Panel(self.noteBookRight)
@@ -240,6 +247,7 @@ class MainWindow(wx.Frame):
         self.pageT_Test = wx.Panel(self.noteBookRight)
         self.pageU_Test = wx.Panel(self.noteBookRight)
         self.pageANOVA = wx.Panel(self.noteBookRight)
+        self.noteBookRight.AddPage(self.pageStart, 'Start')
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
         self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
         self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
@@ -425,7 +433,6 @@ class MainWindow(wx.Frame):
 
         # disable some widgets
         self.buttonEvaluate.Disable()
-        self.buttonExport.Disable()
 
         # status bar
         self.SetStatusText('Evaluating...')
@@ -453,7 +460,6 @@ class MainWindow(wx.Frame):
 
         # enable some widgets
         self.buttonEvaluate.Enable()
-        self.buttonExport.Enable()
 
     def GenerateModel(self):
         self.newModel = QIBA_model.Model_KV('', '', '', '', [self.nrOfRow, self.nrOfColumn])
@@ -566,8 +572,7 @@ class MainWindow_KV(MainWindow):
         # instance of the main window
         MainWindow.__init__(self, None, appName)
 
-        self.nrOfRow = 6
-        self.nrOfColumn = 5
+        self.patchLen = 10
         self.WARNINGTEXT = False
 
         # default files' paths
@@ -577,9 +582,140 @@ class MainWindow_KV(MainWindow):
         self.path_cal_V = ''
 
         # customize the main window
+        self.LoadRef()
+        self.SetupStartPage()
         self.SetupEditMenu()
         self.SetupRightClickMenu()
         self.SetupPage_Histogram()
+
+    def LoadRef(self):
+        '''
+        load the reference data, and get the image size
+        '''
+        self.ref_K, nrOfRow1, nrOfColumn1 = QIBA_functions.ImportRawFile(self.path_ref_K, self.patchLen)
+        self.ref_V, nrOfRow2, nrOfColumn2 = QIBA_functions.ImportRawFile(self.path_ref_V, self.patchLen)
+        if (nrOfRow1 == nrOfRow2) and (nrOfColumn1 == nrOfColumn2):
+            self.nrOfRow = nrOfRow1 - 2
+            self.nrOfColumn = nrOfColumn1
+        else:
+            self.SetStatusText('Please load suitable reference data!')
+
+    def SetupStartPage(self):
+        '''
+        setup the start page
+        '''
+        sizerRef_K_path = wx.BoxSizer(wx.HORIZONTAL)
+        sizerRef_V_path = wx.BoxSizer(wx.HORIZONTAL)
+        sizerRef_K_image = wx.BoxSizer(wx.HORIZONTAL)
+        sizerRef_V_image = wx.BoxSizer(wx.HORIZONTAL)
+        sizerRef_K = wx.BoxSizer(wx.VERTICAL)
+        sizerRef_V = wx.BoxSizer(wx.VERTICAL)
+        sizerMiddle = wx.BoxSizer(wx.HORIZONTAL)
+
+        panelRef_K = wx.Panel(self.pageStart, style = wx.SIMPLE_BORDER)
+        panelRef_V = wx.Panel(self.pageStart, style = wx.SIMPLE_BORDER)
+
+        # setup the reference data paths
+        sizerRef_K_path.Add(wx.StaticText(panelRef_K, -1, 'Reference Ktrans: '))
+        self.textCtrlRefPath_K = wx.TextCtrl(panelRef_K, -1, self.path_ref_K, size = (400, -1))
+        sizerRef_K_path.Add(self.textCtrlRefPath_K)
+        buttonLoadRefK = wx.Button(panelRef_K, -1, 'Select...')
+        buttonLoadRefK.Bind(wx.EVT_BUTTON, self.OnLoadRef_K)
+        sizerRef_K_path.Add(buttonLoadRefK)
+
+        self.figureRefViewer_K = Figure()
+        self.canvasRefViewer_K = FigureCanvas(panelRef_K, -1, self.figureRefViewer_K)
+        sizerRef_K_image.Add(self.canvasRefViewer_K, 1, wx.EXPAND)
+
+        sizerRef_K.Add(sizerRef_K_path, 0)
+        sizerRef_K.Add(sizerRef_K_image, 1, wx.EXPAND)
+        panelRef_K.SetSizer(sizerRef_K)
+
+        sizerRef_V_path.Add(wx.StaticText(panelRef_V, -1, 'Reference Ve: '))
+        self.textCtrlRefPath_V = wx.TextCtrl(panelRef_V, -1, self.path_ref_V, size = (400, -1))
+        sizerRef_V_path.Add(self.textCtrlRefPath_V)
+        buttonLoadRefV = wx.Button(panelRef_V, -1, 'Select...')
+        buttonLoadRefV.Bind(wx.EVT_BUTTON, self.OnLoadRef_V)
+        sizerRef_V_path.Add(buttonLoadRefV)
+        self.figureRefViewer_V = Figure()
+        self.canvasRefViewer_V = FigureCanvas(panelRef_V, -1, self.figureRefViewer_V)
+        sizerRef_V_image.Add(self.canvasRefViewer_V, 1, wx.EXPAND)
+
+        sizerRef_V.Add(sizerRef_V_path, 0)
+        sizerRef_V.Add(sizerRef_V_image, 1, wx.EXPAND)
+        panelRef_V.SetSizer(sizerRef_V)
+
+        # the upper part of the page
+        self.ShowRef()
+        sizerMiddle.Add(panelRef_K, 1, wx.EXPAND)
+        sizerMiddle.Add(panelRef_V, 1, wx.EXPAND)
+
+        # button to start evaluation
+        self.buttonEvaluate = wx.Button(self.pageStart, wx.ID_ANY, 'Evaluate')
+        self.Bind(wx.EVT_BUTTON, self.OnEvaluate, self.buttonEvaluate)
+
+        # text area
+        header = wx.StaticText(self.pageStart, -1, 'Welcome to QIBA Evaluate Tool(GKM)!', style=wx.ALIGN_CENTER_HORIZONTAL)
+        instruction1 = wx.StaticText(self.pageStart, -1, '- left-click to select and right-click to import the calculated file from the file tree on the left.')
+        instruction2 = wx.StaticText(self.pageStart, -1, '- change the reference data under if necessary.')
+        instruction3 = wx.StaticText(self.pageStart, -1, '- press the button "Evaluate" at the bottom to start evaluation.')
+        fontHeader = wx.Font(22, wx.DECORATIVE, style = wx.FONTSTYLE_NORMAL, weight = wx.FONTWEIGHT_NORMAL)
+        fontText = wx.Font(14, wx.DECORATIVE, style = wx.FONTSTYLE_NORMAL, weight = wx.FONTWEIGHT_NORMAL)
+        header.SetFont(fontHeader)
+        instruction1.SetFont(fontText)
+        instruction2.SetFont(fontText)
+        instruction3.SetFont(fontText)
+        sizerTop = wx.BoxSizer(wx.VERTICAL)
+        sizerTop.Add(header, flag = wx.CENTER)
+        sizerTop.Add(instruction1)
+        sizerTop.Add(instruction2)
+        sizerTop.Add(instruction3)
+
+        # the page sizer
+        sizerPage = wx.BoxSizer(wx.VERTICAL)
+        sizerPage.Add(sizerTop, 2, wx.EXPAND)
+        sizerPage.Add(sizerMiddle, 19, wx.EXPAND)
+        sizerPage.Add(self.buttonEvaluate, 1, wx.EXPAND)
+        self.buttonEvaluate.Disable()
+
+        self.pageStart.SetSizer(sizerPage)
+        self.pageStart.Fit()
+
+    def ShowRef(self):
+        '''
+        show the reference images in the start page
+        '''
+        subplot_Ref_K = self.figureRefViewer_K.add_subplot(1,1,1)
+        subplot_Ref_K.imshow(self.ref_K, cmap = 'bone', interpolation='nearest')
+        self.figureRefViewer_K.tight_layout()
+        self.canvasRefViewer_K.draw()
+
+        subplot_Ref_V = self.figureRefViewer_V.add_subplot(1,1,1)
+        subplot_Ref_V.imshow(self.ref_V, cmap = 'bone', interpolation='nearest')
+        self.figureRefViewer_V.tight_layout()
+        self.canvasRefViewer_V.draw()
+
+    def OnLoadCal_K_dialog(self, event):
+        '''
+        change the calculated Ktrans from dialog
+        '''
+        dlg = wx.FileDialog(self, 'Load calculated Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.path_cal_K = dlg.GetPath()
+            self.SetStatusText('Calculated Ktrans loaded.')
+        else:
+            self.SetStatusText('Calculated Ktrans was NOT loaded!')
+
+    def OnLoadCal_V_dialog(self, event):
+        '''
+        change the calculated Ve from dialog
+        '''
+        dlg = wx.FileDialog(self, 'Load calculated Ve...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.path_cal_V = dlg.GetPath()
+            self.SetStatusText('Calculated Ve loaded.')
+        else:
+            self.SetStatusText('Calculated Ve was NOT loaded!')
 
     def SetupEditMenu(self):
         # setup the edit menu in the menu bar
@@ -615,11 +751,11 @@ class MainWindow_KV(MainWindow):
         self.figureHist_Ve = Figure()
         self.canvasHist_Ve = FigureCanvas(self.pageHistogram,-1, self.figureHist_Ve)
 
-        self.verticalLine = wx.StaticLine(self.pageHistogram, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
+        self.verticalLineHist = wx.StaticLine(self.pageHistogram, -1, style=wx.LI_VERTICAL) # vertical line to separate the two subplots
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
-        sizer.Add(self.verticalLine, 2, wx.EXPAND)
+        sizer.Add(self.verticalLineHist, 2, wx.EXPAND)
         sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
         self.pageHistogram.SetSizer(sizer)
 
@@ -662,6 +798,11 @@ class MainWindow_KV(MainWindow):
         dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_K = dlg.GetPath()
+            self.textCtrlRefPath_K.SetValue(self.path_ref_K)
+            self.ref_K, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_K, self.patchLen)
+            self.nrOfRow = nrOfRow - 2
+            self.nrOfColumn = nrOfColumn
+            self.ShowRef()
             self.SetStatusText('Reference Ktrans loaded.')
         else:
             self.SetStatusText('Reference Ktrans was NOT loaded!')
@@ -671,6 +812,8 @@ class MainWindow_KV(MainWindow):
         dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_V = dlg.GetPath()
+            self.textCtrlRefPath_V.SetValue(self.path_ref_V)
+            self.ShowRef()
             self.SetStatusText('Reference Ve loaded.')
         else:
             self.SetStatusText('Reference Ve was NOT loaded!')
@@ -1197,12 +1340,12 @@ if __name__ == "__main__":
         else:
             exit(0)
     else:
-        QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['Ktrans-Ve', 'T1'])
+        QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['GKM', 'Flip Angle T1'])
         if QIBASelectionDialog.ShowModal() == wx.ID_OK:
-            if QIBASelectionDialog.GetSelections() == 'Ktrans-Ve':
-                window = MainWindow_KV("QIBA evaluate tool (Ktrans-Ve)")
-            elif QIBASelectionDialog.GetSelections() == 'T1':
-                window = MainWindow_T1("QIBA evaluate tool (T1)")
+            if QIBASelectionDialog.GetSelections() == 'GKM':
+                window = MainWindow_KV("QIBA evaluate tool (GKM)")
+            elif QIBASelectionDialog.GetSelections() == 'Flip Angle T1':
+                window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)")
         else:
             exit(0)
 
