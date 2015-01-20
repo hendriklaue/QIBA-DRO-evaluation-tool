@@ -63,6 +63,7 @@ class MainWindow(wx.Frame):
 
         self.nrOfRow = 0
         self.nrOfColumn = 0
+        self.patchLen = 10
         self.WARNINGTEXT = False
 
         self.CenterOnScreen()
@@ -164,7 +165,6 @@ class MainWindow(wx.Frame):
                 self.WARNINGTEXT = True
                 self.dlg.Update()
             return
-
 
     def SetupLayoutMain(self):
         '''
@@ -695,28 +695,6 @@ class MainWindow_KV(MainWindow):
         self.figureRefViewer_V.tight_layout()
         self.canvasRefViewer_V.draw()
 
-    def OnLoadCal_K_dialog(self, event):
-        '''
-        change the calculated Ktrans from dialog
-        '''
-        dlg = wx.FileDialog(self, 'Load calculated Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.path_cal_K = dlg.GetPath()
-            self.SetStatusText('Calculated Ktrans loaded.')
-        else:
-            self.SetStatusText('Calculated Ktrans was NOT loaded!')
-
-    def OnLoadCal_V_dialog(self, event):
-        '''
-        change the calculated Ve from dialog
-        '''
-        dlg = wx.FileDialog(self, 'Load calculated Ve...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.path_cal_V = dlg.GetPath()
-            self.SetStatusText('Calculated Ve loaded.')
-        else:
-            self.SetStatusText('Calculated Ve was NOT loaded!')
-
     def SetupEditMenu(self):
         # setup the edit menu in the menu bar
         editMenu = wx.Menu()
@@ -799,9 +777,15 @@ class MainWindow_KV(MainWindow):
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_K = dlg.GetPath()
             self.textCtrlRefPath_K.SetValue(self.path_ref_K)
-            self.ref_K, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_K, self.patchLen)
-            self.nrOfRow = nrOfRow - 2
-            self.nrOfColumn = nrOfColumn
+            imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_K, self.patchLen)
+            if imageData == 'binary':
+                self.OnImportBinaryDialog_K()
+            elif imageData.any() == False:
+                self.SetStatusText('Please import a valid image!')
+            else:
+                self.ref_K = imageData
+                self.nrOfRow = nrOfRow - 2
+                self.nrOfColumn = nrOfColumn
             self.ShowRef()
             self.SetStatusText('Reference Ktrans loaded.')
         else:
@@ -813,10 +797,119 @@ class MainWindow_KV(MainWindow):
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_V = dlg.GetPath()
             self.textCtrlRefPath_V.SetValue(self.path_ref_V)
+            imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_V, self.patchLen)
+            if imageData == 'binary':
+                self.OnImportBinaryDialog_V()
+            elif imageData.any() == False:
+                self.SetStatusText('Please import a valid image!')
+            else:
+                self.ref_V = imageData
+                self.nrOfRow = nrOfRow - 2
+                self.nrOfColumn = nrOfColumn
             self.ShowRef()
             self.SetStatusText('Reference Ve loaded.')
         else:
             self.SetStatusText('Reference Ve was NOT loaded!')
+
+    def OnImportBinaryDialog_K(self):
+        # edit the dimension of the images for importing the binary images
+        self.dlg = wx.Dialog(self, title = 'Please insert the size of the binary image...')
+
+        self.sizer0 = wx.BoxSizer(wx.VERTICAL)
+        self.sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.text1 = wx.StaticText(self.dlg, label="number of the rows:")
+        self.textCtrl1 = wx.TextCtrl(self.dlg, -1, str(self.nrOfRow))
+        self.sizer1.Add(self.text1, 0)
+        self.sizer1.Add(self.textCtrl1, 1)
+
+        self.text2 = wx.StaticText(self.dlg, label="number of the columns:")
+        self.textCtrl2 = wx.TextCtrl(self.dlg, -1, str(self.nrOfColumn))
+        self.sizer2.Add(self.text2, 0)
+        self.sizer2.Add(self.textCtrl2, 1)
+
+        self.buttonOK = wx.Button(self.dlg, label = 'Ok')
+        self.buttonOK.Bind(wx.EVT_BUTTON, self.OnImportBinaryDialog_OK_K)
+        self.sizer0.Add(self.sizer1, 1)
+        self.sizer0.Add(self.sizer2, 1)
+        self.sizer0.Add(self.buttonOK, 1)
+        self.sizer0.Fit(self.dlg)
+        self.dlg.SetSizer(self.sizer0)
+
+        self.dlg.Center()
+        self.WARNINGTEXT = False
+
+        self.dlg.ShowModal()
+
+    def OnImportBinaryDialog_OK_K(self, event):
+        # when the OK is clicked in the dimension edit dialog
+
+        if (QIBA_functions.IsPositiveInteger(self.textCtrl1.GetValue()) and QIBA_functions.IsPositiveInteger(self.textCtrl2.GetValue()) ):
+            self.nrOfRow = int(self.textCtrl1.GetValue())
+            self.nrOfColumn = int(self.textCtrl2.GetValue())
+            self.dlg.Destroy()
+            self.ref_K = QIBA_functions.ImportFile(self.path_ref_K, self.nrOfRow, self.nrOfColumn, self.patchLen)[0]
+        else:
+            self.SetStatusText('Image dimension is not set correctly!')
+            if self.WARNINGTEXT == False:
+                self.textWarning = wx.StaticText(self.dlg, label="Please input a proper integer!")
+                self.sizer0.Insert(2, self.textWarning)
+                self.sizer0.Fit(self.dlg)
+                self.dlg.SetSizer(self.sizer0)
+                self.WARNINGTEXT = True
+                self.dlg.Update()
+            return
+
+    def OnImportBinaryDialog_V(self):
+        # edit the dimension of the images for importing the binary images
+        self.dlg = wx.Dialog(self, title = 'Please insert the size of the binary image...')
+
+        self.sizer0 = wx.BoxSizer(wx.VERTICAL)
+        self.sizer1 = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+
+        self.text1 = wx.StaticText(self.dlg, label="number of the rows:")
+        self.textCtrl1 = wx.TextCtrl(self.dlg, -1, str(self.nrOfRow))
+        self.sizer1.Add(self.text1, 0)
+        self.sizer1.Add(self.textCtrl1, 1)
+
+        self.text2 = wx.StaticText(self.dlg, label="number of the columns:")
+        self.textCtrl2 = wx.TextCtrl(self.dlg, -1, str(self.nrOfColumn))
+        self.sizer2.Add(self.text2, 0)
+        self.sizer2.Add(self.textCtrl2, 1)
+
+        self.buttonOK = wx.Button(self.dlg, label = 'Ok')
+        self.buttonOK.Bind(wx.EVT_BUTTON, self.OnImportBinaryDialog_OK_V)
+        self.sizer0.Add(self.sizer1, 1)
+        self.sizer0.Add(self.sizer2, 1)
+        self.sizer0.Add(self.buttonOK, 1)
+        self.sizer0.Fit(self.dlg)
+        self.dlg.SetSizer(self.sizer0)
+
+        self.dlg.Center()
+        self.WARNINGTEXT = False
+
+        self.dlg.ShowModal()
+
+    def OnImportBinaryDialog_OK_V(self, event):
+        # when the OK is clicked in the dimension edit dialog
+
+        if (QIBA_functions.IsPositiveInteger(self.textCtrl1.GetValue()) and QIBA_functions.IsPositiveInteger(self.textCtrl2.GetValue()) ):
+            self.nrOfRow = int(self.textCtrl1.GetValue())
+            self.nrOfColumn = int(self.textCtrl2.GetValue())
+            self.dlg.Destroy()
+            self.ref_V = QIBA_functions.ImportFile(self.path_ref_V, self.nrOfRow, self.nrOfColumn, self.patchLen)[0]
+        else:
+            self.SetStatusText('Image dimension is not set correctly!')
+            if self.WARNINGTEXT == False:
+                self.textWarning = wx.StaticText(self.dlg, label="Please input a proper integer!")
+                self.sizer0.Insert(2, self.textWarning)
+                self.sizer0.Fit(self.dlg)
+                self.dlg.SetSizer(self.sizer0)
+                self.WARNINGTEXT = True
+                self.dlg.Update()
+            return
 
     def DrawHistograms(self):
         # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.

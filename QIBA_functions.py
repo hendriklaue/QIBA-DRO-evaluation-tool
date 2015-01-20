@@ -79,7 +79,7 @@ def ImportRawFile(path, patchLen):
         ds =  dicom.read_file(path)
         nrOfRow, nrOfColumn = ds.pixel_array.shape
         return ds.pixel_array,  nrOfRow / patchLen, nrOfColumn / patchLen
-    elif fileExtension in ['.bin', '.raw']: # TODO: deal with binary files
+    elif fileExtension in ['.bin', '.raw']:
         return 'binary', 0, 0
     elif fileExtension == '.tif':
         im = Image.open(path)
