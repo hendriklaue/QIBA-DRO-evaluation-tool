@@ -532,7 +532,7 @@ class MainWindow(wx.Frame):
 
     def OnQuit(self, event):
         # quit the application
-        quit()
+        exit(0)
 
     def OnAbout(self, event):
         # show the information about this application and the related.
