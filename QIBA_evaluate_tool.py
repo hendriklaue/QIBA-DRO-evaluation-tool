@@ -60,7 +60,7 @@ class MainWindow(wx.Frame):
 
     def __init__(self, parent, applicationName):
         wx.Frame.__init__(self, parent, title = applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
-
+        self.Bind(wx.EVT_CLOSE, self.OnQuit)
         self.nrOfRow = 0
         self.nrOfColumn = 0
         self.patchLen = 10
@@ -492,9 +492,7 @@ class MainWindow(wx.Frame):
     def OnExport(self, event):
         # export the evaluation results to PDF
 
-        # disable some widgets
         self.buttonEvaluate.Disable()
-        self.buttonExport.Disable()
 
         # show in status bar when export finishes
         self.SetStatusText('Exporting results...')
@@ -526,9 +524,7 @@ class MainWindow(wx.Frame):
         # show in status bar when export finishes
         self.SetStatusText('Results exported as PDF file.')
 
-        # enable some widgets
         self.buttonEvaluate.Enable()
-        self.buttonExport.Enable()
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
@@ -536,7 +532,7 @@ class MainWindow(wx.Frame):
 
     def OnQuit(self, event):
         # quit the application
-        self.Close()
+        quit()
 
     def OnAbout(self, event):
         # show the information about this application and the related.
@@ -1188,7 +1184,7 @@ class MainWindow_T1(MainWindow):
         # sizerRef_T1_path.Add(wx.StaticText(panelRef_T1, -1, 'Reference T1: '))
         self.textCtrlRefPath_T1 = wx.TextCtrl(panelRef_T1, -1, self.path_ref_T1)
         sizerRef_T1_path.Add(self.textCtrlRefPath_T1, 1, wx.EXPAND)
-        buttonLoadRefT1 = wx.Button(panelRef_T1, -1, 'Select Reference T1...')
+        buttonLoadRefT1 = wx.Button(panelRef_T1, -1, 'Select reference T1...')
         buttonLoadRefT1.Bind(wx.EVT_BUTTON, self.OnLoadRef_T1)
         sizerRef_T1_path.Add(buttonLoadRefT1)
 
@@ -1577,7 +1573,7 @@ if __name__ == "__main__":
     Application = wx.App()
 
     # show the splash window
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
         pass
     else:
