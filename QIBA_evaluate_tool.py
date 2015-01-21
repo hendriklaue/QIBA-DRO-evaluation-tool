@@ -619,33 +619,34 @@ class MainWindow_KV(MainWindow):
         panelRef_V = wx.Panel(self.pageStart, style = wx.SIMPLE_BORDER)
 
         # setup the reference data paths
-        sizerRef_K_path.Add(wx.StaticText(panelRef_K, -1, 'Reference Ktrans: '))
-        self.textCtrlRefPath_K = wx.TextCtrl(panelRef_K, -1, self.path_ref_K, size = (400, -1))
-        sizerRef_K_path.Add(self.textCtrlRefPath_K)
-        buttonLoadRefK = wx.Button(panelRef_K, -1, 'Select...')
+        # sizerRef_K_path.Add(wx.StaticText(panelRef_K, -1, 'Reference Ktrans: '))
+        self.textCtrlRefPath_K = wx.TextCtrl(panelRef_K, -1, self.path_ref_K)
+        sizerRef_K_path.Add(self.textCtrlRefPath_K, 1, wx.EXPAND)
+
+        buttonLoadRefK = wx.Button(panelRef_K, -1, 'Select reference Ktrans...')
         buttonLoadRefK.Bind(wx.EVT_BUTTON, self.OnLoadRef_K)
-        sizerRef_K_path.Add(buttonLoadRefK)
+        sizerRef_K_path.Add(buttonLoadRefK, 0, wx.ALIGN_RIGHT)
 
         self.figureRefViewer_K = Figure()
         self.canvasRefViewer_K = FigureCanvas(panelRef_K, -1, self.figureRefViewer_K)
         sizerRef_K_image.Add(self.canvasRefViewer_K, 1, wx.EXPAND)
 
-        sizerRef_K.Add(sizerRef_K_path, 0)
         sizerRef_K.Add(sizerRef_K_image, 1, wx.EXPAND)
+        sizerRef_K.Add(sizerRef_K_path, 0, wx.EXPAND)
         panelRef_K.SetSizer(sizerRef_K)
 
-        sizerRef_V_path.Add(wx.StaticText(panelRef_V, -1, 'Reference Ve: '))
+        # sizerRef_V_path.Add(wx.StaticText(panelRef_V, -1, 'Reference Ve: '))
         self.textCtrlRefPath_V = wx.TextCtrl(panelRef_V, -1, self.path_ref_V, size = (400, -1))
-        sizerRef_V_path.Add(self.textCtrlRefPath_V)
-        buttonLoadRefV = wx.Button(panelRef_V, -1, 'Select...')
+        sizerRef_V_path.Add(self.textCtrlRefPath_V, 1, wx.EXPAND)
+        buttonLoadRefV = wx.Button(panelRef_V, -1, 'Select reference Ve...')
         buttonLoadRefV.Bind(wx.EVT_BUTTON, self.OnLoadRef_V)
         sizerRef_V_path.Add(buttonLoadRefV)
         self.figureRefViewer_V = Figure()
         self.canvasRefViewer_V = FigureCanvas(panelRef_V, -1, self.figureRefViewer_V)
         sizerRef_V_image.Add(self.canvasRefViewer_V, 1, wx.EXPAND)
 
-        sizerRef_V.Add(sizerRef_V_path, 0)
         sizerRef_V.Add(sizerRef_V_image, 1, wx.EXPAND)
+        sizerRef_V.Add(sizerRef_V_path, 0, wx.EXPAND)
         panelRef_V.SetSizer(sizerRef_V)
 
         # the upper part of the page
@@ -689,12 +690,20 @@ class MainWindow_KV(MainWindow):
         show the reference images in the start page
         '''
         subplot_Ref_K = self.figureRefViewer_K.add_subplot(1,1,1)
-        subplot_Ref_K.imshow(self.ref_K, cmap = 'bone', interpolation='nearest')
+        handler = subplot_Ref_K.imshow(self.ref_K, cmap = 'bone', interpolation='nearest')
+        divider = make_axes_locatable(subplot_Ref_K.get_figure().gca()) # for tight up the color bar
+        cax = divider.append_axes("right", "5%", pad="3%")
+        subplot_Ref_K.get_figure().colorbar(handler, cax = cax).set_label('Ktrans[1/min]') # show color bar and the label
+        subplot_Ref_K.set_title('Reference Data Ktrans')
         self.figureRefViewer_K.tight_layout()
         self.canvasRefViewer_K.draw()
 
         subplot_Ref_V = self.figureRefViewer_V.add_subplot(1,1,1)
-        subplot_Ref_V.imshow(self.ref_V, cmap = 'bone', interpolation='nearest')
+        handler = subplot_Ref_V.imshow(self.ref_V, cmap = 'bone', interpolation='nearest')
+        divider = make_axes_locatable(subplot_Ref_V.get_figure().gca()) # for tight up the color bar
+        cax = divider.append_axes("right", "5%", pad="3%")
+        subplot_Ref_V.get_figure().colorbar(handler, cax = cax).set_label('Ve[]') # show color bar and the label
+        subplot_Ref_V.set_title('Reference Data Ve')
         self.figureRefViewer_V.tight_layout()
         self.canvasRefViewer_V.draw()
 
@@ -702,7 +711,7 @@ class MainWindow_KV(MainWindow):
         # setup the edit menu in the menu bar
         editMenu = wx.Menu()
 
-        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Eidt the dimensions of the images...')
+        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Edit the dimensions of the images...')
         editMenu.AppendSeparator()
         OnLoadRef_K = editMenu.Append(wx.ID_ANY, 'Load reference Ktrans...')
         OnLoadRef_V = editMenu.Append(wx.ID_ANY, 'Load reference Ve...')
@@ -1176,10 +1185,10 @@ class MainWindow_T1(MainWindow):
         panelRef_T1 = wx.Panel(self.pageStart, style = wx.SIMPLE_BORDER)
 
         # setup the reference data paths
-        sizerRef_T1_path.Add(wx.StaticText(panelRef_T1, -1, 'Reference T1: '))
-        self.textCtrlRefPath_T1 = wx.TextCtrl(panelRef_T1, -1, self.path_ref_T1, size = (400, -1))
-        sizerRef_T1_path.Add(self.textCtrlRefPath_T1)
-        buttonLoadRefT1 = wx.Button(panelRef_T1, -1, 'Select...')
+        # sizerRef_T1_path.Add(wx.StaticText(panelRef_T1, -1, 'Reference T1: '))
+        self.textCtrlRefPath_T1 = wx.TextCtrl(panelRef_T1, -1, self.path_ref_T1)
+        sizerRef_T1_path.Add(self.textCtrlRefPath_T1, 1, wx.EXPAND)
+        buttonLoadRefT1 = wx.Button(panelRef_T1, -1, 'Select Reference T1...')
         buttonLoadRefT1.Bind(wx.EVT_BUTTON, self.OnLoadRef_T1)
         sizerRef_T1_path.Add(buttonLoadRefT1)
 
@@ -1187,8 +1196,8 @@ class MainWindow_T1(MainWindow):
         self.canvasRefViewer_T1 = FigureCanvas(panelRef_T1, -1, self.figureRefViewer_T1)
         sizerRef_T1_image.Add(self.canvasRefViewer_T1, 1, wx.EXPAND)
 
-        sizerRef_T1.Add(sizerRef_T1_path, 0)
         sizerRef_T1.Add(sizerRef_T1_image, 1, wx.EXPAND)
+        sizerRef_T1.Add(sizerRef_T1_path, 0, wx.EXPAND)
         panelRef_T1.SetSizer(sizerRef_T1)
 
         # the upper part of the page
@@ -1230,8 +1239,12 @@ class MainWindow_T1(MainWindow):
         '''
         show the reference images in the start page
         '''
-        subplot_Ref_K = self.figureRefViewer_T1.add_subplot(1,1,1)
-        subplot_Ref_K.imshow(self.ref_T1, cmap = 'bone', interpolation='nearest')
+        subplot_Ref_T1 = self.figureRefViewer_T1.add_subplot(1,1,1)
+        handler = subplot_Ref_T1.imshow(self.ref_T1, cmap = 'bone', interpolation='nearest')
+        divider = make_axes_locatable(subplot_Ref_T1.get_figure().gca()) # for tight up the color bar
+        cax = divider.append_axes("right", "5%", pad="3%")
+        subplot_Ref_T1.get_figure().colorbar(handler, cax = cax).set_label('T1[ms]') # show color bar and the label
+        subplot_Ref_T1.set_title('Reference Data T1')
         self.figureRefViewer_T1.tight_layout()
         self.canvasRefViewer_T1.draw()
 
@@ -1564,9 +1577,13 @@ if __name__ == "__main__":
     Application = wx.App()
 
     # show the splash window
-    QIBASplashWindow = MySplashScreen()
-    QIBASplashWindow.Show()
-    time.sleep(2)
+    DEBUG = True
+    if DEBUG:
+        pass
+    else:
+        QIBASplashWindow = MySplashScreen()
+        QIBASplashWindow.Show()
+        time.sleep(2)
 
     if len(argv) == 2:
         if argv[1] == 'KV':
