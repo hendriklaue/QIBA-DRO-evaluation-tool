@@ -116,37 +116,6 @@ class MainWindow(wx.Frame):
         # open the manual file
         os.startfile(os.path.join(os.getcwd(), 'tools', 'Manual.pdf'))
 
-    def OnEditImageDimension(self, event):
-        # edit the dimension of the images
-        self.dlg = wx.Dialog(self, title = 'Edit the dimension of the image...')
-
-        self.sizer0 = wx.BoxSizer(wx.VERTICAL)
-        self.sizer1 = wx.BoxSizer(wx.HORIZONTAL)
-        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
-
-        self.text1 = wx.StaticText(self.dlg, label="number of the rows:")
-        self.textCtrl1 = wx.TextCtrl(self.dlg, -1, str(self.nrOfRow))
-        self.sizer1.Add(self.text1, 0)
-        self.sizer1.Add(self.textCtrl1, 1)
-
-        self.text2 = wx.StaticText(self.dlg, label="number of the columns:")
-        self.textCtrl2 = wx.TextCtrl(self.dlg, -1, str(self.nrOfColumn))
-        self.sizer2.Add(self.text2, 0)
-        self.sizer2.Add(self.textCtrl2, 1)
-
-        self.buttonOK = wx.Button(self.dlg, label = 'Ok')
-        self.buttonOK.Bind(wx.EVT_BUTTON, self.OnEditDimension_OK)
-        self.sizer0.Add(self.sizer1, 1)
-        self.sizer0.Add(self.sizer2, 1)
-        self.sizer0.Add(self.buttonOK, 1)
-        self.sizer0.Fit(self.dlg)
-        self.dlg.SetSizer(self.sizer0)
-
-        self.dlg.Center()
-        self.WARNINGTEXT = False
-
-        self.dlg.ShowModal()
-
     def OnEditDimension_OK(self, event):
         # when the OK is clicked in the dimension edit dialog
 
@@ -653,6 +622,7 @@ class MainWindow_KV(MainWindow):
         # button to start evaluation
         self.buttonEvaluate = wx.Button(self.pageStart, wx.ID_ANY, 'Evaluate')
         self.Bind(wx.EVT_BUTTON, self.OnEvaluate, self.buttonEvaluate)
+        self.buttonEvaluate.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0))
 
         # text area
         header = wx.StaticText(self.pageStart, -1, 'Welcome to QIBA Evaluate Tool(GKM)!', style=wx.ALIGN_CENTER_HORIZONTAL)
@@ -685,6 +655,7 @@ class MainWindow_KV(MainWindow):
         '''
         show the reference images in the start page
         '''
+        self.figureRefViewer_K.clear()
         subplot_Ref_K = self.figureRefViewer_K.add_subplot(1,1,1)
         handler = subplot_Ref_K.imshow(self.ref_K, cmap = 'bone', interpolation='nearest')
         divider = make_axes_locatable(subplot_Ref_K.get_figure().gca()) # for tight up the color bar
@@ -694,6 +665,7 @@ class MainWindow_KV(MainWindow):
         self.figureRefViewer_K.tight_layout()
         self.canvasRefViewer_K.draw()
 
+        self.figureRefViewer_V.clear()
         subplot_Ref_V = self.figureRefViewer_V.add_subplot(1,1,1)
         handler = subplot_Ref_V.imshow(self.ref_V, cmap = 'bone', interpolation='nearest')
         divider = make_axes_locatable(subplot_Ref_V.get_figure().gca()) # for tight up the color bar
@@ -707,11 +679,11 @@ class MainWindow_KV(MainWindow):
         # setup the edit menu in the menu bar
         editMenu = wx.Menu()
 
-        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Edit the dimensions of the images...')
-        editMenu.AppendSeparator()
+        # OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Edit the dimensions of the images...')
+        # editMenu.AppendSeparator()
         OnLoadRef_K = editMenu.Append(wx.ID_ANY, 'Load reference Ktrans...')
         OnLoadRef_V = editMenu.Append(wx.ID_ANY, 'Load reference Ve...')
-        self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
+        # self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
         self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_K, OnLoadRef_K)
         self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_V, OnLoadRef_V)
         self.menubar.Insert(1,editMenu, "&Edit")
@@ -854,8 +826,8 @@ class MainWindow_KV(MainWindow):
         # when the OK is clicked in the dimension edit dialog
 
         if (QIBA_functions.IsPositiveInteger(self.textCtrl1.GetValue()) and QIBA_functions.IsPositiveInteger(self.textCtrl2.GetValue()) ):
-            self.nrOfRow = int(self.textCtrl1.GetValue())
-            self.nrOfColumn = int(self.textCtrl2.GetValue())
+            self.nrOfRow = int(self.textCtrl1.GetValue()) / self.patchLen
+            self.nrOfColumn = int(self.textCtrl2.GetValue()) / self.patchLen
             self.dlg.Destroy()
             self.ref_K = QIBA_functions.ImportFile(self.path_ref_K, self.nrOfRow, self.nrOfColumn, self.patchLen)[0]
         else:
@@ -904,8 +876,8 @@ class MainWindow_KV(MainWindow):
         # when the OK is clicked in the dimension edit dialog
 
         if (QIBA_functions.IsPositiveInteger(self.textCtrl1.GetValue()) and QIBA_functions.IsPositiveInteger(self.textCtrl2.GetValue()) ):
-            self.nrOfRow = int(self.textCtrl1.GetValue())
-            self.nrOfColumn = int(self.textCtrl2.GetValue())
+            self.nrOfRow = int(self.textCtrl1.GetValue()) / self.patchLen
+            self.nrOfColumn = int(self.textCtrl2.GetValue()) / self.patchLen
             self.dlg.Destroy()
             self.ref_V = QIBA_functions.ImportFile(self.path_ref_V, self.nrOfRow, self.nrOfColumn, self.patchLen)[0]
         else:
@@ -1203,6 +1175,7 @@ class MainWindow_T1(MainWindow):
         # button to start evaluation
         self.buttonEvaluate = wx.Button(self.pageStart, wx.ID_ANY, 'Evaluate')
         self.Bind(wx.EVT_BUTTON, self.OnEvaluate, self.buttonEvaluate)
+        self.buttonEvaluate.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0))
 
         # text area
         header = wx.StaticText(self.pageStart, -1, 'Welcome to QIBA Evaluate Tool(Flip Angle T1)!', style=wx.ALIGN_CENTER_HORIZONTAL)
@@ -1235,6 +1208,7 @@ class MainWindow_T1(MainWindow):
         '''
         show the reference images in the start page
         '''
+        self.figureRefViewer_T1.clear()
         subplot_Ref_T1 = self.figureRefViewer_T1.add_subplot(1,1,1)
         handler = subplot_Ref_T1.imshow(self.ref_T1, cmap = 'bone', interpolation='nearest')
         divider = make_axes_locatable(subplot_Ref_T1.get_figure().gca()) # for tight up the color bar
@@ -1248,10 +1222,10 @@ class MainWindow_T1(MainWindow):
         # setup the edit menu in the menu bar
         editMenu = wx.Menu()
 
-        OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Edit the dimensions of the images...')
+        # OnEditImageDimension = editMenu.Append(wx.ID_ANY, 'Edit the dimensions of the images...')
         editMenu.AppendSeparator()
         OnLoadRef_T1 = editMenu.Append(wx.ID_ANY, 'Load reference T1...')
-        self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
+        # self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
         self.menubar.Bind(wx.EVT_MENU, self.OnLoadRef_T1, OnLoadRef_T1)
         self.menubar.Insert(1,editMenu, "&Edit")
         self.SetMenuBar(self.menubar)
@@ -1354,8 +1328,8 @@ class MainWindow_T1(MainWindow):
         # when the OK is clicked in the dimension edit dialog
 
         if (QIBA_functions.IsPositiveInteger(self.textCtrl1.GetValue()) and QIBA_functions.IsPositiveInteger(self.textCtrl2.GetValue()) ):
-            self.nrOfRow = int(self.textCtrl1.GetValue())
-            self.nrOfColumn = int(self.textCtrl2.GetValue())
+            self.nrOfRow = int(self.textCtrl1.GetValue()) / self.patchLen
+            self.nrOfColumn = int(self.textCtrl2.GetValue()) / self.patchLen
             self.dlg.Destroy()
             self.ref_T1 = QIBA_functions.ImportFile(self.path_ref_T1, self.nrOfRow, self.nrOfColumn, self.patchLen)[0]
         else:
