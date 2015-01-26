@@ -65,6 +65,8 @@ class MainWindow(wx.Frame):
         self.nrOfColumn = 0
         self.patchLen = 10
         self.WARNINGTEXT = False
+        self.supportedFileTypeList = ['.dcm', '.bin', '.raw', '.tif']
+        self.READYTOEVALUATE = False
 
         self.CenterOnScreen()
 
@@ -172,6 +174,9 @@ class MainWindow(wx.Frame):
         # setup the tree control widget for file viewing and selection
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
                                              filter="Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif")
+        self.fileTree = self.fileBrowser.GetTreeCtrl()
+        # setup tooltip
+        self.fileTree.Bind(wx.EVT_MOTION, self.OnMouseMotion)
 
         # setup the right click function
         self.SetupRightClickMenu()
@@ -180,6 +185,16 @@ class MainWindow(wx.Frame):
 
         self.leftPanel.SetSizer(sizerLeft)
 
+    def OnMouseMotion(self, event):
+        '''
+        show the tooltip on the tree control item
+        '''
+        pos = self.fileTree.ScreenToClient(wx.GetMousePosition())
+        item_index, flag = self.fileTree.HitTest(pos)
+        if flag == wx.TREE_HITTEST_ONITEMLABEL:
+            if (str(os.path.splitext(self.fileTree.GetItemText(item_index))[1]) in self.supportedFileTypeList):
+                self.fileTree.SetToolTipString('Left-click to select, then right click to import.')
+        event.Skip()
 
     def SetupCalPath(self):
         '''
@@ -392,6 +407,11 @@ class MainWindow(wx.Frame):
     def OnEvaluate(self, event):
         # start to evaluate
 
+        # make sure there's calculated data loaded
+        if not self.READYTOEVALUATE:
+            wx.MessageBox('Please import proper calculated data!', 'Info', wx.OK | wx.ICON_INFORMATION)
+            return
+
         # check the image dimension parameter validation
         if self.WARNINGTEXT:
             self.SetStatusText('Please input correct dimension of the image!')
@@ -404,12 +424,11 @@ class MainWindow(wx.Frame):
         self.buttonEvaluate.Disable()
 
         # status bar
-        self.SetStatusText('Evaluating...')
+        self.SetStatusText('Evaluating, please wait...')
         #EvaluateProgressDialog.Update(5)
 
         # create new model object to evaluated on
         self.GenerateModel()
-        #EvaluateProgressDialog.Update(10)
 
         # call the method to execute evaluation
         try:
@@ -623,30 +642,33 @@ class MainWindow_KV(MainWindow):
         self.buttonEvaluate = wx.Button(self.pageStart, wx.ID_ANY, 'Evaluate')
         self.Bind(wx.EVT_BUTTON, self.OnEvaluate, self.buttonEvaluate)
         self.buttonEvaluate.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0))
+        self.buttonEvaluate.SetToolTip(wx.ToolTip('Press to evaluate after importing calculated data.'))
 
         # text area
-        header = wx.StaticText(self.pageStart, -1, 'Welcome to QIBA Evaluate Tool(GKM)!', style=wx.ALIGN_CENTER_HORIZONTAL)
-        instruction1 = wx.StaticText(self.pageStart, -1, '- left-click to select and right-click to import the calculated file from the file tree on the left.')
-        instruction2 = wx.StaticText(self.pageStart, -1, '- change the reference data under if necessary.')
-        instruction3 = wx.StaticText(self.pageStart, -1, '- press the button "Evaluate" at the bottom to start evaluation.')
+        header = wx.StaticText(self.pageStart, -1, 'Welcome to QIBA Evaluate Tool(GKM)!')
         fontHeader = wx.Font(22, wx.DECORATIVE, style = wx.FONTSTYLE_NORMAL, weight = wx.FONTWEIGHT_NORMAL)
-        fontText = wx.Font(14, wx.DECORATIVE, style = wx.FONTSTYLE_NORMAL, weight = wx.FONTWEIGHT_NORMAL)
+        # instruction1 = wx.StaticText(self.pageStart, -1, '- left-click to select and right-click to import the calculated file from the file tree on the left.')
+        # instruction2 = wx.StaticText(self.pageStart, -1, '- change the reference data under if necessary.')
+        # instruction3 = wx.StaticText(self.pageStart, -1, '- press the button "Evaluate" at the bottom to start evaluation.')
+        # fontText = wx.Font(14, wx.DECORATIVE, style = wx.FONTSTYLE_NORMAL, weight = wx.FONTWEIGHT_NORMAL)
         header.SetFont(fontHeader)
-        instruction1.SetFont(fontText)
-        instruction2.SetFont(fontText)
-        instruction3.SetFont(fontText)
+        # instruction1.SetFont(fontText)
+        # instruction2.SetFont(fontText)
+        # instruction3.SetFont(fontText)
         sizerTop = wx.BoxSizer(wx.VERTICAL)
-        sizerTop.Add(header, flag = wx.CENTER)
-        sizerTop.Add(instruction1)
-        sizerTop.Add(instruction2)
-        sizerTop.Add(instruction3)
+        sizerTop.AddStretchSpacer()
+        sizerTop.Add(header, flag = wx.ALIGN_CENTER)
+        sizerTop.AddStretchSpacer()
+        # sizerTop.Add(instruction1)
+        # sizerTop.Add(instruction2)
+        # sizerTop.Add(instruction3)
 
         # the page sizer
         sizerPage = wx.BoxSizer(wx.VERTICAL)
         sizerPage.Add(sizerTop, 2, wx.EXPAND)
         sizerPage.Add(sizerMiddle, 19, wx.EXPAND)
         sizerPage.Add(self.buttonEvaluate, 1, wx.EXPAND)
-        self.buttonEvaluate.Disable()
+        # self.buttonEvaluate.Disable()
 
         self.pageStart.SetSizer(sizerPage)
         self.pageStart.Fit()
@@ -730,7 +752,7 @@ class MainWindow_KV(MainWindow):
 
     def OnRightClick(self, event):
         # the right click action on the file list
-        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in ['.dcm', '.bin', '.raw', '.tif']):
+        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in self.supportedFileTypeList):
             wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, self.OnLoadCal_K)
             wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, self.OnLoadCal_V)
             self.PopupMenu(self.popupMenu, event.GetPosition())
@@ -742,6 +764,7 @@ class MainWindow_KV(MainWindow):
         self.path_cal_K = self.fileBrowser.GetPath()
         self.SetStatusText('Calculated Ktrans loaded.')
         if self.path_cal_V:
+            self.READYTOEVALUATE = True
             self.buttonEvaluate.Enable()
 
     def OnLoadCal_V(self, event):
@@ -749,6 +772,7 @@ class MainWindow_KV(MainWindow):
         self.path_cal_V = self.fileBrowser.GetPath()
         self.SetStatusText('Calculated Ve loaded.')
         if self.path_cal_K:
+            self.READYTOEVALUATE = True
             self.buttonEvaluate.Enable()
 
     def OnLoadRef_K(self, event):
@@ -756,7 +780,6 @@ class MainWindow_KV(MainWindow):
         dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_K = dlg.GetPath()
-            self.textCtrlRefPath_K.SetValue(self.path_ref_K)
             imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_K, self.patchLen)
             if imageData == 'binary':
                 self.OnImportBinaryDialog_K()
@@ -776,7 +799,6 @@ class MainWindow_KV(MainWindow):
         dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_V = dlg.GetPath()
-            self.textCtrlRefPath_V.SetValue(self.path_ref_V)
             imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_V, self.patchLen)
             if imageData == 'binary':
                 self.OnImportBinaryDialog_V()
@@ -1176,31 +1198,31 @@ class MainWindow_T1(MainWindow):
         self.buttonEvaluate = wx.Button(self.pageStart, wx.ID_ANY, 'Evaluate')
         self.Bind(wx.EVT_BUTTON, self.OnEvaluate, self.buttonEvaluate)
         self.buttonEvaluate.SetFont(wx.Font(18, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0))
-        self.buttonEvaluate.SetToolTip(wx.ToolTip('Please import calculated data first!'))
+        self.buttonEvaluate.SetToolTip(wx.ToolTip('Press to evaluate after importing calculated data.'))
 
         # text area
         header = wx.StaticText(self.pageStart, -1, 'Welcome to QIBA Evaluate Tool(Flip Angle T1)!', style=wx.ALIGN_CENTER_HORIZONTAL)
-        instruction1 = wx.StaticText(self.pageStart, -1, '- left-click to select and right-click to import the calculated file from the file tree on the left.')
-        instruction2 = wx.StaticText(self.pageStart, -1, '- change the reference data under if necessary.')
-        instruction3 = wx.StaticText(self.pageStart, -1, '- press the button "Evaluate" at the bottom to start evaluation.')
+        # instruction1 = wx.StaticText(self.pageStart, -1, '- left-click to select and right-click to import the calculated file from the file tree on the left.')
+        # instruction2 = wx.StaticText(self.pageStart, -1, '- change the reference data under if necessary.')
+        # instruction3 = wx.StaticText(self.pageStart, -1, '- press the button "Evaluate" at the bottom to start evaluation.')
         fontHeader = wx.Font(22, wx.DECORATIVE, style = wx.FONTSTYLE_NORMAL, weight = wx.FONTWEIGHT_NORMAL)
         fontText = wx.Font(14, wx.DECORATIVE, style = wx.FONTSTYLE_NORMAL, weight = wx.FONTWEIGHT_NORMAL)
         header.SetFont(fontHeader)
-        instruction1.SetFont(fontText)
-        instruction2.SetFont(fontText)
-        instruction3.SetFont(fontText)
+        # instruction1.SetFont(fontText)
+        # instruction2.SetFont(fontText)
+        # instruction3.SetFont(fontText)
         sizerTop = wx.BoxSizer(wx.VERTICAL)
         sizerTop.Add(header, flag = wx.CENTER)
-        sizerTop.Add(instruction1)
-        sizerTop.Add(instruction2)
-        sizerTop.Add(instruction3)
+        # sizerTop.Add(instruction1)
+        # sizerTop.Add(instruction2)
+        # sizerTop.Add(instruction3)
 
         # the page sizer
         sizerPage = wx.BoxSizer(wx.VERTICAL)
         sizerPage.Add(sizerTop, 2, wx.EXPAND)
         sizerPage.Add(sizerMiddle, 19, wx.EXPAND)
         sizerPage.Add(self.buttonEvaluate, 1, wx.EXPAND)
-        self.buttonEvaluate.Disable()
+        # self.buttonEvaluate.Disable()
 
         self.pageStart.SetSizer(sizerPage)
         self.pageStart.Fit()
@@ -1262,7 +1284,7 @@ class MainWindow_T1(MainWindow):
 
     def OnRightClick(self, event):
         # the right click action on the file list
-        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in ['.dcm', '.bin', '.raw', '.tif']):
+        if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in self.supportedFileTypeList):
             wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_T1, self.OnLoadCal_T1)
             self.PopupMenu(self.popupMenu, event.GetPosition())
         else:
@@ -1272,6 +1294,7 @@ class MainWindow_T1(MainWindow):
         # pass the file path for loading
         self.path_cal_T1 = self.fileBrowser.GetPath()
         self.SetStatusText('Calculated T1 loaded.')
+        self.READYTOEVALUATE = True
         self.buttonEvaluate.Enable()
 
     def OnLoadRef_T1(self, event):
@@ -1279,7 +1302,6 @@ class MainWindow_T1(MainWindow):
         dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_T1 = dlg.GetPath()
-            self.textCtrlRefPath_T1.SetValue(self.path_ref_T1)
             imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_T1, self.patchLen)
             if imageData == 'binary':
                 self.OnImportBinaryDialog_T1()
@@ -1548,7 +1570,7 @@ if __name__ == "__main__":
     Application = wx.App()
 
     # show the splash window
-    DEBUG = False
+    DEBUG = True
     if DEBUG:
         pass
     else:
