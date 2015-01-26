@@ -36,6 +36,7 @@ def formatFloatTo2DigitsString(input):
 
 def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
     # import a file.  Pre-process so that different file types have the same structure.
+
     fileName, fileExtension = os.path.splitext(path)
     if fileExtension == '.dcm':
         ds =  dicom.read_file(path)
