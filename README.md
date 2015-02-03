@@ -40,6 +40,8 @@ Required packages or tools(all are in 32bit version)
 
 -- to export the results to PDF file, the tool "wkhtmltopdf" is used: http://wkhtmltopdf.org/
 	-> this tools goes along with the Windows installer and the course code, therefore no need to install separately.
+	
+-- to export the results to Excel file, the tool 'xlwt' is used: https://pypi.python.org/pypi/xlwt
 
 ================================================
 To Build installer

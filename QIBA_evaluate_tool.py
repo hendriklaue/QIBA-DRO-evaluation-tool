@@ -48,8 +48,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import time
 import subprocess
-import wx.lib.scrolledpanel as scrolled
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
+from xlwt import Workbook
+
 
 import QIBA_functions
 import QIBA_model
@@ -558,7 +559,7 @@ class MainWindow(wx.Frame):
         self.DrawBoxPlot()
         #EvaluateProgressDialog.Update(95)
 
-    def OnExport(self, event):
+    def OnExportToPDF(self, event):
         # export the evaluation results to PDF
 
         self.buttonEvaluate.Disable()
@@ -594,6 +595,8 @@ class MainWindow(wx.Frame):
         self.SetStatusText('Results exported as PDF file.')
 
         self.buttonEvaluate.Enable()
+
+
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
@@ -1265,6 +1268,22 @@ class MainWindow_KV(MainWindow):
 
                             [[minLim_y_K - spacing_y_K, maxLim_y_K + 2*spacing_y_K], [minLim_y_V - spacing_y_V, maxLim_y_V + 2*spacing_y_V]])
 
+    def OnExport(self, event):
+        '''
+        export the files as .png, excel
+        '''
+        dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+        if dlg.ShowModal() == wx.ID_OK:
+            saveDir = dlg.GetPath()
+            self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
+            self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
+            self.figureHist_Ktrans.savefig(os.path.join(saveDir, 'hist_K.png'))
+            self.figureHist_Ve.savefig(os.path.join(saveDir, 'hist_V.png'))
+            self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
+            self.SetStatusText('Files are exported.')
+        else:
+            pass
+
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
         htmlContent = ''
@@ -1581,7 +1600,6 @@ class MainWindow_T1(MainWindow):
                 if j == 0:
                     subPlot_T1.set_ylabel(self.newModel.headersVertical[i])
                 self.pageHistogram.SetAutoLayout(1)
-                self.pageHistogram.SetupScrolling()
 
 
         # setup the toolbar
@@ -1727,6 +1745,42 @@ class MainWindow_T1(MainWindow):
                             [[minLim_x - spacing_x, maxLim_x + spacing_x],],
 
                             [[minLim_y - spacing_y, maxLim_y + spacing_y],])
+
+    def OnExport(self, event):
+        '''
+        export the files as .png, excel
+        '''
+        dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.SetStatusText('Exporting, please wait...')
+            saveDir = dlg.GetPath()
+            # export figures
+            self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
+            self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
+            self.figureHist_T1.savefig(os.path.join(saveDir, 'histogram.png'))
+            self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
+
+            # export to excel
+            book = Workbook()
+            sheet1 = book.add_sheet('Statistics for calculated T1')
+            book.add_sheet('Sheet 2')
+            sheet1.write(0,0,'A1')
+            sheet1.write(0,1,'B1')
+            row1 = sheet1.row(1)
+            row1.write(0,'A2')
+            row1.write(1,'B2')
+            sheet1.col(0).width = 10000
+            sheet2 = book.get_sheet(1)
+            sheet2.row(0).write(0,'Sheet 2 A1')
+            sheet2.row(0).write(1,'Sheet 2 B1')
+            sheet2.flush_row_data()
+            sheet2.write(1,0,'Sheet 2 A3')
+            sheet2.col(0).width = 5000
+            sheet2.col(0).hidden = True
+            book.save(os.path.join(saveDir, 'simple.xls'))
+            self.SetStatusText('Files are exported.')
+        else:
+            pass
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
