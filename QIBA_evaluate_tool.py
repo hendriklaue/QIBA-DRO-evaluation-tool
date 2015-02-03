@@ -49,6 +49,7 @@ import matplotlib.ticker as ticker
 import time
 import subprocess
 import wx.lib.scrolledpanel as scrolled
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
 
 import QIBA_functions
 import QIBA_model
@@ -224,6 +225,7 @@ class MainWindow(wx.Frame):
         self.pageImagePreview = wx.Panel(self.noteBookRight)
         self.pageScatter = wx.Panel(self.noteBookRight)
         self.pageHistogram = wx.Panel(self.noteBookRight)
+        #self.pageHistogram = scrolled.ScrolledPanel(self.noteBookRight)
         self.pageBoxPlot = wx.Panel(self.noteBookRight)
         self.pageStatistics = wx.Panel(self.noteBookRight)
         self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
@@ -371,8 +373,50 @@ class MainWindow(wx.Frame):
                 subplot.get_figure().colorbar(handler, cax = cax).set_label(unitList[i][j]) # show color bar and the label
                 subplot.set_title(titleList[i][j])
 
+
+        # setup the toolbar
+        self.toolbar_maps = NavigationToolbar(self.canvasImagePreview)
+        self.toolbar_maps.Hide()
+
+        # right click
+        self.figureImagePreview.canvas.mpl_connect('axes_enter_event', self.enter_axes)
+        self.figureImagePreview.canvas.mpl_connect('axes_leave_event', self.leave_axes)
+        wx.EVT_RIGHT_DOWN(self.canvasImagePreview, self.rightDown_maps)
+        self.popmenu_maps = wx.Menu()
+        self.ID_POPUP_MAPS_PAN = wx.NewId()
+        self.ID_POPUP_MAPS_ZOOM = wx.NewId()
+        self.ID_POPUP_MAPS_SAVE = wx.NewId()
+
+        OnMaps_pan = wx.MenuItem(self.popmenu_maps, self.ID_POPUP_MAPS_PAN, 'Pan')
+        OnMaps_zoom = wx.MenuItem(self.popmenu_maps, self.ID_POPUP_MAPS_ZOOM, 'Zooom')
+        OnMaps_save = wx.MenuItem(self.popmenu_maps, self.ID_POPUP_MAPS_SAVE, 'Save')
+        self.popmenu_maps.AppendItem(OnMaps_pan)
+        self.popmenu_maps.AppendItem(OnMaps_zoom)
+        self.popmenu_maps.AppendItem(OnMaps_save)
+        wx.EVT_MENU(self.popmenu_maps, self.ID_POPUP_MAPS_PAN, self.toolbar_maps.pan)
+        wx.EVT_MENU(self.popmenu_maps, self.ID_POPUP_MAPS_ZOOM, self.toolbar_maps.zoom)
+        wx.EVT_MENU(self.popmenu_maps, self.ID_POPUP_MAPS_SAVE, self.toolbar_maps.save_figure)
+
+        # double click
+        wx.EVT_LEFT_DCLICK(self.canvasImagePreview, self.toolbar_maps.home)
+
         self.figureImagePreview.tight_layout()
         self.canvasImagePreview.draw()
+
+    def enter_axes(self, event):
+        self.IN_AXES = True
+
+    def leave_axes(self, event):
+        self.IN_AXES = False
+
+    def rightDown_maps(self, event):
+        '''
+        right down on figure
+        '''
+        if self.IN_AXES:
+            self.pageImagePreview.PopupMenu(self.popmenu_maps, event.GetPosition())
+        else:
+            pass
 
     def PlotScatter(self, dataList, refDataList, xLabelList, yLabelList, titleList, xLim, yLim):
         '''
@@ -385,8 +429,8 @@ class MainWindow(wx.Frame):
         for i in range(nrOfSubFigRows):
             for j in range(nrOfSubFigColumns):
                 subPlot = self.figureScatter.add_subplot(nrOfSubFigRows, nrOfSubFigColumns, i * nrOfSubFigColumns + j + 1)
-                subPlot.scatter(refDataList[i][j], dataList[i][j], color = 'b', alpha = 0.25, label = 'calculated value')
-                subPlot.scatter(refDataList[i][j], refDataList[i][j], color = 'g', alpha = 0.25, label = 'reference value')
+                subPlot.scatter(refDataList[i][j], dataList[i][j], color = 'b', alpha = 1, label = 'calculated value')
+                subPlot.scatter(refDataList[i][j], refDataList[i][j], color = 'g', alpha = 1, label = 'reference value')
                 subPlot.legend(loc = 'upper left')
                 subPlot.set_xlim(xLim[i])
                 subPlot.set_ylim(yLim[i])
@@ -394,8 +438,43 @@ class MainWindow(wx.Frame):
                 subPlot.set_ylabel(yLabelList[i][j])
                 subPlot.set_title(titleList[i][j])
 
+        # setup the toolbar
+        self.toolbar_scatters = NavigationToolbar(self.canvasScatter)
+        self.toolbar_scatters.Hide()
+
+        # right click
+        self.figureScatter.canvas.mpl_connect('axes_enter_event', self.enter_axes)
+        self.figureScatter.canvas.mpl_connect('axes_leave_event', self.leave_axes)
+        wx.EVT_RIGHT_DOWN(self.canvasScatter, self.rightDown_scatters)
+        self.popmenu_scatters = wx.Menu()
+        self.ID_POPUP_SCATTER_PAN = wx.NewId()
+        self.ID_POPUP_SCATTER_ZOOM = wx.NewId()
+        self.ID_POPUP_SCATTER_SAVE = wx.NewId()
+
+        OnScatters_pan = wx.MenuItem(self.popmenu_scatters, self.ID_POPUP_SCATTER_PAN, 'Pan')
+        OnScatters_zoom = wx.MenuItem(self.popmenu_scatters, self.ID_POPUP_SCATTER_ZOOM, 'Zooom')
+        OnScatters_save = wx.MenuItem(self.popmenu_scatters, self.ID_POPUP_SCATTER_SAVE, 'Save')
+        self.popmenu_scatters.AppendItem(OnScatters_pan)
+        self.popmenu_scatters.AppendItem(OnScatters_zoom)
+        self.popmenu_scatters.AppendItem(OnScatters_save)
+        wx.EVT_MENU(self.popmenu_scatters, self.ID_POPUP_SCATTER_PAN, self.toolbar_scatters.pan)
+        wx.EVT_MENU(self.popmenu_scatters, self.ID_POPUP_SCATTER_ZOOM, self.toolbar_scatters.zoom)
+        wx.EVT_MENU(self.popmenu_scatters, self.ID_POPUP_SCATTER_SAVE, self.toolbar_scatters.save_figure)
+
+        # double click
+        wx.EVT_LEFT_DCLICK(self.canvasScatter, self.toolbar_scatters.home)
+
         self.figureScatter.tight_layout()
         self.canvasScatter.draw()
+
+    def rightDown_scatters(self, event):
+        '''
+        right down on figure
+        '''
+        if self.IN_AXES:
+            self.canvasScatter.PopupMenu(self.popmenu_scatters, event.GetPosition())
+        else:
+            pass
 
     def DrawHistograms(self):
         pass
@@ -466,6 +545,8 @@ class MainWindow(wx.Frame):
         #EvaluateProgressDialog.Update(25)
 
         #EvaluateProgressDialog.Update(30)
+
+        self.IN_AXES = False
 
         # draw the figures
         self.DrawMaps()
@@ -722,6 +803,8 @@ class MainWindow_KV(MainWindow):
         OnLoadCal_V = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, 'Load as calculated Ve')
         self.popupMenu.AppendItem(OnLoadCal_K)
         self.popupMenu.AppendItem(OnLoadCal_V)
+        wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, self.OnLoadCal_K)
+        wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, self.OnLoadCal_V)
 
     def SetupPage_Histogram(self):
         # setup the histogram page
@@ -753,8 +836,6 @@ class MainWindow_KV(MainWindow):
     def OnRightClick(self, event):
         # the right click action on the file list
         if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in self.supportedFileTypeList):
-            wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, self.OnLoadCal_K)
-            wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, self.OnLoadCal_V)
             self.PopupMenu(self.popupMenu, event.GetPosition())
         else:
             self.SetStatusText('Invalid file or path chosen.')
@@ -796,7 +877,7 @@ class MainWindow_KV(MainWindow):
 
     def OnLoadRef_V(self, event):
         # pass the file path for loading
-        dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
+        dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_V = dlg.GetPath()
             imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_V, self.patchLen)
@@ -968,6 +1049,54 @@ class MainWindow_KV(MainWindow):
                 if j == 0:
                     subPlot_V.set_ylabel(self.newModel.headersVertical[i])
 
+        # setup the toolbar
+        self.toolbar_hist_K = NavigationToolbar(self.canvasHist_Ktrans)
+        self.toolbar_hist_K.Hide()
+        self.toolbar_hist_V = NavigationToolbar(self.canvasHist_Ve)
+        self.toolbar_hist_V.Hide()
+
+        # right click
+        self.figureHist_Ktrans.canvas.mpl_connect('axes_enter_event', self.enter_axes)
+        self.figureHist_Ktrans.canvas.mpl_connect('axes_leave_event', self.leave_axes)
+        self.figureHist_Ve.canvas.mpl_connect('axes_enter_event', self.enter_axes)
+        self.figureHist_Ve.canvas.mpl_connect('axes_leave_event', self.leave_axes)
+        wx.EVT_RIGHT_DOWN(self.canvasHist_Ktrans, self.rightDown_hist_K)
+        wx.EVT_RIGHT_DOWN(self.canvasHist_Ve, self.rightDown_hist_V)
+
+        self.popmenu_hist_K = wx.Menu()
+        self.ID_POPUP_HITS_PAN_K = wx.NewId()
+        self.ID_POPUP_HITS_ZOOM_K = wx.NewId()
+        self.ID_POPUP_HITS_SAVE_K = wx.NewId()
+
+        OnHist_pan_K = wx.MenuItem(self.popmenu_hist_K, self.ID_POPUP_HITS_PAN_K, 'Pan')
+        OnHist_zoom_K = wx.MenuItem(self.popmenu_hist_K, self.ID_POPUP_HITS_ZOOM_K, 'Zooom')
+        OnHist_save_K = wx.MenuItem(self.popmenu_hist_K, self.ID_POPUP_HITS_SAVE_K, 'Save')
+        self.popmenu_hist_K.AppendItem(OnHist_pan_K)
+        self.popmenu_hist_K.AppendItem(OnHist_zoom_K)
+        self.popmenu_hist_K.AppendItem(OnHist_save_K)
+        wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_PAN_K, self.toolbar_hist_K.pan)
+        wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_ZOOM_K, self.toolbar_hist_K.zoom)
+        wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_SAVE_K, self.toolbar_hist_K.save_figure)
+
+        self.popmenu_hist_V = wx.Menu()
+        self.ID_POPUP_HITS_PAN_V = wx.NewId()
+        self.ID_POPUP_HITS_ZOOM_V = wx.NewId()
+        self.ID_POPUP_HITS_SAVE_V = wx.NewId()
+
+        OnHist_pan = wx.MenuItem(self.popmenu_hist_V, self.ID_POPUP_HITS_PAN_V, 'Pan')
+        OnHist_zoom = wx.MenuItem(self.popmenu_hist_V, self.ID_POPUP_HITS_ZOOM_V, 'Zooom')
+        OnHist_save = wx.MenuItem(self.popmenu_hist_V, self.ID_POPUP_HITS_SAVE_V, 'Save')
+        self.popmenu_hist_V.AppendItem(OnHist_pan)
+        self.popmenu_hist_V.AppendItem(OnHist_zoom)
+        self.popmenu_hist_V.AppendItem(OnHist_save)
+        wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_PAN_V, self.toolbar_hist_V.pan)
+        wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_ZOOM_V, self.toolbar_hist_V.zoom)
+        wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_SAVE_V, self.toolbar_hist_V.save_figure)
+
+        # double click
+        wx.EVT_LEFT_DCLICK(self.canvasHist_Ktrans, self.toolbar_hist_K.home)
+        wx.EVT_LEFT_DCLICK(self.canvasHist_Ve, self.toolbar_hist_V.home)
+
 
         self.figureHist_Ve.tight_layout()
         self.figureHist_Ktrans.tight_layout()
@@ -977,6 +1106,24 @@ class MainWindow_KV(MainWindow):
 
         self.canvasHist_Ktrans.draw()
         self.canvasHist_Ve.draw()
+
+    def rightDown_hist_K(self, event):
+        '''
+        right down on figure
+        '''
+        if self.IN_AXES:
+            self.canvasHist_Ktrans.PopupMenu(self.popmenu_hist_K, event.GetPosition())
+        else:
+            pass
+
+    def rightDown_hist_V(self, event):
+        '''
+        right down on figure
+        '''
+        if self.IN_AXES:
+            self.canvasHist_Ve.PopupMenu(self.popmenu_hist_V, event.GetPosition())
+        else:
+            pass
 
     def DrawBoxPlot(self):
         '''
@@ -990,7 +1137,8 @@ class MainWindow_KV(MainWindow):
         for i in range(self.newModel.nrOfRows):
             temp.extend(self.newModel.Ktrans_cal[i])
             referValueK.append(float('{0:.2f}'.format(self.newModel.Ktrans_ref[i][0][0])))
-        subPlotK.boxplot(temp)
+        subPlotK.boxplot(temp, notch = 1, sym = 'r+', whis=1.5)
+
 
         subPlotV = self.figureBoxPlot.add_subplot(2, 1, 2)
         subPlotV.clear()
@@ -1024,10 +1172,45 @@ class MainWindow_KV(MainWindow):
         for i in range(self.newModel.nrOfColumns):
             subPlotV.axvline(x = self.newModel.nrOfRows * i + 0.5, color = 'green', linestyle = 'dashed')
 
+        # setup the toolbar
+        self.toolbar_box = NavigationToolbar(self.canvasBoxPlot)
+        self.toolbar_box.Hide()
+
+        # right click
+        self.figureBoxPlot.canvas.mpl_connect('axes_enter_event', self.enter_axes)
+        self.figureBoxPlot.canvas.mpl_connect('axes_leave_event', self.leave_axes)
+        wx.EVT_RIGHT_DOWN(self.canvasBoxPlot, self.rightDown_box)
+        self.popmenu_box = wx.Menu()
+        self.ID_POPUP_BOX_PAN = wx.NewId()
+        self.ID_POPUP_BOX_ZOOM = wx.NewId()
+        self.ID_POPUP_BOX_SAVE = wx.NewId()
+
+        OnBox_pan = wx.MenuItem(self.popmenu_box, self.ID_POPUP_BOX_PAN, 'Pan')
+        OnBox_zoom = wx.MenuItem(self.popmenu_box, self.ID_POPUP_BOX_ZOOM, 'Zooom')
+        OnBox_save = wx.MenuItem(self.popmenu_box, self.ID_POPUP_BOX_SAVE, 'Save')
+        self.popmenu_box.AppendItem(OnBox_pan)
+        self.popmenu_box.AppendItem(OnBox_zoom)
+        self.popmenu_box.AppendItem(OnBox_save)
+        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_PAN, self.toolbar_box.pan)
+        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_ZOOM, self.toolbar_box.zoom)
+        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_SAVE, self.toolbar_box.save_figure)
+
+        # double click
+        wx.EVT_LEFT_DCLICK(self.canvasBoxPlot, self.toolbar_box.home)
+
 
         self.figureBoxPlot.tight_layout()
         self.canvasBoxPlot.draw()
         self.rightPanel.Layout()
+
+    def rightDown_box(self, event):
+        '''
+        right down on figure
+        '''
+        if self.IN_AXES:
+            self.pageBoxPlot.PopupMenu(self.popmenu_box, event.GetPosition())
+        else:
+            pass
 
     def DrawMaps(self):
         # draw the maps of the preview and error
@@ -1039,7 +1222,7 @@ class MainWindow_KV(MainWindow):
 
                                 [['bone', 'rainbow', 'rainbow'], ['bone', 'rainbow', 'rainbow']],
 
-                                [['Ktrans[1/min]', 'Delta Ktrans[1/min.]', 'Normalized error[1]'], ['Ve[]', 'Delta Ve[]', 'Normalized error[1]']])
+                                [['Ktrans[1/min]', 'Delta Ktrans[1/min.]', 'Normalized error[%]'], ['Ve[]', 'Delta Ve[]', 'Normalized error[%]']])
 
     def DrawScatter(self):
         # draw the scatters
@@ -1269,9 +1452,8 @@ class MainWindow_T1(MainWindow):
         self.canvasHist_T1 = FigureCanvas(self.pageHistogram,-1, self.figureHist_T1)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvasHist_T1, 1, wx.EXPAND)
+        sizer.Add(self.canvasHist_T1, 2, wx.EXPAND)
         self.pageHistogram.SetSizer(sizer)
-
 
     def ClearPage_Histogram(self):
         # clear the histogram page
@@ -1367,10 +1549,10 @@ class MainWindow_T1(MainWindow):
             return
 
     def DrawHistograms(self):
-        # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
+        # draw histograms of imported calculated maps, so that the user can have a look of the distribution of each patch.
 
         pixelCountInPatch = self.newModel.patchLen ** 2
-        nrOfBins = 10
+        nrOfBins = 5
 
         self.figureHist_T1.suptitle('The histogram of the calculated T1',) # fontsize = 18)
 
@@ -1398,11 +1580,49 @@ class MainWindow_T1(MainWindow):
                     subPlot_T1.xaxis.set_label_position('top')
                 if j == 0:
                     subPlot_T1.set_ylabel(self.newModel.headersVertical[i])
+                self.pageHistogram.SetAutoLayout(1)
+                self.pageHistogram.SetupScrolling()
+
+
+        # setup the toolbar
+        self.toolbar_hist = NavigationToolbar(self.canvasHist_T1)
+        self.toolbar_hist.Hide()
+
+        # right click
+        self.figureHist_T1.canvas.mpl_connect('axes_enter_event', self.enter_axes)
+        self.figureHist_T1.canvas.mpl_connect('axes_leave_event', self.leave_axes)
+        wx.EVT_RIGHT_DOWN(self.canvasHist_T1, self.rightDown_hist)
+        self.popmenu_hist = wx.Menu()
+        self.ID_POPUP_HIST_PAN = wx.NewId()
+        self.ID_POPUP_HIST_ZOOM = wx.NewId()
+        self.ID_POPUP_HIST_SAVE = wx.NewId()
+
+        OnHist_pan = wx.MenuItem(self.popmenu_hist, self.ID_POPUP_HIST_PAN, 'Pan')
+        OnHist_zoom = wx.MenuItem(self.popmenu_hist, self.ID_POPUP_HIST_ZOOM, 'Zooom')
+        OnHist_save = wx.MenuItem(self.popmenu_hist, self.ID_POPUP_HIST_SAVE, 'Save')
+        self.popmenu_hist.AppendItem(OnHist_pan)
+        self.popmenu_hist.AppendItem(OnHist_zoom)
+        self.popmenu_hist.AppendItem(OnHist_save)
+        wx.EVT_MENU(self.popmenu_hist, self.ID_POPUP_HIST_PAN, self.toolbar_hist.pan)
+        wx.EVT_MENU(self.popmenu_hist, self.ID_POPUP_HIST_ZOOM, self.toolbar_hist.zoom)
+        wx.EVT_MENU(self.popmenu_hist, self.ID_POPUP_HIST_SAVE, self.toolbar_hist.save_figure)
+
+        # double click
+        wx.EVT_LEFT_DCLICK(self.canvasHist_T1, self.toolbar_hist.home)
 
         self.figureHist_T1.tight_layout(pad=0.4, w_pad=0.1, h_pad=1.0)
         self.figureHist_T1.subplots_adjust(top = 0.94)
         self.canvasHist_T1.draw()
 
+
+    def rightDown_hist(self, event):
+        '''
+        right down on figure
+        '''
+        if self.IN_AXES:
+            self.pageHistogram.PopupMenu(self.popmenu_hist, event.GetPosition())
+        else:
+            pass
 
     def DrawBoxPlot(self):
         '''
@@ -1430,9 +1650,44 @@ class MainWindow_T1(MainWindow):
         for j in range(self.newModel.nrOfColumns):
             subPlot_R1.axvline(x = self.newModel.nrOfRows * j + 0.5, color = 'green', linestyle = 'dashed')
 
+        # setup the toolbar
+        self.toolbar_box = NavigationToolbar(self.canvasBoxPlot)
+        self.toolbar_box.Hide()
+
+        # right click
+        self.figureBoxPlot.canvas.mpl_connect('axes_enter_event', self.enter_axes)
+        self.figureBoxPlot.canvas.mpl_connect('axes_leave_event', self.leave_axes)
+        wx.EVT_RIGHT_DOWN(self.canvasBoxPlot, self.rightDown_box)
+        self.popmenu_box = wx.Menu()
+        self.ID_POPUP_BOX_PAN = wx.NewId()
+        self.ID_POPUP_BOX_ZOOM = wx.NewId()
+        self.ID_POPUP_BOX_SAVE = wx.NewId()
+
+        OnBox_pan = wx.MenuItem(self.popmenu_box, self.ID_POPUP_BOX_PAN, 'Pan')
+        OnBox_zoom = wx.MenuItem(self.popmenu_box, self.ID_POPUP_BOX_ZOOM, 'Zooom')
+        OnBox_save = wx.MenuItem(self.popmenu_box, self.ID_POPUP_BOX_SAVE, 'Save')
+        self.popmenu_box.AppendItem(OnBox_pan)
+        self.popmenu_box.AppendItem(OnBox_zoom)
+        self.popmenu_box.AppendItem(OnBox_save)
+        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_PAN, self.toolbar_box.pan)
+        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_ZOOM, self.toolbar_box.zoom)
+        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_SAVE, self.toolbar_box.save_figure)
+
+        # double click
+        wx.EVT_LEFT_DCLICK(self.canvasBoxPlot, self.toolbar_box.home)
+
         self.figureBoxPlot.tight_layout()
         self.canvasBoxPlot.draw()
         self.rightPanel.Layout()
+
+    def rightDown_box(self, event):
+        '''
+        right down on figure
+        '''
+        if self.IN_AXES:
+            self.pageBoxPlot.PopupMenu(self.popmenu_box, event.GetPosition())
+        else:
+            pass
 
     def DrawMaps(self):
         # draw the maps of the preview and error
@@ -1442,7 +1697,7 @@ class MainWindow_T1(MainWindow):
 
                                 [['bone'], ['rainbow'], ['rainbow'], ],
 
-                                [['T1[ms]'], ['Delta T1[ms]'], ['Normalized error[1]'],])
+                                [['T1[ms]'], ['Delta T1[ms]'], ['Normalized error[%]'],])
 
     def DrawScatter(self):
         # draw the scatters
