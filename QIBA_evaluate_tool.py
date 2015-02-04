@@ -1274,15 +1274,67 @@ class MainWindow_KV(MainWindow):
         '''
         dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
         if dlg.ShowModal() == wx.ID_OK:
+            self.SetStatusText('Exporting, please wait...')
             saveDir = dlg.GetPath()
             self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
             self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
             self.figureHist_Ktrans.savefig(os.path.join(saveDir, 'hist_K.png'))
             self.figureHist_Ve.savefig(os.path.join(saveDir, 'hist_V.png'))
             self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
+
+            # export the table to excel
+            book = Workbook()
+            sheetMean = book.add_sheet('Mean')
+            sheetStd = book.add_sheet('Standard deviation')
+            sheetMedian = book.add_sheet('Median')
+            sheet1Qtl = book.add_sheet('1st quartiel')
+            sheet3Qtl = book.add_sheet('3rd quartiel')
+            sheetMin = book.add_sheet('Minimum')
+            sheetMax = book.add_sheet('Maximum')
+            sheetCov = book.add_sheet('Covariance')
+            sheetCor = book.add_sheet('Correlation')
+            sheetFit = book.add_sheet('Model fitting')
+            sheetT = book.add_sheet('T-test results')
+            sheetU = book.add_sheet('U-test results')
+            sheetA = book.add_sheet('ANOVA results')
+
+            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_mean, self.newModel.Ve_cal_patch_mean], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_deviation, self.newModel.Ve_cal_patch_deviation], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_median, self.newModel.Ve_cal_patch_median], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_1stQuartile, self.newModel.Ve_cal_patch_1stQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_3rdQuartile, self.newModel.Ve_cal_patch_3rdQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_min, self.newModel.Ve_cal_patch_min], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_max, self.newModel.Ve_cal_patch_max], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+
+            QIBA_functions.WriteToExcelSheet_GKM_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_KK,self.newModel.corr_KV,self.newModel.corr_VK,self.newModel.corr_VV], 1, self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_GKM_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_KK,self.newModel.cov_KV,self.newModel.cov_VK,self.newModel.cov_VV], 1, self.nrOfRow, self.nrOfColumn)
+
+            QIBA_functions.WriteToExcelSheet_GKM_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_Ktrans, self.newModel.b_lin_Ktrans,self.newModel.a_log_Ktrans,self.newModel.b_log_Ktrans,self.newModel.a_lin_Ve, self.newModel.b_lin_Ve,self.newModel.a_log_Ve,self.newModel.b_log_Ve], 1, self.nrOfRow, self.nrOfColumn)
+
+            QIBA_functions.WriteToExcelSheet_GKM_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ttest_t, self.newModel.Ktrans_cal_patch_ttest_p, self.newModel.Ve_cal_patch_ttest_t, self.newModel.Ve_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
+            QIBA_functions.WriteToExcelSheet_GKM_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Utest_u, self.newModel.Ktrans_cal_patch_Utest_p, self.newModel.Ve_cal_patch_Utest_u, self.newModel.Ve_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
+
+            QIBA_functions.WriteToExcelSheet_GKM_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ANOVA_f,self.newModel.Ktrans_cal_patch_ANOVA_p,self.newModel.Ve_cal_patch_ANOVA_f,self.newModel.Ve_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
+
+            # sheet1.write(0,1,'B1')
+            # row1 = sheet1.row(1)
+            # row1.write(0,'A2')
+            # row1.write(1,'B2')
+            # sheet1.col(0).width = 10000
+            # sheet2 = book.get_sheet(1)
+            # sheet2.row(0).write(0,'Sheet 2 A1')
+            # sheet2.row(0).write(1,'Sheet 2 B1')
+            # sheet2.flush_row_data()
+            # sheet2.write(1,0,'Sheet 2 A3')
+            # sheet2.col(0).width = 5000
+            # sheet2.col(0).hidden = True
+            book.save(os.path.join(saveDir, 'simple.xls'))
+
             self.SetStatusText('Files are exported.')
         else:
             pass
+
+
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
@@ -1762,8 +1814,14 @@ class MainWindow_T1(MainWindow):
 
             # export to excel
             book = Workbook()
-            sheet1 = book.add_sheet('Statistics for calculated T1')
-            book.add_sheet('Sheet 2')
+            sheet1 = book.add_sheet('Mean and standard deviation')
+            sheet2 = book.add_sheet('Median, 1st and 3rd quartile, min. and max.')
+            sheet3 = book.add_sheet('Covariance and correlation')
+            sheet4 = book.add_sheet('Model fitting')
+            sheet5 = book.add_sheet('T-test results')
+            sheet6 = book.add_sheet('U-test results')
+            sheet7 = book.add_sheet('ANOVA results')
+
             sheet1.write(0,0,'A1')
             sheet1.write(0,1,'B1')
             row1 = sheet1.row(1)

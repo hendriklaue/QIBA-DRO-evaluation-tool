@@ -372,3 +372,124 @@ def Unscramble(imageList, indexMap, nrOfRow, nrOfColumn, patchLen):
         newImageList.append(numpy.array(newImage))
 
     return newImageList
+
+def WriteToExcelSheet_GKM_statistics(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.write(0,int(titlePos), 'Each patch of the calculated Ktrans')
+    row_sheet_Header_K = sheet.row(2)
+    for (j, item) in enumerate(headerH):
+        row_sheet_Header_K.write(j + 1, item)
+        sheet.col(j+1).width = 4000
+    sheet.col(0).width = 4000
+    for (i, item) in enumerate(headerV):
+        row = sheet.row(i+3)
+        row.write(0, item)
+        for j in range(nrC):
+            row.write(j+1, str(formatFloatTo4DigitsString(data[0][i][j])))
+
+    sheet.write(nrR+4,int(titlePos), 'Each patch of the calculated Ve')
+    row_sheet1_Header_K = sheet.row(2 +nrR+4)
+    for (j, item) in enumerate(headerH):
+        row_sheet1_Header_K.write(j + 1, item)
+    for (i, item) in enumerate(headerV):
+        row = sheet.row(i+3 + nrR+4)
+        row.write(0, item)
+        for j in range(nrC):
+            row.write(j+1, str(formatFloatTo4DigitsString(data[1][i][j])) )
+
+def WriteToExcelSheet_GKM_co(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.write(0,int(titlePos), 'Between columns of calculated Ktrans and reference Ktrans')
+    for (j, item) in enumerate(headerH):
+        sheet.col(j).width = 4000
+        sheet.row(2).write(j, item)
+        sheet.row(3).write(j, str(formatFloatTo4DigitsString(data[0][j])))
+
+    sheet.write(0+5,int(titlePos), 'Between rows of calculated Ktrans and reference Ve')
+    for (j, item) in enumerate(headerV):
+        sheet.col(j).width = 4000
+        sheet.row(2+5).write(j, item)
+        sheet.row(3+5).write(j, str(formatFloatTo4DigitsString(data[1][j])))
+
+    sheet.write(10,int(titlePos), 'Between columns of calculated Ktrans and reference Ve')
+    for (j, item) in enumerate(headerH):
+        sheet.col(j).width = 4000
+        sheet.row(2+10).write(j, item)
+        sheet.row(3+10).write(j, str(formatFloatTo4DigitsString(data[2][j])))
+
+    sheet.write(15,int(titlePos), 'Between rows of calculated Ve and reference Ve')
+    for (j, item) in enumerate(headerV):
+        sheet.col(j).width = 4000
+        sheet.row(2+15).write(j, item)
+        sheet.row(3+15).write(j, str(formatFloatTo4DigitsString(data[3][j])))
+
+def WriteToExcelSheet_GKM_fit(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.col(0).width = 5000
+    sheet.col(1).width = 12000
+    sheet.write(1,int(titlePos), 'Linear model fitting for calculated Ktrans')
+    for (j, item) in enumerate(headerH):
+        sheet.write(0*nrC+3+j, 0, item)
+        sheet.write(0*nrC+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ')* Ktrans_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + ')')
+
+    sheet.write(nrC+3+1,int(titlePos), 'Logarithmic model fitting for calculated Ktrans')
+    for (j, item) in enumerate(headerH):
+        sheet.write(nrC+3+3+j, 0, item)
+        sheet.write(nrC+3+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[2][j])) + ')* Ktrans_ref + (' + str(formatFloatTo4DigitsString(data[3][j])) + ')')
+
+    sheet.write(2*(nrC+3)+1,int(titlePos), 'Linear model fitting for calculated Ve')
+    for (j, item) in enumerate(headerV):
+        sheet.write(2*(nrC+3)+3+j, 0, item)
+        sheet.write(2*(nrC+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[4][j])) + ')* Ve_ref + (' + str(formatFloatTo4DigitsString(data[5][j])) + ')')
+
+    sheet.write(2*(nrC+3)+(nrR+3)+1,int(titlePos), 'Logarithmic model fitting for calculated Ve')
+    for (j, item) in enumerate(headerV):
+        sheet.write(2*(nrC+3)+(nrR+3)+3+j, 0, item)
+        sheet.write(2*(nrC+3)+(nrR+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[6][j])) + ')* Ve_ref + (' + str(formatFloatTo4DigitsString(data[7][j])) + ')')
+
+def WriteToExcelSheet_GKM_test(sheet, headerH, headerV, data, titlePos, nrR, nrC, caption):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.write(0,int(titlePos), 'Each patch of the calculated Ktrans')
+    row_sheet_Header_K = sheet.row(2)
+    for (j, item) in enumerate(headerH):
+        row_sheet_Header_K.write(j + 1, item)
+        sheet.col(j+1).width = 10000
+    sheet.col(0).width = 5000
+    for (i, item) in enumerate(headerV):
+        row = sheet.row(i+3)
+        row.write(0, item)
+        for j in range(nrC):
+            row.write(j+1, caption + ' = ' + str(formatFloatTo4DigitsString(data[0][i][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[1][i][j])))
+
+    sheet.write(nrR+4,int(titlePos), 'Each patch of the calculated Ve')
+    row_sheet1_Header_K = sheet.row(2 +nrR+4)
+    for (j, item) in enumerate(headerH):
+        row_sheet1_Header_K.write(j + 1, item)
+    for (i, item) in enumerate(headerV):
+        row = sheet.row(i+3 + nrR+4)
+        row.write(0, item)
+        for j in range(nrC):
+            row.write(j+1, caption + ' = ' + str(formatFloatTo4DigitsString(data[2][i][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[3][i][j])))
+
+def WriteToExcelSheet_GKM_A(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.write(0,int(titlePos), 'ANOVA of each row in calculated Ktrans')
+    for (j, item) in enumerate(headerV):
+        sheet.col(j).width = 9600
+        sheet.row(2).write(j, item)
+        sheet.row(3).write(j, 'f-value = ' + str(formatFloatTo4DigitsString(data[0][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[1][j])))
+
+    sheet.write(0+5,int(titlePos), 'ANOVA of each column in calculated Ve')
+    for (j, item) in enumerate(headerH):
+        sheet.row(2+5).write(j, item)
+        sheet.row(3+5).write(j,'f-value = ' + str(formatFloatTo4DigitsString(data[2][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[3][j])))
