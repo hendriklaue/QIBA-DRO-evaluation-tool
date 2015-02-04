@@ -279,9 +279,6 @@ def ANOVA_OneWay(inPatch, dimensionIndex1, dimensionIndex2):
     temp_f = []
     temp_p = []
     for i in range(dimensionIndex1):
-        # if dimensionIndex2 == 5:
-            # temp_f.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4])[0])
-            # temp_p.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4])[1])
         temp_f.append(stats.f_oneway(*inPatch[i])[0])
         temp_p.append(stats.f_oneway(*inPatch[i])[1])
 
@@ -291,8 +288,13 @@ def ChiSquare_Test(inPatch, nrR, nrC):
     '''
     chi-square test
     '''
-    pass
-
+    temp_c = [[]for i in range(nrR) ]
+    temp_p = [[]for i in range(nrR) ]
+    for i in range(nrR):
+        for j in range(nrC):
+            temp_c[i].append(stats.chisquare(inPatch[i][j])[0])
+            temp_p[i].append(stats.chisquare(inPatch[i][j])[1])
+    return temp_c, temp_p
 
 def EditTable(caption, headersHorizontal, headersVertical, entryName, entryData):
         # edit a table of certain scale in html. return the table part html

@@ -233,6 +233,7 @@ class MainWindow(wx.Frame):
         self.pageModelFitting = wx.Panel(self.noteBookRight)
         self.pageT_Test = wx.Panel(self.noteBookRight)
         self.pageU_Test = wx.Panel(self.noteBookRight)
+        self.pageChiq = wx.Panel(self.noteBookRight)
 
         self.noteBookRight.AddPage(self.pageStart, 'Start')
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
@@ -244,6 +245,7 @@ class MainWindow(wx.Frame):
         self.noteBookRight.AddPage(self.pageModelFitting, "Model fitting")
         self.noteBookRight.AddPage(self.pageT_Test, "t-test results Viewer")
         self.noteBookRight.AddPage(self.pageU_Test, "U-test results Viewer")
+        self.noteBookRight.AddPage(self.pageChiq, "Chi-Square test results Viewer")
 
 
         # show the calculated images and error images
@@ -311,6 +313,14 @@ class MainWindow(wx.Frame):
         sizer.Add(self.U_testViewer, 1, wx.EXPAND)
         self.pageU_Test.SetSizer(sizer)
 
+        # page chi-square-test
+        self.ChiqViewer = wx.html.HtmlWindow(self.pageChiq, -1)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(self.ChiqViewer, 1, wx.EXPAND)
+        self.pageChiq.SetSizer(sizer)
+
+
 
         # sizer for the right panel
         sizer = wx.BoxSizer()
@@ -345,7 +355,16 @@ class MainWindow(wx.Frame):
         self.modelFittingViewer.SetPage('')
         self.t_testViewer.SetPage('')
         self.U_testViewer.SetPage('')
-        # self.ANOVAViewer.SetPage('')
+
+        try:
+            self.ChiqViewer.SetPage('')
+        except:
+            pass
+
+        try:
+            self.ANOVAViewer.SetPage('')
+        except:
+            pass
 
     def DrawMaps(self):
         pass
@@ -530,28 +549,7 @@ class MainWindow(wx.Frame):
         self.newModel = QIBA_model.Model_KV('', '', '', '', [self.nrOfRow, self.nrOfColumn])
 
     def ShowResults(self):
-        # show the results in the main window
-        self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
-        self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
-        self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
-        self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
-        self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
-        # self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
-        #EvaluateProgressDialog.Update(25)
-
-        #EvaluateProgressDialog.Update(30)
-
-        self.IN_AXES = False
-
-        # draw the figures
-        self.DrawMaps()
-        #EvaluateProgressDialog.Update(35)
-        self.DrawScatter()
-        #EvaluateProgressDialog.Update(50)
-        self.DrawHistograms()
-        #EvaluateProgressDialog.Update(90)
-        self.DrawBoxPlot()
-        #EvaluateProgressDialog.Update(95)
+        pass
 
     def OnExportToPDF(self, event):
         # export the evaluation results to PDF
@@ -653,6 +651,23 @@ class MainWindow_KV(MainWindow):
         self.SetupRightClickMenu()
         self.SetupPage_Histogram()
         self.SetupPageANOVA()
+
+    def ShowResults(self):
+        # show the results in the main window
+        self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
+        self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
+        self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
+        self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
+        self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
+        self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
+
+        self.IN_AXES = False
+
+        # draw the figures
+        self.DrawMaps()
+        self.DrawScatter()
+        self.DrawHistograms()
+        self.DrawBoxPlot()
 
     def SetupPageANOVA(self):
         '''
@@ -1405,6 +1420,23 @@ class MainWindow_T1(MainWindow):
         self.SetupRightClickMenu()
         self.SetupPage_Histogram()
 
+    def ShowResults(self):
+        # show the results in the main window
+        self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
+        self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
+        self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
+        self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
+        self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
+        self.ChiqViewer.SetPage(self.newModel.ChiSquareTestResultInHTML)
+
+        self.IN_AXES = False
+
+        # draw the figures
+        self.DrawMaps()
+        self.DrawScatter()
+        self.DrawHistograms()
+        self.DrawBoxPlot()
+
     def LoadRef(self):
         '''
         load the reference data, and get the image size
@@ -1822,6 +1854,7 @@ class MainWindow_T1(MainWindow):
             sheetFit = book.add_sheet('Model fitting')
             sheetT = book.add_sheet('T-test results')
             sheetU = book.add_sheet('U-test results')
+            sheetChiq = book.add_sheet('Chi-square-test results')
             # sheetA = book.add_sheet('ANOVA results')
 
 
@@ -1840,6 +1873,7 @@ class MainWindow_T1(MainWindow):
 
             QIBA_functions.WriteToExcelSheet_T1_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ttest_t, self.newModel.T1_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
             QIBA_functions.WriteToExcelSheet_T1_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_Utest_u, self.newModel.T1_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
+            QIBA_functions.WriteToExcelSheet_T1_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_chisquare_c, self.newModel.T1_cal_patch_chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
 
             # QIBA_functions.WriteToExcelSheet_T1_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ANOVA_f,self.newModel.T1_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
 

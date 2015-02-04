@@ -651,6 +651,7 @@ class Model_T1():
         self.CalculateMinAndMaxForModel()
         self.T_TestForModel()
         self.U_TestForModel()
+        self.ChiSquareTestForModel()
         # self.ANOVAForModel()
 
         # write HTML result
@@ -659,6 +660,7 @@ class Model_T1():
         self.htmlT_TestResults()
         self.htmlU_TestResults()
         self.htmlStatistics()
+        self.htmlChiSquareTestResults()
         # self.htmlANOVAResults()
 
     def PrepareHeaders(self):
@@ -776,6 +778,18 @@ class Model_T1():
         # put the text into html structure
         self.U_testResultInHTML = self.packInHtml(T1_U_TestTable)
 
+    def htmlChiSquareTestResults(self):
+        '''
+
+        '''
+        T1_ChiSquareTable = \
+                        '<h2>The Mann-Whitney U test result of each patch in calculated T1 map:</h2>'
+
+        T1_ChiSquareTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['Chiq', 'p-value'], [self.T1_cal_patch_chisquare_c, self.T1_cal_patch_chisquare_p])
+
+        # put the text into html structure
+        self.ChiSquareTestResultInHTML = self.packInHtml(T1_ChiSquareTable)
+
     def htmlANOVAResults(self):
         # write the ANOVA results into HTML form
 
@@ -889,6 +903,10 @@ class Model_T1():
     def CalculateSTDDeviationForModel(self):
         # call the std deviation calculation function
         self.T1_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.T1_cal, self.nrOfRows, self.nrOfColumns)
+
+    def ChiSquareTestForModel(self):
+        # call the std deviation calculation function
+        self.T1_cal_patch_chisquare_c, self.T1_cal_patch_chisquare_p = QIBA_functions.ChiSquare_Test(self.T1_cal, self.nrOfRows, self.nrOfColumns)
 
     def Calculate1stAnd3rdQuartileForModel(self):
         # call the 1st and 3rd quartile calculation function
