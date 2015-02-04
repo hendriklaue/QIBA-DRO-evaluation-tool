@@ -202,7 +202,7 @@ class Model_KV():
             KtransLogarithmicFitting += '<td align="left">Ktrans_cal = ('
             KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ktrans[j])
             KtransLogarithmicFitting += ') + ('
-            KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.corr_KK[j])
+            KtransLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_log_Ktrans[j])
             KtransLogarithmicFitting += ') * log10(Ktrans_ref)'
             KtransLogarithmicFitting += '</td>'
             KtransLogarithmicFitting += '</tr>'
@@ -238,7 +238,7 @@ class Model_KV():
             VeLogarithmicFitting += '<td align="left">Ve_cal = ('
             VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_log_Ve[i])
             VeLogarithmicFitting += ') + ('
-            VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.corr_KV[i])
+            VeLogarithmicFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_log_Ve[i])
             VeLogarithmicFitting += ') * log10(Ve_ref)'
             VeLogarithmicFitting += '</td>'
             VeLogarithmicFitting += '</tr>'
@@ -651,7 +651,7 @@ class Model_T1():
         self.CalculateMinAndMaxForModel()
         self.T_TestForModel()
         self.U_TestForModel()
-        self.ANOVAForModel()
+        # self.ANOVAForModel()
 
         # write HTML result
         self.htmlCovCorrResults()
@@ -659,7 +659,7 @@ class Model_T1():
         self.htmlT_TestResults()
         self.htmlU_TestResults()
         self.htmlStatistics()
-        self.htmlANOVAResults()
+        # self.htmlANOVAResults()
 
     def PrepareHeaders(self):
         # prepare the headers for table editing

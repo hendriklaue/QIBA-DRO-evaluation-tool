@@ -233,7 +233,7 @@ class MainWindow(wx.Frame):
         self.pageModelFitting = wx.Panel(self.noteBookRight)
         self.pageT_Test = wx.Panel(self.noteBookRight)
         self.pageU_Test = wx.Panel(self.noteBookRight)
-        self.pageANOVA = wx.Panel(self.noteBookRight)
+
         self.noteBookRight.AddPage(self.pageStart, 'Start')
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
         self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
@@ -244,7 +244,7 @@ class MainWindow(wx.Frame):
         self.noteBookRight.AddPage(self.pageModelFitting, "Model fitting")
         self.noteBookRight.AddPage(self.pageT_Test, "t-test results Viewer")
         self.noteBookRight.AddPage(self.pageU_Test, "U-test results Viewer")
-        self.noteBookRight.AddPage(self.pageANOVA, "ANOVA results Viewer")
+
 
         # show the calculated images and error images
         self.figureImagePreview = Figure()
@@ -311,12 +311,6 @@ class MainWindow(wx.Frame):
         sizer.Add(self.U_testViewer, 1, wx.EXPAND)
         self.pageU_Test.SetSizer(sizer)
 
-        # page ANOVA
-        self.ANOVAViewer = wx.html.HtmlWindow(self.pageANOVA, -1)
-
-        sizer = wx.BoxSizer()
-        sizer.Add(self.ANOVAViewer, 1, wx.EXPAND)
-        self.pageANOVA.SetSizer(sizer)
 
         # sizer for the right panel
         sizer = wx.BoxSizer()
@@ -351,7 +345,7 @@ class MainWindow(wx.Frame):
         self.modelFittingViewer.SetPage('')
         self.t_testViewer.SetPage('')
         self.U_testViewer.SetPage('')
-        self.ANOVAViewer.SetPage('')
+        # self.ANOVAViewer.SetPage('')
 
     def DrawMaps(self):
         pass
@@ -542,7 +536,7 @@ class MainWindow(wx.Frame):
         self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
-        self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
+        # self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
         #EvaluateProgressDialog.Update(25)
 
         #EvaluateProgressDialog.Update(30)
@@ -658,6 +652,20 @@ class MainWindow_KV(MainWindow):
         self.SetupEditMenu()
         self.SetupRightClickMenu()
         self.SetupPage_Histogram()
+        self.SetupPageANOVA()
+
+    def SetupPageANOVA(self):
+        '''
+        setup page of ANOVA
+        '''
+        self.pageANOVA = wx.Panel(self.noteBookRight)
+        self.noteBookRight.AddPage(self.pageANOVA, "ANOVA results Viewer")
+        self.ANOVAViewer = wx.html.HtmlWindow(self.pageANOVA, -1)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(self.ANOVAViewer, 1, wx.EXPAND)
+        self.pageANOVA.SetSizer(sizer)
+        self.rightPanel.Layout()
 
     def LoadRef(self):
         '''
@@ -1151,7 +1159,7 @@ class MainWindow_KV(MainWindow):
             for i in range(self.newModel.nrOfRows):
                 temp.append(self.newModel.Ve_cal[i][j])
             referValueV.append(float('{0:.2f}'.format(zip(*self.newModel.Ve_ref)[j][0][0])))
-        subPlotV.boxplot(temp)
+        subPlotV.boxplot(temp, notch = 1, sym = 'r+', whis=1.5)
 
         # decorate Ktrans plot
         subPlotK.set_title('Box plot of calculated Ktrans')
@@ -1316,19 +1324,7 @@ class MainWindow_KV(MainWindow):
 
             QIBA_functions.WriteToExcelSheet_GKM_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ANOVA_f,self.newModel.Ktrans_cal_patch_ANOVA_p,self.newModel.Ve_cal_patch_ANOVA_f,self.newModel.Ve_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
 
-            # sheet1.write(0,1,'B1')
-            # row1 = sheet1.row(1)
-            # row1.write(0,'A2')
-            # row1.write(1,'B2')
-            # sheet1.col(0).width = 10000
-            # sheet2 = book.get_sheet(1)
-            # sheet2.row(0).write(0,'Sheet 2 A1')
-            # sheet2.row(0).write(1,'Sheet 2 B1')
-            # sheet2.flush_row_data()
-            # sheet2.write(1,0,'Sheet 2 A3')
-            # sheet2.col(0).width = 5000
-            # sheet2.col(0).hidden = True
-            book.save(os.path.join(saveDir, 'simple.xls'))
+            book.save(os.path.join(saveDir, 'results.xls'))
 
             self.SetStatusText('Files are exported.')
         else:
@@ -1706,7 +1702,7 @@ class MainWindow_T1(MainWindow):
         for j in range(self.newModel.nrOfColumns):
             temp.extend(zip(*self.newModel.R1_cal)[j])
             # referValue_R1.append(QIBA_functions.formatFloatTo2DigitsString(self.newModel.T1_ref[j][0][0]))
-        subPlot_R1.boxplot(temp)
+        subPlot_R1.boxplot(temp, notch = 1, sym = 'r+', whis=1.5)
 
         # decorate R1 plot
         subPlot_R1.set_title('Box plot of R1 from calculated T1')
@@ -1814,28 +1810,40 @@ class MainWindow_T1(MainWindow):
 
             # export to excel
             book = Workbook()
-            sheet1 = book.add_sheet('Mean and standard deviation')
-            sheet2 = book.add_sheet('Median, 1st and 3rd quartile, min. and max.')
-            sheet3 = book.add_sheet('Covariance and correlation')
-            sheet4 = book.add_sheet('Model fitting')
-            sheet5 = book.add_sheet('T-test results')
-            sheet6 = book.add_sheet('U-test results')
-            sheet7 = book.add_sheet('ANOVA results')
+            sheetMean = book.add_sheet('Mean')
+            sheetStd = book.add_sheet('Standard deviation')
+            sheetMedian = book.add_sheet('Median')
+            sheet1Qtl = book.add_sheet('1st quartiel')
+            sheet3Qtl = book.add_sheet('3rd quartiel')
+            sheetMin = book.add_sheet('Minimum')
+            sheetMax = book.add_sheet('Maximum')
+            sheetCov = book.add_sheet('Covariance')
+            sheetCor = book.add_sheet('Correlation')
+            sheetFit = book.add_sheet('Model fitting')
+            sheetT = book.add_sheet('T-test results')
+            sheetU = book.add_sheet('U-test results')
+            # sheetA = book.add_sheet('ANOVA results')
 
-            sheet1.write(0,0,'A1')
-            sheet1.write(0,1,'B1')
-            row1 = sheet1.row(1)
-            row1.write(0,'A2')
-            row1.write(1,'B2')
-            sheet1.col(0).width = 10000
-            sheet2 = book.get_sheet(1)
-            sheet2.row(0).write(0,'Sheet 2 A1')
-            sheet2.row(0).write(1,'Sheet 2 B1')
-            sheet2.flush_row_data()
-            sheet2.write(1,0,'Sheet 2 A3')
-            sheet2.col(0).width = 5000
-            sheet2.col(0).hidden = True
-            book.save(os.path.join(saveDir, 'simple.xls'))
+
+            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_mean], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_deviation], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_median], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_T1_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_1stQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_T1_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_3rdQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_min], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_max], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+
+            QIBA_functions.WriteToExcelSheet_T1_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_T1T1], 1, self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_T1_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_T1T1], 1, self.nrOfRow, self.nrOfColumn)
+
+            QIBA_functions.WriteToExcelSheet_T1_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_T1, self.newModel.b_lin_T1,self.newModel.a_log_T1,self.newModel.b_log_T1], 1, self.nrOfRow, self.nrOfColumn)
+
+            QIBA_functions.WriteToExcelSheet_T1_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ttest_t, self.newModel.T1_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
+            QIBA_functions.WriteToExcelSheet_T1_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_Utest_u, self.newModel.T1_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
+
+            # QIBA_functions.WriteToExcelSheet_T1_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ANOVA_f,self.newModel.T1_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
+
+            book.save(os.path.join(saveDir, 'results.xls'))
             self.SetStatusText('Files are exported.')
         else:
             pass
@@ -1937,7 +1945,7 @@ if __name__ == "__main__":
     Application = wx.App()
 
     # show the splash window
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
         pass
     else:

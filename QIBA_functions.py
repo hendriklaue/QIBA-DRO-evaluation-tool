@@ -171,6 +171,7 @@ def EstimatePatch(dataInPatch, patchValueMethod, nrOfRows, nrOfColumns):
             for j in range (nrOfColumns):
                 temp[i].append(numpy.median(dataInPatch[i][j]))
     return temp
+
 def FittingLinearModel(calculated, reference, dimensionIndex):
     # fitting the linear model
     temp_slope = []
@@ -278,13 +279,20 @@ def ANOVA_OneWay(inPatch, dimensionIndex1, dimensionIndex2):
     temp_f = []
     temp_p = []
     for i in range(dimensionIndex1):
-        if dimensionIndex2 == 5:
-            temp_f.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4])[0])
-            temp_p.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4])[1])
-        elif dimensionIndex2 == 6:
-            temp_f.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4], inPatch[i][5])[0])
-            temp_p.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4], inPatch[i][5])[1])
+        # if dimensionIndex2 == 5:
+            # temp_f.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4])[0])
+            # temp_p.append(stats.f_oneway(inPatch[i][0], inPatch[i][1], inPatch[i][2], inPatch[i][3], inPatch[i][4])[1])
+        temp_f.append(stats.f_oneway(*inPatch[i])[0])
+        temp_p.append(stats.f_oneway(*inPatch[i])[1])
+
     return temp_f, temp_p
+
+def ChiSquare_Test(inPatch, nrR, nrC):
+    '''
+    chi-square test
+    '''
+    pass
+
 
 def EditTable(caption, headersHorizontal, headersVertical, entryName, entryData):
         # edit a table of certain scale in html. return the table part html
@@ -382,7 +390,7 @@ def WriteToExcelSheet_GKM_statistics(sheet, headerH, headerV, data, titlePos, nr
     for (j, item) in enumerate(headerH):
         row_sheet_Header_K.write(j + 1, item)
         sheet.col(j+1).width = 4000
-    sheet.col(0).width = 4000
+    sheet.col(0).width = 4500
     for (i, item) in enumerate(headerV):
         row = sheet.row(i+3)
         row.write(0, item)
@@ -403,29 +411,28 @@ def WriteToExcelSheet_GKM_co(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     '''
      write to a sheet in excel
     '''
-    sheet.write(0,int(titlePos), 'Between columns of calculated Ktrans and reference Ktrans')
+    sheet.col(0).width = 5000
+    sheet.col(1).width = 10000
+    sheet.write(1,int(titlePos), 'Between columns of calculated Ktrans and reference Ktrans')
     for (j, item) in enumerate(headerH):
-        sheet.col(j).width = 4000
-        sheet.row(2).write(j, item)
-        sheet.row(3).write(j, str(formatFloatTo4DigitsString(data[0][j])))
+        sheet.write(0*nrC+3+j, 0, item)
+        sheet.write(0*nrC+3+j, 1, str(formatFloatTo4DigitsString(data[0][j])))
 
-    sheet.write(0+5,int(titlePos), 'Between rows of calculated Ktrans and reference Ve')
+    sheet.write(nrC+3+1,int(titlePos), 'Between rows of calculated Ktrans and reference Ve')
     for (j, item) in enumerate(headerV):
-        sheet.col(j).width = 4000
-        sheet.row(2+5).write(j, item)
-        sheet.row(3+5).write(j, str(formatFloatTo4DigitsString(data[1][j])))
+        sheet.write(nrC+3+3+j, 0, item)
+        sheet.write(nrC+3+3+j, 1, str(formatFloatTo4DigitsString(data[1][j])))
 
-    sheet.write(10,int(titlePos), 'Between columns of calculated Ktrans and reference Ve')
+    sheet.write(nrC+3+nrR+3+1,int(titlePos), 'Between columns of calculated Ktrans and reference Ve')
     for (j, item) in enumerate(headerH):
-        sheet.col(j).width = 4000
-        sheet.row(2+10).write(j, item)
-        sheet.row(3+10).write(j, str(formatFloatTo4DigitsString(data[2][j])))
+        sheet.write(nrC+3+nrR+3+3+j, 0, item)
+        sheet.write(nrC+3+nrR+3+3+j, 1, str(formatFloatTo4DigitsString(data[2][j])))
 
-    sheet.write(15,int(titlePos), 'Between rows of calculated Ve and reference Ve')
-    for (j, item) in enumerate(headerV):
-        sheet.col(j).width = 4000
-        sheet.row(2+15).write(j, item)
-        sheet.row(3+15).write(j, str(formatFloatTo4DigitsString(data[3][j])))
+    sheet.write(2*(nrC+3)+nrR+3+1,int(titlePos), 'Between rows of calculated Ve and reference Ve')
+    for (j, item) in enumerate(headerH):
+        sheet.write(2*(nrC+3)+nrR+3+3+j, 0, item)
+        sheet.write(2*(nrC+3)+nrR+3+3+j, 1, str(formatFloatTo4DigitsString(data[3][j])))
+
 
 def WriteToExcelSheet_GKM_fit(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     '''
@@ -436,22 +443,22 @@ def WriteToExcelSheet_GKM_fit(sheet, headerH, headerV, data, titlePos, nrR, nrC)
     sheet.write(1,int(titlePos), 'Linear model fitting for calculated Ktrans')
     for (j, item) in enumerate(headerH):
         sheet.write(0*nrC+3+j, 0, item)
-        sheet.write(0*nrC+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ')* Ktrans_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + ')')
+        sheet.write(0*nrC+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ') * Ktrans_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + ')')
 
     sheet.write(nrC+3+1,int(titlePos), 'Logarithmic model fitting for calculated Ktrans')
     for (j, item) in enumerate(headerH):
         sheet.write(nrC+3+3+j, 0, item)
-        sheet.write(nrC+3+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[2][j])) + ')* Ktrans_ref + (' + str(formatFloatTo4DigitsString(data[3][j])) + ')')
+        sheet.write(nrC+3+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[3][j])) + ') * log10(Ktrans_ref) + (' + str(formatFloatTo4DigitsString(data[2][j])) + ')' )
 
     sheet.write(2*(nrC+3)+1,int(titlePos), 'Linear model fitting for calculated Ve')
     for (j, item) in enumerate(headerV):
         sheet.write(2*(nrC+3)+3+j, 0, item)
-        sheet.write(2*(nrC+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[4][j])) + ')* Ve_ref + (' + str(formatFloatTo4DigitsString(data[5][j])) + ')')
+        sheet.write(2*(nrC+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[4][j])) + ') * Ve_ref + (' + str(formatFloatTo4DigitsString(data[5][j])) + ')')
 
     sheet.write(2*(nrC+3)+(nrR+3)+1,int(titlePos), 'Logarithmic model fitting for calculated Ve')
     for (j, item) in enumerate(headerV):
         sheet.write(2*(nrC+3)+(nrR+3)+3+j, 0, item)
-        sheet.write(2*(nrC+3)+(nrR+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[6][j])) + ')* Ve_ref + (' + str(formatFloatTo4DigitsString(data[7][j])) + ')')
+        sheet.write(2*(nrC+3)+(nrR+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[7][j])) + ') * log10(Ve_ref) + (' + str(formatFloatTo4DigitsString(data[6][j])) + ')' )
 
 def WriteToExcelSheet_GKM_test(sheet, headerH, headerV, data, titlePos, nrR, nrC, caption):
     '''
@@ -461,7 +468,7 @@ def WriteToExcelSheet_GKM_test(sheet, headerH, headerV, data, titlePos, nrR, nrC
     row_sheet_Header_K = sheet.row(2)
     for (j, item) in enumerate(headerH):
         row_sheet_Header_K.write(j + 1, item)
-        sheet.col(j+1).width = 10000
+        sheet.col(j+1).width = 11000
     sheet.col(0).width = 5000
     for (i, item) in enumerate(headerV):
         row = sheet.row(i+3)
@@ -483,13 +490,82 @@ def WriteToExcelSheet_GKM_A(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     '''
      write to a sheet in excel
     '''
-    sheet.write(0,int(titlePos), 'ANOVA of each row in calculated Ktrans')
+    sheet.col(0).width = 5000
+    sheet.col(1).width = 10000
+    sheet.write(1,int(titlePos), 'ANOVA of each row in calculated Ktrans')
     for (j, item) in enumerate(headerV):
-        sheet.col(j).width = 9600
-        sheet.row(2).write(j, item)
-        sheet.row(3).write(j, 'f-value = ' + str(formatFloatTo4DigitsString(data[0][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[1][j])))
+        sheet.write(0*nrR+3+j, 0, item)
+        sheet.write(0*nrR+3+j, 1, 'f-value = ' + str(formatFloatTo4DigitsString(data[0][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[1][j])))
 
-    sheet.write(0+5,int(titlePos), 'ANOVA of each column in calculated Ve')
+    sheet.write(nrR+3+1,int(titlePos), 'ANOVA of each column in calculated Ve')
     for (j, item) in enumerate(headerH):
-        sheet.row(2+5).write(j, item)
-        sheet.row(3+5).write(j,'f-value = ' + str(formatFloatTo4DigitsString(data[2][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[3][j])))
+        sheet.write(nrR+3+3+j, 0, item)
+        sheet.write(nrR+3+3+j, 1, 'f-value = ' + str(formatFloatTo4DigitsString(data[2][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[3][j])))
+
+def WriteToExcelSheet_T1_statistics(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.write(0,int(titlePos), 'Each patch of the calculated T1')
+    for (j, item) in enumerate(headerH):
+        sheet.row(2).write(j + 1, item)
+        sheet.col(j+1).width = 4000
+    sheet.col(0).width = 4500
+    for (i, item) in enumerate(headerV):
+        row = sheet.row(i+3)
+        row.write(0, item)
+        for j in range(nrC):
+            row.write(j+1, str(formatFloatTo4DigitsString(data[0][i][j])))
+
+def WriteToExcelSheet_T1_co(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.col(0).width = 5000
+    sheet.col(1).width = 10000
+    sheet.write(1,int(titlePos), 'Between rows in calculated T1 and reference T1')
+    for (j, item) in enumerate(headerV):
+        sheet.write(3+j, 0, item)
+        sheet.write(3+j, 1, str(formatFloatTo4DigitsString(data[0][j])))
+
+def WriteToExcelSheet_T1_fit(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.col(0).width = 5000
+    sheet.col(1).width = 12000
+    sheet.write(1,int(titlePos), 'Linear model fitting for calculated T1')
+    for (j, item) in enumerate(headerV):
+        sheet.write(3+j, 0, item)
+        sheet.write(3+j, 1, 'T1_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ')* T1_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + ')')
+
+    sheet.write(nrR+3+1,int(titlePos), 'Logarithmic model fitting for calculated T1')
+    for (j, item) in enumerate(headerV):
+        sheet.write(nrR+3+3+j, 0, item)
+        sheet.write(nrR+3+3+j, 1, 'T1_cal = (' + str(formatFloatTo4DigitsString(data[3][j])) + ') * log10(T1_ref) + (' + str(formatFloatTo4DigitsString(data[2][j])) + ')')
+
+def WriteToExcelSheet_T1_test(sheet, headerH, headerV, data, titlePos, nrR, nrC, caption):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.write(0,int(titlePos), 'Each patch of the calculated T1')
+    for (j, item) in enumerate(headerH):
+        sheet.row(2).write(j + 1, item)
+        sheet.col(j+1).width = 10000
+    sheet.col(0).width = 5000
+    for (i, item) in enumerate(headerV):
+        row = sheet.row(i+3)
+        row.write(0, item)
+        for j in range(nrC):
+            row.write(j+1, caption + ' = ' + str(formatFloatTo4DigitsString(data[0][i][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[1][i][j])))
+
+def WriteToExcelSheet_T1_A(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.col(0).width = 5000
+    sheet.col(1).width = 10000
+    sheet.write(1,int(titlePos), 'ANOVA of each row in calculated T1')
+    for (j, item) in enumerate(headerV):
+        sheet.write(0*nrR+3+j, 0, item)
+        sheet.write(0*nrR+3+j, 1, 'f-value = ' + str(formatFloatTo4DigitsString(data[0][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[1][j])))
