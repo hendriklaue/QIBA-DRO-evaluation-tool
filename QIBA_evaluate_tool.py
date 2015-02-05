@@ -1300,11 +1300,35 @@ class MainWindow_KV(MainWindow):
         if dlg.ShowModal() == wx.ID_OK:
             self.SetStatusText('Exporting, please wait...')
             saveDir = dlg.GetPath()
-            self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
-            self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
-            self.figureHist_Ktrans.savefig(os.path.join(saveDir, 'hist_K.png'))
-            self.figureHist_Ve.savefig(os.path.join(saveDir, 'hist_V.png'))
-            self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
+            try:
+                self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
+
+            try:
+                self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
+
+            try:
+                self.figureHist_Ktrans.savefig(os.path.join(saveDir, 'hist_K.png'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
+
+            try:
+                self.figureHist_Ve.savefig(os.path.join(saveDir, 'hist_V.png'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
+
+            try:
+                self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
 
             # export the table to excel
             book = Workbook()
@@ -1344,7 +1368,11 @@ class MainWindow_KV(MainWindow):
 
             QIBA_functions.WriteToExcelSheet_GKM_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Chisquare_c, self.newModel.Ktrans_cal_patch_Chisquare_p, self.newModel.Ve_cal_patch_Chisquare_c, self.newModel.Ve_cal_patch_Chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
 
-            book.save(os.path.join(saveDir, 'results.xls'))
+            try:
+                book.save(os.path.join(saveDir, 'results.xls'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
 
             self.SetStatusText('Files are exported.')
         else:
@@ -1840,10 +1868,29 @@ class MainWindow_T1(MainWindow):
             self.SetStatusText('Exporting, please wait...')
             saveDir = dlg.GetPath()
             # export figures
-            self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
-            self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
-            self.figureHist_T1.savefig(os.path.join(saveDir, 'histogram.png'))
-            self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
+            try:
+                self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
+
+            try:
+                self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
+
+            try:
+                self.figureHist_T1.savefig(os.path.join(saveDir, 'histogram.png'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
+
+            try:
+                self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
 
             # export to excel
             book = Workbook()
@@ -1881,8 +1928,11 @@ class MainWindow_T1(MainWindow):
             QIBA_functions.WriteToExcelSheet_T1_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_chisquare_c, self.newModel.T1_cal_patch_chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
 
             # QIBA_functions.WriteToExcelSheet_T1_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ANOVA_f,self.newModel.T1_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
-
-            book.save(os.path.join(saveDir, 'results.xls'))
+            try:
+                book.save(os.path.join(saveDir, 'results.xls'))
+            except:
+                self.SetStatusText('Please close related files and try to export again.')
+                return
             self.SetStatusText('Files are exported.')
         else:
             pass
