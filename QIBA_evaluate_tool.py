@@ -49,6 +49,7 @@ import matplotlib.ticker as ticker
 import time
 import subprocess
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as NavigationToolbar
+import wx.lib.scrolledpanel as scrolled
 from xlwt import Workbook
 
 
@@ -115,6 +116,9 @@ class MainWindow(wx.Frame):
         self.menubar.Append(fileMenu, "&File")
         self.menubar.Append(aboutMenu, "&About")
         self.SetMenuBar(self.menubar)
+
+    def OnExport(self, event):
+        pass
 
     def OnManual(self, event):
         # open the manual file
@@ -225,8 +229,9 @@ class MainWindow(wx.Frame):
         self.pageStart = wx.Panel(self.noteBookRight)
         self.pageImagePreview = wx.Panel(self.noteBookRight)
         self.pageScatter = wx.Panel(self.noteBookRight)
-        self.pageHistogram = wx.Panel(self.noteBookRight)
-        #self.pageHistogram = scrolled.ScrolledPanel(self.noteBookRight)
+        # self.pageHistogram = wx.Panel(self.noteBookRight)
+
+        self.pageHistogram = scrolled.ScrolledPanel(self.noteBookRight)
         self.pageBoxPlot = wx.Panel(self.noteBookRight)
         self.pageStatistics = wx.Panel(self.noteBookRight)
         self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
@@ -649,8 +654,8 @@ class MainWindow_KV(MainWindow):
         self.SetupStartPage()
         self.SetupEditMenu()
         self.SetupRightClickMenu()
-        self.SetupPage_Histogram()
         self.SetupPageANOVA()
+
 
     def ShowResults(self):
         # show the results in the main window
@@ -845,7 +850,7 @@ class MainWindow_KV(MainWindow):
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvasHist_Ktrans, 35, wx.EXPAND)
-        sizer.Add(self.verticalLineHist, 2, wx.EXPAND)
+        sizer.Add(self.verticalLineHist, 1, wx.EXPAND)
         sizer.Add(self.canvasHist_Ve, 35, wx.EXPAND)
         self.pageHistogram.SetSizer(sizer)
 
@@ -1451,7 +1456,6 @@ class MainWindow_T1(MainWindow):
         self.SetupStartPage()
         self.SetupEditMenu()
         self.SetupRightClickMenu()
-        self.SetupPage_Histogram()
 
     def ShowResults(self):
         # show the results in the main window
@@ -1581,11 +1585,17 @@ class MainWindow_T1(MainWindow):
         # setup the histogram page
 
         self.figureHist_T1 = Figure()
-        self.canvasHist_T1 = FigureCanvas(self.pageHistogram,-1, self.figureHist_T1)
+
+        w, h = self.figureHist_T1.get_size_inches()
+        self.figureHist_T1.set_size_inches([w*3, h])
+
+        self.canvasHist_T1 = FigureCanvas(self.pageHistogram, -1, self.figureHist_T1)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvasHist_T1, 2, wx.EXPAND)
+        sizer.Add(self.canvasHist_T1, 1, wx.EXPAND)
         self.pageHistogram.SetSizer(sizer)
+        self.pageHistogram.SetAutoLayout(1)
+        self.pageHistogram.SetupScrolling()
 
     def ClearPage_Histogram(self):
         # clear the histogram page
@@ -1684,7 +1694,7 @@ class MainWindow_T1(MainWindow):
         # draw histograms of imported calculated maps, so that the user can have a look of the distribution of each patch.
 
         pixelCountInPatch = self.newModel.patchLen ** 2
-        nrOfBins = 5
+        nrOfBins = 10
 
         self.figureHist_T1.suptitle('The histogram of the calculated T1',) # fontsize = 18)
 
@@ -1712,7 +1722,8 @@ class MainWindow_T1(MainWindow):
                     subPlot_T1.xaxis.set_label_position('top')
                 if j == 0:
                     subPlot_T1.set_ylabel(self.newModel.headersVertical[i])
-                self.pageHistogram.SetAutoLayout(1)
+                self.pageHistogram.Layout()
+                self.pageHistogram.SetupScrolling()
 
 
         # setup the toolbar
