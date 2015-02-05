@@ -660,6 +660,7 @@ class MainWindow_KV(MainWindow):
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
         self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
+        self.ChiqViewer.SetPage(self.newModel.ChiSquareTestResultInHTML)
 
         self.IN_AXES = False
 
@@ -1319,7 +1320,9 @@ class MainWindow_KV(MainWindow):
             sheetFit = book.add_sheet('Model fitting')
             sheetT = book.add_sheet('T-test results')
             sheetU = book.add_sheet('U-test results')
+            sheetChiq = book.add_sheet('Chi-square test results')
             sheetA = book.add_sheet('ANOVA results')
+
 
             QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_mean, self.newModel.Ve_cal_patch_mean], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
             QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_deviation, self.newModel.Ve_cal_patch_deviation], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
@@ -1338,6 +1341,8 @@ class MainWindow_KV(MainWindow):
             QIBA_functions.WriteToExcelSheet_GKM_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Utest_u, self.newModel.Ktrans_cal_patch_Utest_p, self.newModel.Ve_cal_patch_Utest_u, self.newModel.Ve_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
 
             QIBA_functions.WriteToExcelSheet_GKM_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ANOVA_f,self.newModel.Ktrans_cal_patch_ANOVA_p,self.newModel.Ve_cal_patch_ANOVA_f,self.newModel.Ve_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
+
+            QIBA_functions.WriteToExcelSheet_GKM_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Chisquare_c, self.newModel.Ktrans_cal_patch_Chisquare_p, self.newModel.Ve_cal_patch_Chisquare_c, self.newModel.Ve_cal_patch_Chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
 
             book.save(os.path.join(saveDir, 'results.xls'))
 

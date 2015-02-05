@@ -131,6 +131,7 @@ class Model_KV():
         self.T_TestForModel()
         self.U_TestForModel()
         self.ANOVAForModel()
+        self.ChiSquareTestForModel()
 
         # write HTML result
         self.htmlCovCorrResults()
@@ -139,6 +140,7 @@ class Model_KV():
         self.htmlU_TestResults()
         self.htmlStatistics()
         self.htmlANOVAResults()
+        self.htmlChiqResults()
 
     def PrepareHeaders(self):
         # prepare the headers for table editing
@@ -367,6 +369,25 @@ class Model_KV():
         # put the text into html structure
         self.U_testResultInHTML = self.packInHtml(KtransU_TestTable + '<br>' + VeU_TestTable)
 
+    def htmlChiqResults(self):
+        '''
+
+        '''
+        Ktrans_Chiq_TestTable = \
+                        '<h2>The Chi-square test result of each patch in calculated Ktrans map:</h2>'
+
+        Ktrans_Chiq_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['Chiq', 'p-value'], [self.Ktrans_cal_patch_Chisquare_c, self.Ktrans_cal_patch_Chisquare_p])
+
+
+        Ve_Chiq_TestTable = \
+                        '<h2>The Chi-square test result of each patch in calculated Ve map:</h2>'
+
+        Ve_Chiq_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['Chiq', 'p-value'], [self.Ve_cal_patch_Chisquare_c, self.Ve_cal_patch_Chisquare_p])
+
+
+        # put the text into html structure
+        self.ChiSquareTestResultInHTML = self.packInHtml(Ktrans_Chiq_TestTable + '<br>' + Ve_Chiq_TestTable)
+
     def htmlANOVAResults(self):
         # write the ANOVA results into HTML form
 
@@ -542,6 +563,11 @@ class Model_KV():
         # call the U test function
         self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
         self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
+
+    def ChiSquareTestForModel(self):
+        # call the U test function
+        self.Ktrans_cal_patch_Chisquare_c, self.Ktrans_cal_patch_Chisquare_p = QIBA_functions.ChiSquare_Test(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ve_cal_patch_Chisquare_c, self.Ve_cal_patch_Chisquare_p = QIBA_functions.ChiSquare_Test(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
 
     def ANOVAForModel(self):
         # call the ANOVA function
