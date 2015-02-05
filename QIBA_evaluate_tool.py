@@ -687,8 +687,8 @@ class MainWindow_KV(MainWindow):
         '''
         load the reference data, and get the image size
         '''
-        self.ref_K, nrOfRow1, nrOfColumn1 = QIBA_functions.ImportRawFile(self.path_ref_K, self.patchLen)
-        self.ref_V, nrOfRow2, nrOfColumn2 = QIBA_functions.ImportRawFile(self.path_ref_V, self.patchLen)
+        self.ref_K, nrOfRow1, nrOfColumn1, fileType = QIBA_functions.ImportRawFile(self.path_ref_K, self.patchLen)
+        self.ref_V, nrOfRow2, nrOfColumn2, fileType = QIBA_functions.ImportRawFile(self.path_ref_V, self.patchLen)
         if (nrOfRow1 == nrOfRow2) and (nrOfColumn1 == nrOfColumn2):
             self.nrOfRow = nrOfRow1 - 2
             self.nrOfColumn = nrOfColumn1
@@ -888,10 +888,10 @@ class MainWindow_KV(MainWindow):
         dlg = wx.FileDialog(self, 'Load reference Ktrans...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_K = dlg.GetPath()
-            imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_K, self.patchLen)
-            if imageData == 'binary':
+            imageData, nrOfRow, nrOfColumn, fileType = QIBA_functions.ImportRawFile(self.path_ref_K, self.patchLen)
+            if fileType == 'BINARY':
                 self.OnImportBinaryDialog_K()
-            elif imageData.any() == False:
+            elif imageData == False:
                 self.SetStatusText('Please import a valid image!')
             else:
                 self.ref_K = imageData
@@ -907,10 +907,10 @@ class MainWindow_KV(MainWindow):
         dlg = wx.FileDialog(self, 'Load reference Ve...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_V = dlg.GetPath()
-            imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_V, self.patchLen)
-            if imageData == 'binary':
+            imageData, nrOfRow, nrOfColumn, fileType = QIBA_functions.ImportRawFile(self.path_ref_V, self.patchLen)
+            if fileType == 'BINARY':
                 self.OnImportBinaryDialog_V()
-            elif imageData.any() == False:
+            elif imageData == False:
                 self.SetStatusText('Please import a valid image!')
             else:
                 self.ref_V = imageData
@@ -1474,8 +1474,8 @@ class MainWindow_T1(MainWindow):
         '''
         load the reference data, and get the image size
         '''
-        self.ref_T1, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_T1, self.patchLen)
-        self.nrOfRow = nrOfRow - 2
+        self.ref_T1, nrOfRow, nrOfColumn, fileType = QIBA_functions.ImportRawFile(self.path_ref_T1, self.patchLen)
+        self.nrOfRow = nrOfRow - 1
         self.nrOfColumn = nrOfColumn
 
     def SetupStartPage(self):
@@ -1616,14 +1616,14 @@ class MainWindow_T1(MainWindow):
         dlg = wx.FileDialog(self, 'Load reference T1...', '', '', "Supported files (*.dcm *.bin *.raw *.tif)|*.dcm;*.bin;*.raw;*.tif", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.path_ref_T1 = dlg.GetPath()
-            imageData, nrOfRow, nrOfColumn = QIBA_functions.ImportRawFile(self.path_ref_T1, self.patchLen)
-            if imageData == 'binary':
+            imageData, nrOfRow, nrOfColumn, fileType = QIBA_functions.ImportRawFile(self.path_ref_T1, self.patchLen)
+            if fileType == 'BINARY':
                 self.OnImportBinaryDialog_T1()
-            elif imageData.any() == False:
+            elif imageData == False:
                 self.SetStatusText('Please import a valid image!')
             else:
                 self.ref_T1 = imageData
-                self.nrOfRow = nrOfRow - 2
+                self.nrOfRow = nrOfRow - 1
                 self.nrOfColumn = nrOfColumn
             self.ShowRef()
             self.SetStatusText('Reference T1 loaded.')
@@ -2034,7 +2034,7 @@ if __name__ == "__main__":
     Application = wx.App()
 
     # show the splash window
-    DEBUG = False
+    DEBUG = True
     if DEBUG:
         pass
     else:

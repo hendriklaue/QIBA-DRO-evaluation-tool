@@ -8,6 +8,10 @@ class Model_KV():
     '''
     def __init__(self, path_ref_K, path_ref_V, path_cal_K, path_cal_V, dimension):
         # initializes the class
+        self.path_ref_K = path_ref_K
+        self.path_ref_V = path_ref_V
+        self.path_cal_K = path_cal_K
+        self.path_cal_V = path_cal_V
 
         # parameters of the image size
         self.nrOfRows, self.nrOfColumns = dimension
@@ -108,7 +112,8 @@ class Model_KV():
         self.resultInHTML = ''
 
         # import files
-        self.ImportFiles(path_ref_K, path_ref_V, path_cal_K, path_cal_V)
+        self.ImportFiles()
+        self.PreprocessFilesForGKM()
 
     def Evaluate(self):
         # evaluation
@@ -476,12 +481,28 @@ class Model_KV():
         # getter for the result in HTML.
         return self.ANOVAResultInHTML
 
-    def ImportFiles(self, path_K_ref, path_V_ref, path_K_cal, path_V_cal):
+    def ImportFiles(self):
         # import files for evaluation.
-        self.Ktrans_ref_inRow, self.Ktrans_ref = QIBA_functions.ImportFile(path_K_ref, self.nrOfRows, self.nrOfColumns, self.patchLen)
-        self.Ve_ref_inRow, self.Ve_ref = QIBA_functions.ImportFile(path_V_ref, self.nrOfRows, self.nrOfColumns, self.patchLen)
-        self.Ktrans_cal_inRow, self.Ktrans_cal = QIBA_functions.ImportFile(path_K_cal, self.nrOfRows, self.nrOfColumns, self.patchLen)
-        self.Ve_cal_inRow, self.Ve_cal = QIBA_functions.ImportFile(path_V_cal, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.Ktrans_ref_raw = QIBA_functions.ImportFile(self.path_ref_K, self.nrOfRows, self.nrOfColumns, self.patchLen, 'GKM')
+        self.Ve_ref_raw = QIBA_functions.ImportFile(self.path_ref_V, self.nrOfRows, self.nrOfColumns, self.patchLen, 'GKM')
+        self.Ktrans_cal_raw = QIBA_functions.ImportFile(self.path_cal_K, self.nrOfRows, self.nrOfColumns, self.patchLen, 'GKM')
+        self.Ve_cal_raw = QIBA_functions.ImportFile(self.path_cal_V, self.nrOfRows, self.nrOfColumns, self.patchLen, 'GKM')
+
+    def PreprocessFilesForGKM(self):
+        # pre-process
+        self.Ktrans_ref_inRow = self.Ktrans_ref_raw[self.patchLen:-self.patchLen]
+        self.Ktrans_ref = QIBA_functions.Rearrange(self.Ktrans_ref_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
+
+
+        self.Ktrans_cal_inRow = self.Ktrans_cal_raw[self.patchLen:-self.patchLen]
+        self.Ktrans_cal = QIBA_functions.Rearrange(self.Ktrans_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
+
+        self.Ve_ref_inRow = self.Ve_ref_raw[self.patchLen:-self.patchLen]
+        self.Ve_ref = QIBA_functions.Rearrange(self.Ve_ref_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
+
+
+        self.Ve_cal_inRow = self.Ve_cal_raw[self.patchLen:-self.patchLen]
+        self.Ve_cal = QIBA_functions.Rearrange(self.Ve_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
@@ -582,6 +603,10 @@ class Model_T1():
     def __init__(self, path_ref_T1, path_cal_T1, dimension):
         # initializes the class
 
+        # pass the paths
+        self.path_ref_T1 = path_ref_T1
+        self.path_cal_T1 = path_cal_T1
+
         # parameters of the image size
         self.nrOfRows, self.nrOfColumns = dimension
         self.patchLen = 10
@@ -650,7 +675,8 @@ class Model_T1():
         self.headersHorizontal = []
 
         # import the files
-        self.ImportFiles(path_ref_T1, path_cal_T1)
+        self.ImportFiles()
+        self.PreprocessFilesForT1()
 
         # R1 value from T1
         self.R1_cal = []
@@ -691,8 +717,9 @@ class Model_T1():
 
     def PrepareHeaders(self):
         # prepare the headers for table editing
-        for i in range(self.nrOfRows):
-            self.headersVertical.append('Row = ' + str(i+1))
+        # for i in range(self.nrOfRows):
+        #     self.headersVertical.append('Row = ' + str(i+1))
+        self.headersVertical = ['S0 = 500', 'S0 = 1000', 'S0 = 2000', 'S0 = 5000', 'S0 = 10000', 'S0 = 20000', 'S0 = 50000']
         for j in range(self.nrOfColumns):
             self.headersHorizontal.append('R1 = ' + QIBA_functions.formatFloatTo4DigitsString(self.R1_ref[0][j][0]))
 
@@ -884,10 +911,17 @@ class Model_T1():
         # getter for the result in HTML.
         return self.ANOVAResultInHTML
 
-    def ImportFiles(self, path_ref_T1, path_cal_T1):
+    def ImportFiles(self):
         # import files for evaluation.
-        self.T1_ref_inRow, self.T1_ref = QIBA_functions.ImportFile(path_ref_T1, self.nrOfRows, self.nrOfColumns, self.patchLen)
-        self.T1_cal_inRow, self.T1_cal = QIBA_functions.ImportFile(path_cal_T1, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.T1_ref_raw = QIBA_functions.ImportFile(self.path_ref_T1, self.nrOfRows, self.nrOfColumns, self.patchLen, 'T1')
+        self.T1_cal_raw = QIBA_functions.ImportFile(self.path_cal_T1, self.nrOfRows, self.nrOfColumns, self.patchLen, 'T1')
+
+    def PreprocessFilesForT1(self):
+        self.T1_ref_inRow = self.T1_ref_raw[self.patchLen:]
+        self.T1_ref = QIBA_functions.Rearrange(self.T1_ref_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
+
+        self.T1_cal_inRow = self.T1_cal_raw[self.patchLen:]
+        self.T1_cal = QIBA_functions.Rearrange(self.T1_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files

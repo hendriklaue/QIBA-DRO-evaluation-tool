@@ -34,21 +34,22 @@ def formatFloatTo2DigitsString(input):
     else:
         return  str('{:3.2f}'.format(float(input)))
 
-def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
+def ImportFile(path, nrOfRows, nrOfColumns, patchLen, mode):
     # import a file.  Pre-process so that different file types have the same structure.
 
     fileName, fileExtension = os.path.splitext(path)
     if fileExtension == '.dcm':
         ds =  dicom.read_file(path)
-        rescaled = RescaleDICOM(ds, patchLen)
-        rescaled = rescaled[patchLen:-patchLen] # get rid of the first and the last row
-        rearranged = Rearrange(rescaled, nrOfRows, nrOfColumns, patchLen)
-        return rescaled, rearranged
+        imArray = RescaleDICOM(ds, patchLen)
+        return imArray
     elif fileExtension in ['.bin', '.raw']:
         binaryData = []
         rawData = open(path, 'rb').read()
         fileLength = os.stat(path).st_size
-        dataLength = fileLength / ((nrOfRows + 2) * nrOfColumns * patchLen * patchLen)
+        if mode == 'GKM':
+            dataLength = fileLength / ((nrOfRows + 2) * nrOfColumns * patchLen * patchLen)
+        else:
+            dataLength = fileLength / ((nrOfRows + 1) * nrOfColumns * patchLen * patchLen)
         if dataLength == 4:
             dataType = 'f'
         elif dataLength == 8:
@@ -58,39 +59,67 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen):
         for i in range(fileLength / dataLength):
             data = rawData[i * dataLength : (i + 1) * dataLength]
             binaryData.append(struct.unpack(dataType, data)[0])
-        sectioned = SectionBin(binaryData, nrOfRows, nrOfColumns, patchLen)
-        sectioned = sectioned[patchLen:-patchLen] # get rid of the first and the last row
-        rearranged = Rearrange(sectioned, nrOfRows, nrOfColumns, patchLen)
-        return sectioned, rearranged
+        imArray = SectionBin(binaryData, nrOfRows, nrOfColumns, patchLen, mode)
+        return imArray
     elif fileExtension == '.tif':
         im = Image.open(path)
         if not im.mode == "F":
             im.mode = "F"
         imArray = numpy.array(im)
-        rescaled = imArray[patchLen:-patchLen]
-        rearranged = Rearrange(rescaled, nrOfRows, nrOfColumns, patchLen)
-        return rescaled, rearranged
+        return imArray
     else:
-        return False, False
+        return [], ''
 
 def ImportRawFile(path, patchLen):
     # import a file without cutting the head and tail lines, nor rescale. And return the dimension of the image.
     fileName, fileExtension = os.path.splitext(path)
     if fileExtension == '.dcm':
         ds =  dicom.read_file(path)
+        imArray = RescaleDICOM(ds, patchLen)
         nrOfRow, nrOfColumn = ds.pixel_array.shape
-        return ds.pixel_array,  nrOfRow / patchLen, nrOfColumn / patchLen
+        return imArray,  nrOfRow / patchLen, nrOfColumn / patchLen, 'DICOM'
     elif fileExtension in ['.bin', '.raw']:
-        return 'binary', 0, 0
+        return [], 0, 0, 'BINARY'
     elif fileExtension == '.tif':
         im = Image.open(path)
         if not im.mode == "F":
             im.mode = "F"
         imArray = numpy.array(im)
         nrOfRow, nrOfColumn = imArray.shape
-        return imArray, nrOfRow / patchLen, nrOfColumn / patchLen
+        return imArray, nrOfRow / patchLen, nrOfColumn / patchLen, 'TIFF'
     else:
-        return False, 0, 0
+        return False, 0, 0, ''
+
+def ImportBinaryFile(path, nrOfRows, nrOfColumns, patchLen, mode):
+    '''
+    import binary file
+    '''
+
+    if mode == 'GKM':
+        bias = 2
+    else:
+        bias = 1
+
+    binaryData = []
+    rawData = open(path, 'rb').read()
+    fileLength = os.stat(path).st_size
+    dataLength = fileLength / ((nrOfRows + bias) * nrOfColumns * patchLen * patchLen)
+    if dataLength == 4:
+        dataType = 'f'
+    elif dataLength == 8:
+        dataType = 'd'
+    else:
+        dataType = 'f'
+    for i in range(fileLength / dataLength):
+        data = rawData[i * dataLength : (i + 1) * dataLength]
+        binaryData.append(struct.unpack(dataType, data)[0])
+    sectioned = SectionBin(binaryData, nrOfRows, nrOfColumns, patchLen, mode)
+    if mode == 'GKM':
+        sectioned = sectioned[patchLen:-patchLen] # get rid of the first and the last row
+    else:
+        sectioned = sectioned[patchLen:]
+    rearranged = Rearrange(sectioned, nrOfRows, nrOfColumns, patchLen)
+    return sectioned, rearranged
 
 def RescaleDICOM(ds, patchLen):
     # rescale the DICOM file to remove the intercept and the slope. the 'pixel' in DICOM file means a row of pixels.
@@ -109,13 +138,18 @@ def RescaleDICOM(ds, patchLen):
         pixelFlow.append(temp)
     return pixelFlow
 
-def SectionBin(pixelFlow, nrOfRows, nrOfColumns, patchLen):
+def SectionBin(pixelFlow, nrOfRows, nrOfColumns, patchLen, mode):
     # section the binary flow into DICOM fashioned order
-    sectioned = [[]for i in range((nrOfRows + 2) * patchLen)]
+    if mode == 'GKM':
+        bias = 2
+    else:
+        bias = 1
+    sectioned = [[]for i in range((nrOfRows + bias) * patchLen)]
 
-    for i in range ((nrOfRows+2) * patchLen):
+    for i in range ((nrOfRows+bias) * patchLen):
         sectioned[i].extend(pixelFlow[nrOfColumns * patchLen * i : nrOfColumns * patchLen * (i + 1)] )
     return sectioned
+
 
 def Rearrange(pixelFlow, nrOfRows, nrOfColumns, patchLen):
     # rearrange the DICOM file so that the file can be accessed in patches and the top and bottom strips are removed as they are not used here.
