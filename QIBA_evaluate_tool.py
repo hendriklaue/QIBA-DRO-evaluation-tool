@@ -230,9 +230,9 @@ class MainWindow(wx.Frame):
         self.pageImagePreview = wx.Panel(self.noteBookRight)
         self.pageScatter = wx.Panel(self.noteBookRight)
         # self.pageHistogram = wx.Panel(self.noteBookRight)
-
         self.pageHistogram = scrolled.ScrolledPanel(self.noteBookRight)
-        self.pageBoxPlot = wx.Panel(self.noteBookRight)
+        # self.pageBoxPlot = wx.Panel(self.noteBookRight)
+        self.pageBoxPlot = scrolled.ScrolledPanel(self.noteBookRight)
         self.pageStatistics = wx.Panel(self.noteBookRight)
         self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
         self.pageModelFitting = wx.Panel(self.noteBookRight)
@@ -276,8 +276,7 @@ class MainWindow(wx.Frame):
         self.SetupPage_Histogram()
 
         # page box plots
-        self.figureBoxPlot = Figure()
-        self.canvasBoxPlot = FigureCanvas(self.pageBoxPlot,-1, self.figureBoxPlot)
+        self.SetupPage_BoxPlot()
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
         sizer.Add(self.canvasBoxPlot, 1, wx.EXPAND)
@@ -332,6 +331,9 @@ class MainWindow(wx.Frame):
         sizer.Add(self.noteBookRight, 1, wx.EXPAND)
         self.rightPanel.SetSizer(sizer)
         self.rightPanel.Layout()
+
+    def SetupPage_BoxPlot(self):
+        pass
 
     def OnSwitchViewing(self, event):
         # switch the viewing in scatter plot page
@@ -656,6 +658,9 @@ class MainWindow_KV(MainWindow):
         self.SetupRightClickMenu()
         self.SetupPageANOVA()
 
+    def SetupPage_BoxPlot(self):
+        self.figureBoxPlot = Figure()
+        self.canvasBoxPlot = FigureCanvas(self.pageBoxPlot,-1, self.figureBoxPlot)
 
     def ShowResults(self):
         # show the results in the main window
@@ -1457,6 +1462,18 @@ class MainWindow_T1(MainWindow):
         self.SetupEditMenu()
         self.SetupRightClickMenu()
 
+    def SetupPage_BoxPlot(self):
+        self.figureBoxPlot = Figure()
+        w, h = self.figureBoxPlot.get_size_inches()
+        self.figureBoxPlot.set_size_inches([w*3, h])
+        self.canvasBoxPlot = FigureCanvas(self.pageBoxPlot,-1, self.figureBoxPlot)
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.canvasBoxPlot, 1, wx.EXPAND)
+        self.pageBoxPlot.SetSizer(sizer)
+        self.pageBoxPlot.SetAutoLayout(1)
+        self.pageBoxPlot.SetupScrolling()
+
     def ShowResults(self):
         # show the results in the main window
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
@@ -1585,10 +1602,8 @@ class MainWindow_T1(MainWindow):
         # setup the histogram page
 
         self.figureHist_T1 = Figure()
-
         w, h = self.figureHist_T1.get_size_inches()
         self.figureHist_T1.set_size_inches([w*3, h])
-
         self.canvasHist_T1 = FigureCanvas(self.pageHistogram, -1, self.figureHist_T1)
 
         sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -1722,8 +1737,8 @@ class MainWindow_T1(MainWindow):
                     subPlot_T1.xaxis.set_label_position('top')
                 if j == 0:
                     subPlot_T1.set_ylabel(self.newModel.headersVertical[i])
-                self.pageHistogram.Layout()
-                self.pageHistogram.SetupScrolling()
+        self.pageHistogram.Layout()
+        self.pageHistogram.SetupScrolling()
 
 
         # setup the toolbar
@@ -1787,7 +1802,7 @@ class MainWindow_T1(MainWindow):
 
         subPlot_R1.xaxis.set_major_formatter(ticker.NullFormatter())
         # subPlot_R1.xaxis.set_minor_locator(ticker.FixedLocator([8, 23, 38, 53, 68, 83]))
-        subPlot_R1.xaxis.set_minor_locator(ticker.FixedLocator([4, 10, 16, 22, 28, 34, 40, 46, 52, 58, 64, 70, 76, 82, 88]))
+        subPlot_R1.xaxis.set_minor_locator(ticker.FixedLocator([4, 11, 18, 25, 32, 39, 46, 53, 60, 67, 74, 81, 88, 95, 102]))
         subPlot_R1.xaxis.set_minor_formatter(ticker.FixedFormatter(self.newModel.headersHorizontal))
         for j in range(self.newModel.nrOfColumns):
             subPlot_R1.axvline(x = self.newModel.nrOfRows * j + 0.5, color = 'green', linestyle = 'dashed')
