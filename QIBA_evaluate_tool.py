@@ -1369,7 +1369,7 @@ class MainWindow_KV(MainWindow):
             QIBA_functions.WriteToExcelSheet_GKM_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_KK,self.newModel.corr_KV,self.newModel.corr_VK,self.newModel.corr_VV], 1, self.nrOfRow, self.nrOfColumn)
             QIBA_functions.WriteToExcelSheet_GKM_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_KK,self.newModel.cov_KV,self.newModel.cov_VK,self.newModel.cov_VV], 1, self.nrOfRow, self.nrOfColumn)
 
-            QIBA_functions.WriteToExcelSheet_GKM_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_Ktrans, self.newModel.b_lin_Ktrans,self.newModel.a_log_Ktrans,self.newModel.b_log_Ktrans,self.newModel.a_lin_Ve, self.newModel.b_lin_Ve,self.newModel.a_log_Ve,self.newModel.b_log_Ve], 1, self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_GKM_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_Ktrans, self.newModel.b_lin_Ktrans, self.newModel.r_squared_lin_K, self.newModel.a_log_Ktrans,self.newModel.b_log_Ktrans,self.newModel.a_lin_Ve, self.newModel.b_lin_Ve, self.newModel.r_squared_lin_V, self.newModel.a_log_Ve,self.newModel.b_log_Ve], 1, self.nrOfRow, self.nrOfColumn)
 
             QIBA_functions.WriteToExcelSheet_GKM_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ttest_t, self.newModel.Ktrans_cal_patch_ttest_p, self.newModel.Ve_cal_patch_ttest_t, self.newModel.Ve_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
             QIBA_functions.WriteToExcelSheet_GKM_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Utest_u, self.newModel.Ktrans_cal_patch_Utest_p, self.newModel.Ve_cal_patch_Utest_u, self.newModel.Ve_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
@@ -1777,7 +1777,7 @@ class MainWindow_T1(MainWindow):
         right down on figure
         '''
         if self.IN_AXES:
-            self.pageHistogram.PopupMenu(self.popmenu_hist, event.GetPosition())
+            self.canvasHist_T1.PopupMenu(self.popmenu_hist, event.GetPosition())
         else:
             pass
 
@@ -1842,7 +1842,7 @@ class MainWindow_T1(MainWindow):
         right down on figure
         '''
         if self.IN_AXES:
-            self.pageBoxPlot.PopupMenu(self.popmenu_box, event.GetPosition())
+            self.canvasBoxPlot.PopupMenu(self.popmenu_box, event.GetPosition())
         else:
             pass
 
@@ -1947,7 +1947,7 @@ class MainWindow_T1(MainWindow):
             QIBA_functions.WriteToExcelSheet_T1_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_T1T1], 1, self.nrOfRow, self.nrOfColumn)
             QIBA_functions.WriteToExcelSheet_T1_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_T1T1], 1, self.nrOfRow, self.nrOfColumn)
 
-            QIBA_functions.WriteToExcelSheet_T1_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_T1, self.newModel.b_lin_T1,self.newModel.a_log_T1,self.newModel.b_log_T1], 1, self.nrOfRow, self.nrOfColumn)
+            QIBA_functions.WriteToExcelSheet_T1_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_T1, self.newModel.b_lin_T1, self.newModel.r_squared_lin_T1, self.newModel.a_log_T1,self.newModel.b_log_T1], 1, self.nrOfRow, self.nrOfColumn)
 
             QIBA_functions.WriteToExcelSheet_T1_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ttest_t, self.newModel.T1_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
             QIBA_functions.WriteToExcelSheet_T1_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_Utest_u, self.newModel.T1_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
@@ -2060,7 +2060,7 @@ if __name__ == "__main__":
     Application = wx.App()
 
     # show the splash window
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
         pass
     else:

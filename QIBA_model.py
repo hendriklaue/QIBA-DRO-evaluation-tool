@@ -192,7 +192,7 @@ class Model_KV():
             KtransLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ktrans[j])
             KtransLinearFitting += ') * Ktrans_ref + ('
             KtransLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_lin_Ktrans[j])
-            KtransLinearFitting += ')'
+            KtransLinearFitting += '), R-squared value: ' + QIBA_functions.formatFloatTo4DigitsString(self.r_squared_lin_K[j])
             KtransLinearFitting += '</td>'
             KtransLinearFitting += '</tr>'
 
@@ -229,7 +229,7 @@ class Model_KV():
             VeLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_lin_Ve[i])
             VeLinearFitting += ') * Ve_ref + ('
             VeLinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_lin_Ve[i])
-            VeLinearFitting += ')'
+            VeLinearFitting += '), R-squared value: ' + QIBA_functions.formatFloatTo4DigitsString(self.r_squared_lin_V[i])
             VeLinearFitting += '</td>'
             VeLinearFitting += '</tr>'
         VeLinearFitting += '</table>'
@@ -521,8 +521,8 @@ class Model_KV():
 
     def FittingLinearModelForModel(self):
         # fit a planar for the calculated Ktrans and Ve maps
-        self.a_lin_Ktrans, self.b_lin_Ktrans = QIBA_functions.FittingLinearModel(zip(*self.Ktrans_cal_patchValue), zip(*self.Ktrans_ref_patchValue), self.nrOfColumns)
-        self.a_lin_Ve, self.b_lin_Ve = QIBA_functions.FittingLinearModel(self.Ve_cal_patchValue, self.Ve_ref_patchValue, self.nrOfRows)
+        self.a_lin_Ktrans, self.b_lin_Ktrans, self.r_squared_lin_K = QIBA_functions.FittingLinearModel(zip(*self.Ktrans_cal_patchValue), zip(*self.Ktrans_ref_patchValue), self.nrOfColumns)
+        self.a_lin_Ve, self.b_lin_Ve, self.r_squared_lin_V = QIBA_functions.FittingLinearModel(self.Ve_cal_patchValue, self.Ve_ref_patchValue, self.nrOfRows)
 
     def FittingLogarithmicModelForModel(self):
         # fitting logarithmic model
@@ -753,7 +753,7 @@ class Model_T1():
             T1LinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.a_lin_T1[i])
             T1LinearFitting += ') * T1_ref + ('
             T1LinearFitting += QIBA_functions.formatFloatTo4DigitsString(self.b_lin_T1[i])
-            T1LinearFitting += ')'
+            T1LinearFitting += '), R-squared value: ' + QIBA_functions.formatFloatTo4DigitsString(self.r_squared_lin_T1[i])
             T1LinearFitting += '</td>'
             T1LinearFitting += '</tr>'
 
@@ -935,7 +935,7 @@ class Model_T1():
 
     def FittingLinearModelForModel(self):
         # fit a planar for the calculated Ktrans and Ve maps
-        self.a_lin_T1, self.b_lin_T1 = QIBA_functions.FittingLinearModel(self.T1_cal_patchValue,self.T1_ref_patchValue, self.nrOfRows)
+        self.a_lin_T1, self.b_lin_T1, self.r_squared_lin_T1 = QIBA_functions.FittingLinearModel(self.T1_cal_patchValue,self.T1_ref_patchValue, self.nrOfRows)
 
     def FittingLogarithmicModelForModel(self):
         # fitting logarithmic model

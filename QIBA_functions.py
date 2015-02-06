@@ -210,13 +210,15 @@ def FittingLinearModel(calculated, reference, dimensionIndex):
     # fitting the linear model
     temp_slope = []
     temp_intercept = []
+    temp_rSquared = []
 
     for i in range(dimensionIndex):
         slope, intercept, r, p, stderr = stats.linregress(reference[i], calculated[i])
         temp_slope.append(slope)
         temp_intercept.append(intercept)
+        temp_rSquared.append(r**2)
 
-    return temp_slope, temp_intercept
+    return temp_slope, temp_intercept, temp_rSquared
 
 def func_for_log_calculation(x, a, b):
     # assistant function for calculating logarithmic model fitting
@@ -479,22 +481,22 @@ def WriteToExcelSheet_GKM_fit(sheet, headerH, headerV, data, titlePos, nrR, nrC)
     sheet.write(1,int(titlePos), 'Linear model fitting for calculated Ktrans')
     for (j, item) in enumerate(headerH):
         sheet.write(0*nrC+3+j, 0, item)
-        sheet.write(0*nrC+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ') * Ktrans_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + ')')
+        sheet.write(0*nrC+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ') * Ktrans_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + '), R-squared value: ' + str(formatFloatTo4DigitsString(data[2][j])))
 
     sheet.write(nrC+3+1,int(titlePos), 'Logarithmic model fitting for calculated Ktrans')
     for (j, item) in enumerate(headerH):
         sheet.write(nrC+3+3+j, 0, item)
-        sheet.write(nrC+3+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[3][j])) + ') * log10(Ktrans_ref) + (' + str(formatFloatTo4DigitsString(data[2][j])) + ')' )
+        sheet.write(nrC+3+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[4][j])) + ') * log10(Ktrans_ref) + (' + str(formatFloatTo4DigitsString(data[3][j])) + ')' )
 
     sheet.write(2*(nrC+3)+1,int(titlePos), 'Linear model fitting for calculated Ve')
     for (j, item) in enumerate(headerV):
         sheet.write(2*(nrC+3)+3+j, 0, item)
-        sheet.write(2*(nrC+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[4][j])) + ') * Ve_ref + (' + str(formatFloatTo4DigitsString(data[5][j])) + ')')
+        sheet.write(2*(nrC+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[5][j])) + ') * Ve_ref + (' + str(formatFloatTo4DigitsString(data[6][j])) + '), R-squared value: ' + str(formatFloatTo4DigitsString(data[7][j])))
 
     sheet.write(2*(nrC+3)+(nrR+3)+1,int(titlePos), 'Logarithmic model fitting for calculated Ve')
     for (j, item) in enumerate(headerV):
         sheet.write(2*(nrC+3)+(nrR+3)+3+j, 0, item)
-        sheet.write(2*(nrC+3)+(nrR+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[7][j])) + ') * log10(Ve_ref) + (' + str(formatFloatTo4DigitsString(data[6][j])) + ')' )
+        sheet.write(2*(nrC+3)+(nrR+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[9][j])) + ') * log10(Ve_ref) + (' + str(formatFloatTo4DigitsString(data[8][j])) + ')' )
 
 def WriteToExcelSheet_GKM_test(sheet, headerH, headerV, data, titlePos, nrR, nrC, caption):
     '''
@@ -573,12 +575,12 @@ def WriteToExcelSheet_T1_fit(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     sheet.write(1,int(titlePos), 'Linear model fitting for calculated T1')
     for (j, item) in enumerate(headerV):
         sheet.write(3+j, 0, item)
-        sheet.write(3+j, 1, 'T1_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ')* T1_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + ')')
+        sheet.write(3+j, 1, 'T1_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ')* T1_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + '), R-squared value: ' + str(formatFloatTo4DigitsString(data[2][j])))
 
     sheet.write(nrR+3+1,int(titlePos), 'Logarithmic model fitting for calculated T1')
     for (j, item) in enumerate(headerV):
         sheet.write(nrR+3+3+j, 0, item)
-        sheet.write(nrR+3+3+j, 1, 'T1_cal = (' + str(formatFloatTo4DigitsString(data[3][j])) + ') * log10(T1_ref) + (' + str(formatFloatTo4DigitsString(data[2][j])) + ')')
+        sheet.write(nrR+3+3+j, 1, 'T1_cal = (' + str(formatFloatTo4DigitsString(data[3][j])) + ') * log10(T1_ref) + (' + str(formatFloatTo4DigitsString(data[4][j])) + ')')
 
 def WriteToExcelSheet_T1_test(sheet, headerH, headerV, data, titlePos, nrR, nrC, caption):
     '''
