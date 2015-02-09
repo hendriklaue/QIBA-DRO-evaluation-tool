@@ -374,6 +374,25 @@ class Model_KV():
         # put the text into html structure
         self.U_testResultInHTML = self.packInHtml(KtransU_TestTable + '<br>' + VeU_TestTable)
 
+    def htmlChiq_TestResults(self):
+        # write the chi-square-test results into HTML form
+
+        # Ktrans statistics tables
+        KtransChiq_TestTable = \
+                        '<h2>The Chi-square test result of each patch in calculated Ktrans map:</h2>'
+
+        KtransChiq_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['chiq', 'p-value'], [self.Ktrans_cal_patch_Chisquare_c, self.Ktrans_cal_patch_Chisquare_p])
+
+        # Ktrans statistics tables
+        VeChiq_TestTable = \
+                        '<h2>The Chi-square test result of each patch in calculated Ve map:</h2>'
+
+        VeChiq_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['chiq', 'p-value'], [self.Ve_cal_patch_Chisquare_c, self.Ve_cal_patch_Chisquare_p])
+
+
+        # put the text into html structure
+        self.U_testResultInHTML = self.packInHtml(KtransChiq_TestTable + '<br>' + VeChiq_TestTable)
+
     def htmlChiqResults(self):
         '''
 
@@ -391,7 +410,7 @@ class Model_KV():
 
 
         # put the text into html structure
-        self.ChiSquareTestResultInHTML = self.packInHtml(Ktrans_Chiq_TestTable + '<br>' + Ve_Chiq_TestTable)
+        self.Chiq_testResultInHTML = self.packInHtml(Ktrans_Chiq_TestTable + '<br>' + Ve_Chiq_TestTable)
 
     def htmlANOVAResults(self):
         # write the ANOVA results into HTML form
@@ -712,7 +731,7 @@ class Model_T1():
         self.htmlT_TestResults()
         self.htmlU_TestResults()
         self.htmlStatistics()
-        self.htmlChiSquareTestResults()
+        self.htmlChiq_TestResults()
         # self.htmlANOVAResults()
 
     def PrepareHeaders(self):
@@ -831,17 +850,17 @@ class Model_T1():
         # put the text into html structure
         self.U_testResultInHTML = self.packInHtml(T1_U_TestTable)
 
-    def htmlChiSquareTestResults(self):
-        '''
+    def htmlChiq_TestResults(self):
+        # write the U-test results into HTML form
 
-        '''
-        T1_ChiSquareTable = \
-                        '<h2>The Mann-Whitney U test result of each patch in calculated T1 map:</h2>'
+        # T1 u-test results tables
+        T1_Chiq_TestTable = \
+                        '<h2>The Chi-square test result of each patch in calculated T1 map:</h2>'
 
-        T1_ChiSquareTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['Chiq', 'p-value'], [self.T1_cal_patch_chisquare_c, self.T1_cal_patch_chisquare_p])
+        T1_Chiq_TestTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['Chiq', 'p-value'], [self.T1_cal_patch_chisquare_c, self.T1_cal_patch_chisquare_p])
 
         # put the text into html structure
-        self.ChiSquareTestResultInHTML = self.packInHtml(T1_ChiSquareTable)
+        self.ChiSquareTestResultInHTML = self.packInHtml(T1_Chiq_TestTable)
 
     def htmlANOVAResults(self):
         # write the ANOVA results into HTML form

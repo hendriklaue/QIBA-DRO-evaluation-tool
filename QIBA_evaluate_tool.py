@@ -558,7 +558,23 @@ class MainWindow(wx.Frame):
     def ShowResults(self):
         pass
 
-    def OnExportToPDF(self, event):
+    def OnExport(self, event):
+        '''
+        export selection
+        '''
+        exportDialog = MySelectionDialog(None, 'Export as:', 'Export as...', choices=['PDF', 'Excel file'])
+        if exportDialog.ShowModal() == wx.ID_OK:
+            if exportDialog.GetSelections() == 'PDF':
+                self.OnExportToPDF()
+            elif exportDialog.GetSelections() == 'Excel file':
+                self.OnExportToFolder()
+        else:
+            pass
+
+    def OnExportToFolder(self):
+        pass
+
+    def OnExportToPDF(self):
         # export the evaluation results to PDF
 
         self.buttonEvaluate.Disable()
@@ -575,9 +591,8 @@ class MainWindow(wx.Frame):
             return False
 
         # save to temp html file
-        resultToSaveInHtml = self.GetResultInHtml()
         temp_html = open(os.path.join(os.getcwd(), 'temp', 'temp.html'), 'w+')
-        temp_html.write(resultToSaveInHtml)
+        temp_html.write(self.GetResultInHtml())
         temp_html.close()
 
         # due to the Python wrapper of wkhtmltopdf "python_wkhtmltopdf" pre-requires xvfb is not available for Windows, here use commandline to call the tool
@@ -670,7 +685,7 @@ class MainWindow_KV(MainWindow):
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
         self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
-        self.ChiqViewer.SetPage(self.newModel.ChiSquareTestResultInHTML)
+        self.ChiqViewer.SetPage(self.newModel.Chiq_testResultInHTML)
 
         self.IN_AXES = False
 
@@ -1302,7 +1317,8 @@ class MainWindow_KV(MainWindow):
 
                             [[minLim_y_K - spacing_y_K, maxLim_y_K + 2*spacing_y_K], [minLim_y_V - spacing_y_V, maxLim_y_V + 2*spacing_y_V]])
 
-    def OnExport(self, event):
+
+    def OnExportToFolder(self):
         '''
         export the files as .png, excel
         '''
@@ -1431,11 +1447,15 @@ class MainWindow_KV(MainWindow):
 
         htmlContent += self.newModel.StatisticsInHTML
 
+        htmlContent += self.newModel.covCorrResultsInHtml
+
         htmlContent += self.newModel.ModelFittingInHtml
 
         htmlContent += self.newModel.T_testResultInHTML
 
         htmlContent += self.newModel.U_testResultInHTML
+
+        htmlContent += self.newModel.Chiq_testResultInHTML
 
         htmlContent += self.newModel.ANOVAResultInHTML
 
@@ -1885,7 +1905,7 @@ class MainWindow_T1(MainWindow):
 
                             [[minLim_y - spacing_y, maxLim_y + spacing_y],])
 
-    def OnExport(self, event):
+    def OnExportToFolder(self):
         '''
         export the files as .png, excel
         '''
@@ -1976,9 +1996,9 @@ class MainWindow_T1(MainWindow):
         htmlContent += self.newModel.packInHtml('''
         <h2 align="center">The image view of calculated T1''' +\
         '''<img src="''' + os.path.join(os.getcwd(), 'temp', 'figureImages.png') + '''" style="width:100%"> <br>'''+\
-        '''<p><font face="verdana">* The first column shows the calculated T1 in black and white. You can have a general impression of the value distribution according to the changing of the parameters. Generally the brighter the pixel is, the higher the calculated value is.<br>
-        <br>The Second column shows the error map between calculated and reference data. Each pixel is the result of corresponding pixel in calculated data being subtracted with that in the reference data. Generally the more the color approaches to the red direction, the larger the error is.<br>
-        <br>The third column shows the normalized error. This is out of the consideration that the error could be related with the original value itself. Therefore normalized error may give a more uniformed standard of the error level. Each pixel's value comes from the division of the error by the reference pixel value. Similarly as the error map, the more the color approaches to the red direction, the larger the normalized error is.
+        '''<p><font face="verdana">* The first row shows the calculated T1 in black and white. You can have a general impression of the value distribution according to the changing of the parameters. Generally the brighter the pixel is, the higher the calculated value is.<br>
+        <br>The Second row shows the error map between calculated and reference data. Each pixel is the result of corresponding pixel in calculated data being subtracted with that in the reference data. Generally the more the color approaches to the red direction, the larger the error is.<br>
+        <br>The third row shows the normalized error. This is out of the consideration that the error could be related with the original value itself. Therefore normalized error may give a more uniformed standard of the error level. Each pixel's value comes from the division of the error by the reference pixel value. Similarly as the error map, the more the color approaches to the red direction, the larger the normalized error is.
         </p>''' )
 
         htmlContent += self.newModel.packInHtml( '''
@@ -1989,14 +2009,13 @@ class MainWindow_T1(MainWindow):
         </p>''' )
 
         htmlContent += self.newModel.packInHtml('''
-        <h2 align="center">The histograms of calculated Ktrans and Ve</h2>
-        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_K.png') + '''" style="width:50%" align="left">''' + '''
-        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_V.png') + '''" style="width:50%" align="right"> <br>'''+\
+        <h2 align="center">The histograms of calculated T1</h2>
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureHist_T1.png') + '''" style="width:100%" align="right"> <br>'''+\
         '''<p><font face="verdana">* All histograms have the uniformed y-axis limits, so that the comparison among different patched is easier.  The minimum and maximum values of a patch are denoted on the x-axis for reference.
         </p>''')
 
         htmlContent += self.newModel.packInHtml('''
-        <h2 align="center">The box plots of calculated Ktrans and Ve</h2>
+        <h2 align="center">The box plots of calculated T1</h2>
         <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png') + '''" style="width:100%"> <br>'''+\
         '''<p><font face="verdana">* The vertical dash lines are used to separate the rows (or columns), as each box plot is responsible for one patch. From these plots you could see (roughly) the statistics of each patch, like the mean value, the 1st and 3rd quartile, the minimum and maximum value. The more precise value of those statistics could be found in the tab "Result in HTML viewer".
         </p>''')
@@ -2009,7 +2028,7 @@ class MainWindow_T1(MainWindow):
 
         htmlContent += self.newModel.U_testResultInHTML
 
-        htmlContent += self.newModel.ANOVAResultInHTML
+        htmlContent += self.newModel.ChiSquareTestResultInHTML
 
         return htmlContent
 
@@ -2035,9 +2054,6 @@ class MySelectionDialog(wx.Dialog):
 
     def GetSelections(self):
         return self.branchChoices.GetStringSelection()
-
-    def GetIsToShowDialog(self):
-        return not self.showUpCheckBox.IsChecked()
 
 class MySplashScreen(wx.SplashScreen):
     '''
@@ -2070,9 +2086,9 @@ if __name__ == "__main__":
 
     if len(argv) == 2:
         if argv[1] == 'KV':
-            window = MainWindow_KV("QIBA evaluate tool (Ktrans-Ve)")
+            window = MainWindow_KV("QIBA evaluate tool (GKM)")
         elif argv[1] == 'T1':
-            window = MainWindow_T1("QIBA evaluate tool (T1)")
+            window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)")
         else:
             exit(0)
     else:
