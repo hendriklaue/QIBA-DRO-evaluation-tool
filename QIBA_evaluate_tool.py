@@ -39,6 +39,7 @@
 
 import os.path
 from sys import argv, exit
+import getopt
 import wx
 import wx.html
 import numpy
@@ -61,15 +62,17 @@ class MainWindow(wx.Frame):
     this is the parent class of the main window of the application.
     '''
 
-    def __init__(self, parent, applicationName):
+    def __init__(self, parent, applicationName, calFiles, refFiles, desDir):
         wx.Frame.__init__(self, parent, title = applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
         self.Bind(wx.EVT_CLOSE, self.OnQuit)
+        self.path_cal_T1 = ''
+        self.path_cal_K = ''
+        self.path_cal_V = ''
         self.nrOfRow = 0
         self.nrOfColumn = 0
         self.patchLen = 10
         self.WARNINGTEXT = False
         self.supportedFileTypeList = ['.dcm', '.bin', '.raw', '.tif']
-        self.READYTOEVALUATE = False
 
         self.CenterOnScreen()
 
@@ -508,7 +511,10 @@ class MainWindow(wx.Frame):
         # start to evaluate
 
         # make sure there's calculated data loaded
-        if not self.READYTOEVALUATE:
+        try:
+            if (self.path_cal_K and self.path_cal_V) or self.path_cal_T1:
+                pass
+        except:
             wx.MessageBox('Please import proper calculated data!', 'Info', wx.OK | wx.ICON_INFORMATION)
             return
 
@@ -521,7 +527,7 @@ class MainWindow(wx.Frame):
         self.ClearInterface()
 
         # disable some widgets
-        self.buttonEvaluate.Disable()
+        #self.buttonEvaluate.Disable()
 
         # status bar
         self.SetStatusText('Evaluating, please wait...')
@@ -550,7 +556,7 @@ class MainWindow(wx.Frame):
         #EvaluateProgressDialog.Destroy()
 
         # enable some widgets
-        self.buttonEvaluate.Enable()
+        # self.buttonEvaluate.Enable()
 
     def GenerateModel(self):
         self.newModel = QIBA_model.Model_KV('', '', '', '', [self.nrOfRow, self.nrOfColumn])
@@ -565,30 +571,36 @@ class MainWindow(wx.Frame):
         exportDialog = MySelectionDialog(None, 'Export as:', 'Export as...', choices=['PDF', 'Excel file'])
         if exportDialog.ShowModal() == wx.ID_OK:
             if exportDialog.GetSelections() == 'PDF':
-                self.OnExportToPDF()
+                self.OnExportToPDF('')
             elif exportDialog.GetSelections() == 'Excel file':
-                self.OnExportToFolder()
+                self.OnExportToFolder('')
         else:
             pass
 
-    def OnExportToFolder(self):
+    def OnExportToFolder(self, desDir):
         pass
 
-    def OnExportToPDF(self):
+    def OnExportToPDF(self, desDir):
         # export the evaluation results to PDF
 
-        self.buttonEvaluate.Disable()
+        #self.buttonEvaluate.Disable()
 
         # show in status bar when export finishes
-        self.SetStatusText('Exporting results...')
+        try:
+            self.SetStatusText('Exporting results...')
+        except:
+            pass
 
         # save file path dialog
-        savePath = ''
-        dlg = wx.FileDialog(self, 'Export the results as PDF file...', '', '', "PDF file(*.pdf)|*.pdf", wx.SAVE | wx.OVERWRITE_PROMPT)
-        if dlg.ShowModal() == wx.ID_OK:
-            savePath = dlg.GetPath()
+        savePath = os.getcwd()
+        if desDir == '':
+            dlg = wx.FileDialog(self, 'Export the results as PDF file...', '', '', "PDF file(*.pdf)|*.pdf", wx.SAVE | wx.OVERWRITE_PROMPT)
+            if dlg.ShowModal() == wx.ID_OK:
+                savePath = dlg.GetPath()
+            else:
+                return
         else:
-            return False
+            savePath = os.path.join(desDir, 'results.pdf')
 
         # save to temp html file
         temp_html = open(os.path.join(os.getcwd(), 'temp', 'temp.html'), 'w+')
@@ -606,9 +618,12 @@ class MainWindow(wx.Frame):
             os.remove(os.path.join(folderPath, theFile))
 
         # show in status bar when export finishes
-        self.SetStatusText('Results exported as PDF file.')
+        try:
+            self.SetStatusText('Results exported as PDF file.')
+        except:
+            pass
 
-        self.buttonEvaluate.Enable()
+        #self.buttonEvaluate.Enable()
 
 
 
@@ -653,18 +668,26 @@ class MainWindow_KV(MainWindow):
     '''
     this is the Ktrans-Ve branch's interface.
     '''
-    def __init__(self, appName):
+    def __init__(self, appName, calFiles, refFiles, desDir):
         # instance of the main window
-        MainWindow.__init__(self, None, appName)
+        MainWindow.__init__(self, None, appName, calFiles, refFiles, desDir)
 
         self.patchLen = 10
         self.WARNINGTEXT = False
 
         # default files' paths
-        self.path_ref_K = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
-        self.path_ref_V = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
-        self.path_cal_K = ''
-        self.path_cal_V = ''
+        if refFiles:
+            self.path_ref_K, self.path_ref_V = refFiles.split(',')
+        else:
+            self.path_ref_K = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
+            self.path_ref_V = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
+
+        if calFiles:
+            self.path_cal_K, self.path_cal_V = calFiles.split(',')
+            self.SetStatusText(self.path_cal_V)
+        else:
+            self.path_cal_K = ''
+            self.path_cal_V = ''
 
         # customize the main window
         self.LoadRef()
@@ -897,7 +920,6 @@ class MainWindow_KV(MainWindow):
         self.path_cal_K = self.fileBrowser.GetPath()
         self.SetStatusText('Calculated Ktrans loaded.')
         if self.path_cal_V:
-            self.READYTOEVALUATE = True
             self.buttonEvaluate.Enable()
 
     def OnLoadCal_V(self, event):
@@ -905,7 +927,6 @@ class MainWindow_KV(MainWindow):
         self.path_cal_V = self.fileBrowser.GetPath()
         self.SetStatusText('Calculated Ve loaded.')
         if self.path_cal_K:
-            self.READYTOEVALUATE = True
             self.buttonEvaluate.Enable()
 
     def OnLoadRef_K(self, event):
@@ -1318,91 +1339,95 @@ class MainWindow_KV(MainWindow):
                             [[minLim_y_K - spacing_y_K, maxLim_y_K + 2*spacing_y_K], [minLim_y_V - spacing_y_V, maxLim_y_V + 2*spacing_y_V]])
 
 
-    def OnExportToFolder(self):
+    def OnExportToFolder(self, desDir):
         '''
         export the files as .png, excel
         '''
-        dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.SetStatusText('Exporting, please wait...')
-            saveDir = dlg.GetPath()
-            try:
-                self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
+        saveDir = os.getcwd()
+        if not (desDir == ''):
+            saveDir = desDir
+        elif desDir == '':
+            dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+            if dlg.ShowModal() == wx.ID_OK:
+                saveDir = dlg.GetPath()
+            else:
                 return
+        self.SetStatusText('Exporting, please wait...')
+        try:
+            self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            try:
-                self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
-                return
+        try:
+            self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            try:
-                self.figureHist_Ktrans.savefig(os.path.join(saveDir, 'hist_K.png'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
-                return
+        try:
+            self.figureHist_Ktrans.savefig(os.path.join(saveDir, 'hist_K.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            try:
-                self.figureHist_Ve.savefig(os.path.join(saveDir, 'hist_V.png'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
-                return
+        try:
+            self.figureHist_Ve.savefig(os.path.join(saveDir, 'hist_V.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            try:
-                self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
-                return
+        try:
+            self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            # export the table to excel
-            book = Workbook()
-            sheetMean = book.add_sheet('Mean')
-            sheetStd = book.add_sheet('Standard deviation')
-            sheetMedian = book.add_sheet('Median')
-            sheet1Qtl = book.add_sheet('1st quartiel')
-            sheet3Qtl = book.add_sheet('3rd quartiel')
-            sheetMin = book.add_sheet('Minimum')
-            sheetMax = book.add_sheet('Maximum')
-            sheetCov = book.add_sheet('Covariance')
-            sheetCor = book.add_sheet('Correlation')
-            sheetFit = book.add_sheet('Model fitting')
-            sheetT = book.add_sheet('T-test results')
-            sheetU = book.add_sheet('U-test results')
-            sheetChiq = book.add_sheet('Chi-square test results')
-            sheetA = book.add_sheet('ANOVA results')
+        # export the table to excel
+        book = Workbook()
+        sheetMean = book.add_sheet('Mean')
+        sheetStd = book.add_sheet('Standard deviation')
+        sheetMedian = book.add_sheet('Median')
+        sheet1Qtl = book.add_sheet('1st quartiel')
+        sheet3Qtl = book.add_sheet('3rd quartiel')
+        sheetMin = book.add_sheet('Minimum')
+        sheetMax = book.add_sheet('Maximum')
+        sheetCov = book.add_sheet('Covariance')
+        sheetCor = book.add_sheet('Correlation')
+        sheetFit = book.add_sheet('Model fitting')
+        sheetT = book.add_sheet('T-test results')
+        sheetU = book.add_sheet('U-test results')
+        sheetChiq = book.add_sheet('Chi-square test results')
+        sheetA = book.add_sheet('ANOVA results')
 
 
-            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_mean, self.newModel.Ve_cal_patch_mean], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_deviation, self.newModel.Ve_cal_patch_deviation], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_median, self.newModel.Ve_cal_patch_median], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_1stQuartile, self.newModel.Ve_cal_patch_1stQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_3rdQuartile, self.newModel.Ve_cal_patch_3rdQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_min, self.newModel.Ve_cal_patch_min], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_max, self.newModel.Ve_cal_patch_max], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_mean, self.newModel.Ve_cal_patch_mean], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_deviation, self.newModel.Ve_cal_patch_deviation], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_median, self.newModel.Ve_cal_patch_median], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_1stQuartile, self.newModel.Ve_cal_patch_1stQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_3rdQuartile, self.newModel.Ve_cal_patch_3rdQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_min, self.newModel.Ve_cal_patch_min], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_max, self.newModel.Ve_cal_patch_max], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
 
-            QIBA_functions.WriteToExcelSheet_GKM_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_KK,self.newModel.corr_KV,self.newModel.corr_VK,self.newModel.corr_VV], 1, self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_GKM_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_KK,self.newModel.cov_KV,self.newModel.cov_VK,self.newModel.cov_VV], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_KK,self.newModel.corr_KV,self.newModel.corr_VK,self.newModel.corr_VV], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_KK,self.newModel.cov_KV,self.newModel.cov_VK,self.newModel.cov_VV], 1, self.nrOfRow, self.nrOfColumn)
 
-            QIBA_functions.WriteToExcelSheet_GKM_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_Ktrans, self.newModel.b_lin_Ktrans, self.newModel.r_squared_lin_K, self.newModel.a_log_Ktrans,self.newModel.b_log_Ktrans,self.newModel.a_lin_Ve, self.newModel.b_lin_Ve, self.newModel.r_squared_lin_V, self.newModel.a_log_Ve,self.newModel.b_log_Ve], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_Ktrans, self.newModel.b_lin_Ktrans, self.newModel.r_squared_lin_K, self.newModel.a_log_Ktrans,self.newModel.b_log_Ktrans,self.newModel.a_lin_Ve, self.newModel.b_lin_Ve, self.newModel.r_squared_lin_V, self.newModel.a_log_Ve,self.newModel.b_log_Ve], 1, self.nrOfRow, self.nrOfColumn)
 
-            QIBA_functions.WriteToExcelSheet_GKM_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ttest_t, self.newModel.Ktrans_cal_patch_ttest_p, self.newModel.Ve_cal_patch_ttest_t, self.newModel.Ve_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
-            QIBA_functions.WriteToExcelSheet_GKM_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Utest_u, self.newModel.Ktrans_cal_patch_Utest_p, self.newModel.Ve_cal_patch_Utest_u, self.newModel.Ve_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
+        QIBA_functions.WriteToExcelSheet_GKM_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ttest_t, self.newModel.Ktrans_cal_patch_ttest_p, self.newModel.Ve_cal_patch_ttest_t, self.newModel.Ve_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
+        QIBA_functions.WriteToExcelSheet_GKM_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Utest_u, self.newModel.Ktrans_cal_patch_Utest_p, self.newModel.Ve_cal_patch_Utest_u, self.newModel.Ve_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
 
-            QIBA_functions.WriteToExcelSheet_GKM_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ANOVA_f,self.newModel.Ktrans_cal_patch_ANOVA_p,self.newModel.Ve_cal_patch_ANOVA_f,self.newModel.Ve_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ANOVA_f,self.newModel.Ktrans_cal_patch_ANOVA_p,self.newModel.Ve_cal_patch_ANOVA_f,self.newModel.Ve_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
 
-            QIBA_functions.WriteToExcelSheet_GKM_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Chisquare_c, self.newModel.Ktrans_cal_patch_Chisquare_p, self.newModel.Ve_cal_patch_Chisquare_c, self.newModel.Ve_cal_patch_Chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
+        QIBA_functions.WriteToExcelSheet_GKM_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Chisquare_c, self.newModel.Ktrans_cal_patch_Chisquare_p, self.newModel.Ve_cal_patch_Chisquare_c, self.newModel.Ve_cal_patch_Chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
 
-            try:
-                book.save(os.path.join(saveDir, 'results.xls'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
-                return
+        try:
+            book.save(os.path.join(saveDir, 'results.xls'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            self.SetStatusText('Files are exported.')
-        else:
-            pass
+        self.SetStatusText('Files are exported.')
 
 
 
@@ -1465,15 +1490,22 @@ class MainWindow_T1(MainWindow):
     '''
     this is the Ktrans-Ve branch's interface.
     '''
-    def __init__(self, appName):
-        MainWindow.__init__(self, None, appName)
+    def __init__(self, appName, calFiles, refFiles, desDir):
+        MainWindow.__init__(self, None, appName, calFiles, refFiles, desDir)
 
         self.patchLen = 10
         self.WARNINGTEXT = False
 
         # default files' paths
-        self.path_ref_T1 = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
-        self.path_cal_T1 = ''
+        if refFiles:
+            self.path_ref_T1 = refFiles
+        else:
+            self.path_ref_T1 = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
+
+        if calFiles:
+            self.path_cal_T1 = calFiles
+        else:
+            self.path_cal_T1 = ''
 
 
         # customize the main window
@@ -1653,7 +1685,6 @@ class MainWindow_T1(MainWindow):
         # pass the file path for loading
         self.path_cal_T1 = self.fileBrowser.GetPath()
         self.SetStatusText('Calculated T1 loaded.')
-        self.READYTOEVALUATE = True
         self.buttonEvaluate.Enable()
 
     def OnLoadRef_T1(self, event):
@@ -1905,83 +1936,86 @@ class MainWindow_T1(MainWindow):
 
                             [[minLim_y - spacing_y, maxLim_y + spacing_y],])
 
-    def OnExportToFolder(self):
+    def OnExportToFolder(self, desDir):
         '''
         export the files as .png, excel
         '''
-        dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.SetStatusText('Exporting, please wait...')
-            saveDir = dlg.GetPath()
-            # export figures
-            try:
-                self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
+        saveDir = os.getcwd()
+        if not (desDir == ''):
+            saveDir = desDir
+        elif desDir == '':
+            dlg = wx.DirDialog(self, "Choose a directory:", style=wx.DD_DEFAULT_STYLE | wx.DD_NEW_DIR_BUTTON)
+            if dlg.ShowModal() == wx.ID_OK:
+                saveDir = dlg.GetPath()
+            else:
                 return
+        self.SetStatusText('Exporting, please wait...')
+        try:
+            self.figureImagePreview.savefig(os.path.join(saveDir, 'maps.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            try:
-                self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
-                return
+        try:
+            self.figureScatter.savefig(os.path.join(saveDir, 'scatters.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            try:
-                self.figureHist_T1.savefig(os.path.join(saveDir, 'histogram.png'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
-                return
+        try:
+            self.figureHist_T1.savefig(os.path.join(saveDir, 'histogram.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            try:
-                self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
-                return
+        try:
+            self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
 
-            # export to excel
-            book = Workbook()
-            sheetMean = book.add_sheet('Mean')
-            sheetStd = book.add_sheet('Standard deviation')
-            sheetMedian = book.add_sheet('Median')
-            sheet1Qtl = book.add_sheet('1st quartiel')
-            sheet3Qtl = book.add_sheet('3rd quartiel')
-            sheetMin = book.add_sheet('Minimum')
-            sheetMax = book.add_sheet('Maximum')
-            sheetCov = book.add_sheet('Covariance')
-            sheetCor = book.add_sheet('Correlation')
-            sheetFit = book.add_sheet('Model fitting')
-            sheetT = book.add_sheet('T-test results')
-            sheetU = book.add_sheet('U-test results')
-            sheetChiq = book.add_sheet('Chi-square-test results')
-            # sheetA = book.add_sheet('ANOVA results')
+        # export to excel
+        book = Workbook()
+        sheetMean = book.add_sheet('Mean')
+        sheetStd = book.add_sheet('Standard deviation')
+        sheetMedian = book.add_sheet('Median')
+        sheet1Qtl = book.add_sheet('1st quartiel')
+        sheet3Qtl = book.add_sheet('3rd quartiel')
+        sheetMin = book.add_sheet('Minimum')
+        sheetMax = book.add_sheet('Maximum')
+        sheetCov = book.add_sheet('Covariance')
+        sheetCor = book.add_sheet('Correlation')
+        sheetFit = book.add_sheet('Model fitting')
+        sheetT = book.add_sheet('T-test results')
+        sheetU = book.add_sheet('U-test results')
+        sheetChiq = book.add_sheet('Chi-square-test results')
+        # sheetA = book.add_sheet('ANOVA results')
 
 
-            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_mean], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_deviation], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_median], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_T1_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_1stQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_T1_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_3rdQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_min], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_max], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_mean], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_deviation], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_median], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_1stQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_3rdQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_min], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_max], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
 
-            QIBA_functions.WriteToExcelSheet_T1_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_T1T1], 1, self.nrOfRow, self.nrOfColumn)
-            QIBA_functions.WriteToExcelSheet_T1_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_T1T1], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_T1T1], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_T1T1], 1, self.nrOfRow, self.nrOfColumn)
 
-            QIBA_functions.WriteToExcelSheet_T1_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_T1, self.newModel.b_lin_T1, self.newModel.r_squared_lin_T1, self.newModel.a_log_T1,self.newModel.b_log_T1], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_T1, self.newModel.b_lin_T1, self.newModel.r_squared_lin_T1, self.newModel.a_log_T1,self.newModel.b_log_T1], 1, self.nrOfRow, self.nrOfColumn)
 
-            QIBA_functions.WriteToExcelSheet_T1_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ttest_t, self.newModel.T1_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
-            QIBA_functions.WriteToExcelSheet_T1_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_Utest_u, self.newModel.T1_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
-            QIBA_functions.WriteToExcelSheet_T1_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_chisquare_c, self.newModel.T1_cal_patch_chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
+        QIBA_functions.WriteToExcelSheet_T1_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ttest_t, self.newModel.T1_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
+        QIBA_functions.WriteToExcelSheet_T1_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_Utest_u, self.newModel.T1_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
+        QIBA_functions.WriteToExcelSheet_T1_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_chisquare_c, self.newModel.T1_cal_patch_chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
 
-            # QIBA_functions.WriteToExcelSheet_T1_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ANOVA_f,self.newModel.T1_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
-            try:
-                book.save(os.path.join(saveDir, 'results.xls'))
-            except:
-                self.SetStatusText('Please close related files and try to export again.')
-                return
-            self.SetStatusText('Files are exported.')
-        else:
-            pass
+        # QIBA_functions.WriteToExcelSheet_T1_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ANOVA_f,self.newModel.T1_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
+        try:
+            book.save(os.path.join(saveDir, 'results.xls'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
+        self.SetStatusText('Files are exported.')
 
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
@@ -2071,12 +2105,36 @@ class MySplashScreen(wx.SplashScreen):
         # following order.
         wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
 
-if __name__ == "__main__":
+def ProcessWithoutGUI(mode, calFiles, refFiles, desDir):
+    '''
+    evaluate without GUI, for purpose of batch processing
+    '''
+    patchLen = 10
+    if mode == 'GKM':
+        window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
+        window.Show()
+        window.Maximize(True)
+        window.Hide()
+        window.OnEvaluate(None)
+        window.OnExportToFolder(desDir)
+        window.OnExportToPDF(desDir)
+
+    elif mode == "T1":
+        window = MainWindow_T1("QIBA evaluate tool (T1)", calFiles, refFiles, desDir)
+        window.Show()
+        window.Maximize(True)
+        window.Hide()
+        window.OnEvaluate(None)
+        window.OnExportToFolder(desDir)
+        window.OnExportToPDF(desDir)
+
+def main(argv):
     # generate the application object
     Application = wx.App()
+    ISCOMMAND = False
 
     # show the splash window
-    DEBUG = False
+    DEBUG = True
     if DEBUG:
         pass
     else:
@@ -2084,25 +2142,63 @@ if __name__ == "__main__":
         QIBASplashWindow.Show()
         time.sleep(2)
 
-    if len(argv) == 2:
-        if argv[1] == 'KV':
-            window = MainWindow_KV("QIBA evaluate tool (GKM)")
-        elif argv[1] == 'T1':
-            window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)")
+    # deal with command line
+    calFiles = []
+    refFiles = []
+    desDir = ''
+    try:
+        opts, args = getopt.getopt(argv, "hb:m:c:r:d:", ["batch", "mode=", "cfile=", "rfile=", "destination="])
+        if not opts: # open GUI
+            QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['GKM', 'Flip Angle T1'])
+            if QIBASelectionDialog.ShowModal() == wx.ID_OK:
+                if QIBASelectionDialog.GetSelections() == 'GKM':
+                    window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
+                    window.Show()
+                    window.Maximize(True)
+                elif QIBASelectionDialog.GetSelections() == 'Flip Angle T1':
+                    window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir)
+                    window.Show()
+                    window.Maximize(True)
         else:
-            exit(0)
-    else:
-        QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['GKM', 'Flip Angle T1'])
-        if QIBASelectionDialog.ShowModal() == wx.ID_OK:
-            if QIBASelectionDialog.GetSelections() == 'GKM':
-                window = MainWindow_KV("QIBA evaluate tool (GKM)")
-            elif QIBASelectionDialog.GetSelections() == 'Flip Angle T1':
-                window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)")
-        else:
-            exit(0)
+            for opt, arg in opts:
+                if opt == '-m':
+                    mode = arg
+                elif opt == "-c":
+                    calFiles = arg
+                elif opt == "-r":
+                    refFiles = arg
+                elif opt == "-d":
+                    desDir = arg
+                elif opt == '-b':
+                    ISCOMMAND = True
+            if ISCOMMAND:
+                try:
+                    ProcessWithoutGUI(mode, calFiles, refFiles, desDir)
+                    return
+                except:
+                    print "Error occurs. Evaluation terminated."
+                    return
 
-    # show the application's main window
-    window.Show()
-    window.Maximize(True)
+            # initialize the main window
+            try:
+                if mode == "GKM":
+                    # window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
+                    window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
+                    window.Show()
+                    window.Maximize(True)
+                elif mode == "T1":
+                    window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir)
+                    window.Show()
+                    window.Maximize(True)
+            except:
+                pass
+    except getopt.GetoptError:
+        pass
+
+    # main loop
     Application.MainLoop()
+
+if __name__ == "__main__":
+
+    main(argv[1:])
 
