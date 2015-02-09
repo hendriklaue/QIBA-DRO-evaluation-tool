@@ -607,3 +607,19 @@ def WriteToExcelSheet_T1_A(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     for (j, item) in enumerate(headerV):
         sheet.write(0*nrR+3+j, 0, item)
         sheet.write(0*nrR+3+j, 1, 'f-value = ' + str(formatFloatTo4DigitsString(data[0][j])) + ', p-value = ' + str(formatFloatTo4DigitsString(data[1][j])))
+
+def CCC(calData, refData, nrR, nrC):
+    '''
+    concoedace correlation coefficients
+    '''
+    temp = [[]for i in range(nrR) ]
+    for i in range(nrR):
+        for j in range(nrC):
+            sx_q = numpy.var(calData[i][j])
+            sy_q = numpy.var(refData[i][j])
+            s_xy = numpy.cov(calData[i][j], refData[i][j])[0][1]
+            x_mean = numpy.mean(calData[i][j])
+            y_mean = numpy.mean(refData[i][j])
+            ccc = 2*s_xy/(sx_q + sy_q + (x_mean - y_mean)**2)
+            temp[i].append(ccc)
+    return temp

@@ -239,6 +239,7 @@ class MainWindow(wx.Frame):
         self.pageStatistics = wx.Panel(self.noteBookRight)
         self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
         self.pageModelFitting = wx.Panel(self.noteBookRight)
+        self.pageCCC = wx.Panel(self.noteBookRight)
         self.pageT_Test = wx.Panel(self.noteBookRight)
         self.pageU_Test = wx.Panel(self.noteBookRight)
         self.pageChiq = wx.Panel(self.noteBookRight)
@@ -250,6 +251,7 @@ class MainWindow(wx.Frame):
         self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
         self.noteBookRight.AddPage(self.pageStatistics, "Statistics Viewer")
         self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance And Correlation")
+        self.noteBookRight.AddPage(self.pageCCC, "Concordance Covariance Coefficients")
         self.noteBookRight.AddPage(self.pageModelFitting, "Model fitting")
         self.noteBookRight.AddPage(self.pageT_Test, "t-test results Viewer")
         self.noteBookRight.AddPage(self.pageU_Test, "U-test results Viewer")
@@ -298,6 +300,13 @@ class MainWindow(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(self.covCorrViewer, 1, wx.EXPAND)
         self.pageCovarianceCorrelation.SetSizer(sizer)
+
+        # page ccc
+        self.cccViewer = wx.html.HtmlWindow(self.pageCCC, -1)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(self.cccViewer, 1, wx.EXPAND)
+        self.pageCCC.SetSizer(sizer)
 
         # page model fitting
         self.modelFittingViewer = wx.html.HtmlWindow(self.pageModelFitting, -1)
@@ -365,6 +374,7 @@ class MainWindow(wx.Frame):
         self.modelFittingViewer.SetPage('')
         self.t_testViewer.SetPage('')
         self.U_testViewer.SetPage('')
+        self.cccViewer.SetPage('')
 
         try:
             self.ChiqViewer.SetPage('')
@@ -704,6 +714,7 @@ class MainWindow_KV(MainWindow):
         # show the results in the main window
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
         self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
+        self.cccViewer.SetPage(self.newModel.CCCResultInHTML)
         self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
@@ -1394,6 +1405,7 @@ class MainWindow_KV(MainWindow):
         sheetMax = book.add_sheet('Maximum')
         sheetCov = book.add_sheet('Covariance')
         sheetCor = book.add_sheet('Correlation')
+        sheetCCC = book.add_sheet('CCC')
         sheetFit = book.add_sheet('Model fitting')
         sheetT = book.add_sheet('T-test results')
         sheetU = book.add_sheet('U-test results')
@@ -1401,25 +1413,26 @@ class MainWindow_KV(MainWindow):
         sheetA = book.add_sheet('ANOVA results')
 
 
-        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_mean, self.newModel.Ve_cal_patch_mean], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_deviation, self.newModel.Ve_cal_patch_deviation], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_median, self.newModel.Ve_cal_patch_median], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_1stQuartile, self.newModel.Ve_cal_patch_1stQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_3rdQuartile, self.newModel.Ve_cal_patch_3rdQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_min, self.newModel.Ve_cal_patch_min], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_max, self.newModel.Ve_cal_patch_max], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_mean, self.newModel.Ve_cal_patch_mean], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_deviation, self.newModel.Ve_cal_patch_deviation], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_median, self.newModel.Ve_cal_patch_median], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_1stQuartile, self.newModel.Ve_cal_patch_1stQuartile], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_3rdQuartile, self.newModel.Ve_cal_patch_3rdQuartile], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_min, self.newModel.Ve_cal_patch_min], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_max, self.newModel.Ve_cal_patch_max], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
 
         QIBA_functions.WriteToExcelSheet_GKM_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_KK,self.newModel.corr_KV,self.newModel.corr_VK,self.newModel.corr_VV], 1, self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_GKM_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_KK,self.newModel.cov_KV,self.newModel.cov_VK,self.newModel.cov_VV], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetCCC, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_ccc, self.newModel.Ve_ccc], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
 
         QIBA_functions.WriteToExcelSheet_GKM_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_Ktrans, self.newModel.b_lin_Ktrans, self.newModel.r_squared_lin_K, self.newModel.a_log_Ktrans,self.newModel.b_log_Ktrans,self.newModel.a_lin_Ve, self.newModel.b_lin_Ve, self.newModel.r_squared_lin_V, self.newModel.a_log_Ve,self.newModel.b_log_Ve], 1, self.nrOfRow, self.nrOfColumn)
 
-        QIBA_functions.WriteToExcelSheet_GKM_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ttest_t, self.newModel.Ktrans_cal_patch_ttest_p, self.newModel.Ve_cal_patch_ttest_t, self.newModel.Ve_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
-        QIBA_functions.WriteToExcelSheet_GKM_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Utest_u, self.newModel.Ktrans_cal_patch_Utest_p, self.newModel.Ve_cal_patch_Utest_u, self.newModel.Ve_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
+        QIBA_functions.WriteToExcelSheet_GKM_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ttest_t, self.newModel.Ktrans_cal_patch_ttest_p, self.newModel.Ve_cal_patch_ttest_t, self.newModel.Ve_cal_patch_ttest_p], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
+        QIBA_functions.WriteToExcelSheet_GKM_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Utest_u, self.newModel.Ktrans_cal_patch_Utest_p, self.newModel.Ve_cal_patch_Utest_u, self.newModel.Ve_cal_patch_Utest_p], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn, 'U-value')
 
         QIBA_functions.WriteToExcelSheet_GKM_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_ANOVA_f,self.newModel.Ktrans_cal_patch_ANOVA_p,self.newModel.Ve_cal_patch_ANOVA_f,self.newModel.Ve_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
 
-        QIBA_functions.WriteToExcelSheet_GKM_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Chisquare_c, self.newModel.Ktrans_cal_patch_Chisquare_p, self.newModel.Ve_cal_patch_Chisquare_c, self.newModel.Ve_cal_patch_Chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
+        QIBA_functions.WriteToExcelSheet_GKM_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_Chisquare_c, self.newModel.Ktrans_cal_patch_Chisquare_p, self.newModel.Ve_cal_patch_Chisquare_c, self.newModel.Ve_cal_patch_Chisquare_p], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
 
         try:
             book.save(os.path.join(saveDir, 'results.xls'))
@@ -1473,6 +1486,8 @@ class MainWindow_KV(MainWindow):
         htmlContent += self.newModel.StatisticsInHTML
 
         htmlContent += self.newModel.covCorrResultsInHtml
+
+        htmlContent += self.newModel.CCCResultInHTML
 
         htmlContent += self.newModel.ModelFittingInHtml
 
@@ -1531,6 +1546,7 @@ class MainWindow_T1(MainWindow):
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
         self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
         self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
+        self.cccViewer.SetPage(self.newModel.CCCResultInHTML)
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
         self.ChiqViewer.SetPage(self.newModel.ChiSquareTestResultInHTML)
@@ -1985,6 +2001,7 @@ class MainWindow_T1(MainWindow):
         sheetMax = book.add_sheet('Maximum')
         sheetCov = book.add_sheet('Covariance')
         sheetCor = book.add_sheet('Correlation')
+        sheetCCC = book.add_sheet('CCC')
         sheetFit = book.add_sheet('Model fitting')
         sheetT = book.add_sheet('T-test results')
         sheetU = book.add_sheet('U-test results')
@@ -1992,22 +2009,24 @@ class MainWindow_T1(MainWindow):
         # sheetA = book.add_sheet('ANOVA results')
 
 
-        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_mean], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_deviation], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_median], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_T1_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_1stQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_T1_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_3rdQuartile], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_min], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
-        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_max], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_mean], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_deviation], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_median], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheet1Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_1stQuartile], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheet3Qtl, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_3rdQuartile], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMin, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_min], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMax, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_max], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
 
         QIBA_functions.WriteToExcelSheet_T1_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_T1T1], 1, self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_T1_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_T1T1], 1, self.nrOfRow, self.nrOfColumn)
 
-        QIBA_functions.WriteToExcelSheet_T1_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_T1, self.newModel.b_lin_T1, self.newModel.r_squared_lin_T1, self.newModel.a_log_T1,self.newModel.b_log_T1], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_statistics(sheetCCC, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_ccc], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
 
-        QIBA_functions.WriteToExcelSheet_T1_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ttest_t, self.newModel.T1_cal_patch_ttest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
-        QIBA_functions.WriteToExcelSheet_T1_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_Utest_u, self.newModel.T1_cal_patch_Utest_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'U-value')
-        QIBA_functions.WriteToExcelSheet_T1_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_chisquare_c, self.newModel.T1_cal_patch_chisquare_p], int(self.nrOfRow/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
+        QIBA_functions.WriteToExcelSheet_T1_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_T1, self.newModel.b_lin_T1, self.newModel.r_squared_lin_T1, self.newModel.a_log_T1,self.newModel.b_log_T1], 1, self.nrOfRow, self.nrOfColumn)
+        QIBA_functions.WriteToExcelSheet_T1_test(sheetT, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ttest_t, self.newModel.T1_cal_patch_ttest_p], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn, 'T-statistics')
+        QIBA_functions.WriteToExcelSheet_T1_test(sheetU, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_Utest_u, self.newModel.T1_cal_patch_Utest_p], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn, 'U-value')
+
+        QIBA_functions.WriteToExcelSheet_T1_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_chisquare_c, self.newModel.T1_cal_patch_chisquare_p], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
 
         # QIBA_functions.WriteToExcelSheet_T1_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ANOVA_f,self.newModel.T1_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
         try:
@@ -2055,6 +2074,10 @@ class MainWindow_T1(MainWindow):
         </p>''')
 
         htmlContent += self.newModel.StatisticsInHTML
+
+        htmlContent += self.newModel.covCorrResultsInHtml
+
+        htmlContent += self.newModel.CCCResultInHTML
 
         htmlContent += self.newModel.ModelFittingInHtml
 

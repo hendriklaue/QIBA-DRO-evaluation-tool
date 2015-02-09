@@ -128,6 +128,7 @@ class Model_KV():
         self.FittingLogarithmicModelForModel()
         self.CalculateCorrelationForModel()
         self.CalculateCovarianceForModel()
+        self.CalculateCCCForModel()
         self.CalculateMeanForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
@@ -143,6 +144,7 @@ class Model_KV():
         self.htmlModelFitting()
         self.htmlT_TestResults()
         self.htmlU_TestResults()
+        self.htmlCCCResults()
         self.htmlStatistics()
         self.htmlANOVAResults()
         self.htmlChiqResults()
@@ -374,6 +376,24 @@ class Model_KV():
         # put the text into html structure
         self.U_testResultInHTML = self.packInHtml(KtransU_TestTable + '<br>' + VeU_TestTable)
 
+    def htmlCCCResults(self):
+        # write the calculated CCC results into HTML form
+
+        # Ktrans
+        KtransCCCTable = \
+                        '<h2>The concordance correlation coefficients of each patch in calculated anf reference Ktrans:</h2>'
+
+        KtransCCCTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['ccc'], [self.Ktrans_ccc])
+
+        # Ve
+        VeCCCtTable = \
+                        '<h2>The concordance correlation coefficients of each patch in calculated anf reference Ve:</h2>'
+
+        VeCCCtTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['ccc'], [self.Ve_ccc])
+
+        # put the text into html structure
+        self.CCCResultInHTML = self.packInHtml(KtransCCCTable + '<br>' + VeCCCtTable)
+
     def htmlChiq_TestResults(self):
         # write the chi-square-test results into HTML form
 
@@ -570,6 +590,11 @@ class Model_KV():
             self.cov_VV.append(QIBA_functions.CalCovMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
             self.cov_KV.append(QIBA_functions.CalCovMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
 
+    def CalculateCCCForModel(self):
+        # calculate the concordance covariance coefficients between the calculated parameters and the reference parameters
+        self.Ktrans_ccc = QIBA_functions.CCC(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
+        self.Ve_ccc = QIBA_functions.CCC(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
+
     def CalculateMeanForModel(self):
         # call the mean calculation function
         self.Ktrans_cal_patch_mean = QIBA_functions.CalculateMean(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
@@ -715,6 +740,7 @@ class Model_T1():
         self.FittingLogarithmicModelForModel()
         self.CalculateCorrelationForModel()
         self.CalculateCovarianceForModel()
+        self.CalculateCCCForModel()
         self.CalculateMeanForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
@@ -730,6 +756,7 @@ class Model_T1():
         self.htmlModelFitting()
         self.htmlT_TestResults()
         self.htmlU_TestResults()
+        self.htmlCCCResults()
         self.htmlStatistics()
         self.htmlChiq_TestResults()
         # self.htmlANOVAResults()
@@ -849,6 +876,18 @@ class Model_T1():
 
         # put the text into html structure
         self.U_testResultInHTML = self.packInHtml(T1_U_TestTable)
+
+    def htmlCCCResults(self):
+        # write the calculated CCC results into HTML form
+
+        # Ktrans
+        T1CCCTable = \
+                        '<h2>The concordance correlation coefficients of each patch in calculated anf reference T1:</h2>'
+
+        T1CCCTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['ccc'], [self.T1_ccc])
+
+        # put the text into html structure
+        self.CCCResultInHTML = self.packInHtml(T1CCCTable)
 
     def htmlChiq_TestResults(self):
         # write the U-test results into HTML form
@@ -970,6 +1009,10 @@ class Model_T1():
 
         for j in range(self.nrOfRows):
             self.cov_T1T1.append(QIBA_functions.CalCovMatrix(self.T1_cal_patchValue[j], self.T1_ref_patchValue[j])[0][1])
+
+    def CalculateCCCForModel(self):
+        # calculate the concordance covariance coefficients between the calculated parameters and the reference parameters
+        self.T1_ccc = QIBA_functions.CCC(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns)
 
     def CalculateMeanForModel(self):
         # call the mean calculation function
