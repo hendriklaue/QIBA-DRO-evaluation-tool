@@ -1101,10 +1101,11 @@ class MainWindow_KV(MainWindow):
             for j in range(self.newModel.nrOfColumns):
                 subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
                 # subPlot_K.clear()
-                subPlot_K.hist(self.newModel.Ktrans_cal[i][j], nrOfBins)
-                minPatch_K = numpy.min(self.newModel.Ktrans_cal[i][j])
-                maxPatch_K = numpy.max(self.newModel.Ktrans_cal[i][j])
-                meanPatch_K = numpy.mean(self.newModel.Ktrans_cal[i][j])
+                processedData_Ktrans =QIBA_functions.DropNaN(self.newModel.Ktrans_cal[i][j])[0]
+                subPlot_K.hist(processedData_Ktrans, nrOfBins)
+                minPatch_K = numpy.min(processedData_Ktrans)
+                maxPatch_K = numpy.max(processedData_Ktrans)
+                meanPatch_K = numpy.mean(processedData_Ktrans)
 
                 minPatch_K = QIBA_functions.formatFloatTo2DigitsString(minPatch_K)
                 maxPatch_K = QIBA_functions.formatFloatTo2DigitsString(maxPatch_K)
@@ -1124,10 +1125,11 @@ class MainWindow_KV(MainWindow):
 
                 subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1 )
                 # subPlot_V.clear()
-                subPlot_V.hist(self.newModel.Ve_cal[i][j], nrOfBins)
-                minPatch_V = numpy.min(self.newModel.Ve_cal[i][j])
-                maxPatch_V = numpy.max(self.newModel.Ve_cal[i][j])
-                meanPatch_V = numpy.mean(self.newModel.Ve_cal[i][j])
+                processedData_Ve = QIBA_functions.DropNaN(self.newModel.Ve_cal[i][j])[0]
+                subPlot_V.hist(processedData_Ve, nrOfBins)
+                minPatch_V = numpy.min(processedData_Ve)
+                maxPatch_V = numpy.max(processedData_Ve)
+                meanPatch_V = numpy.mean(processedData_Ve)
                 minPatch_V = QIBA_functions.formatFloatTo2DigitsString(minPatch_V)
                 maxPatch_V = QIBA_functions.formatFloatTo2DigitsString(maxPatch_V)
                 meanPatch_V = QIBA_functions.formatFloatTo2DigitsString(meanPatch_V)
@@ -1229,7 +1231,10 @@ class MainWindow_KV(MainWindow):
         temp = []
         referValueK = []
         for i in range(self.newModel.nrOfRows):
-            temp.extend(self.newModel.Ktrans_cal[i])
+            temp_temp = []
+            for element in self.newModel.Ktrans_cal[i]:
+                temp_temp.append(QIBA_functions.DropNaN(element)[0])
+            temp.extend(temp_temp)
             referValueK.append(float('{0:.2f}'.format(self.newModel.Ktrans_ref[i][0][0])))
         subPlotK.boxplot(temp, notch = 1, sym = 'r+', whis=1.5)
 
@@ -1240,7 +1245,8 @@ class MainWindow_KV(MainWindow):
         referValueV = []
         for j in range(self.newModel.nrOfColumns):
             for i in range(self.newModel.nrOfRows):
-                temp.append(self.newModel.Ve_cal[i][j])
+                # temp.append(self.newModel.Ve_cal[i][j])
+                temp.append(QIBA_functions.DropNaN(self.newModel.Ve_cal[i][j])[0])
             referValueV.append(float('{0:.2f}'.format(zip(*self.newModel.Ve_ref)[j][0][0])))
         subPlotV.boxplot(temp, notch = 1, sym = 'r+', whis=1.5)
 
@@ -1798,10 +1804,11 @@ class MainWindow_T1(MainWindow):
             for j in range(self.newModel.nrOfColumns):
                 subPlot_T1 = self.figureHist_T1.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
                 # subPlot_K.clear()
-                subPlot_T1.hist(self.newModel.T1_cal[i][j], nrOfBins) # normed=True if want the bars to be normalized
-                minPatch_T1 = numpy.min(self.newModel.T1_cal[i][j])
-                maxPatch_T1 = numpy.max(self.newModel.T1_cal[i][j])
-                meanPatch_T1 = numpy.mean(self.newModel.T1_cal[i][j])
+                processedData_T1 = QIBA_functions.DropNaN(self.newModel.T1_cal[i][j])[0]
+                subPlot_T1.hist(processedData_T1, nrOfBins) # normed=True if want the bars to be normalized
+                minPatch_T1 = numpy.min(processedData_T1)
+                maxPatch_T1 = numpy.max(processedData_T1)
+                meanPatch_T1 = numpy.mean(processedData_T1)
 
                 minPatch_T1 = QIBA_functions.formatFloatTo2DigitsString(minPatch_T1)
                 maxPatch_T1 = QIBA_functions.formatFloatTo2DigitsString(maxPatch_T1)
@@ -1872,7 +1879,10 @@ class MainWindow_T1(MainWindow):
         temp = []
         # referValue_R1 = []
         for j in range(self.newModel.nrOfColumns):
-            temp.extend(zip(*self.newModel.R1_cal)[j])
+            temp_temp = []
+            for element in zip(*self.newModel.R1_cal)[j]:
+                temp_temp.append(QIBA_functions.DropNaN(element)[0])
+            temp.extend(temp_temp)
             # referValue_R1.append(QIBA_functions.formatFloatTo2DigitsString(self.newModel.T1_ref[j][0][0]))
         subPlot_R1.boxplot(temp, notch = 1, sym = 'r+', whis=1.5)
 
@@ -2021,7 +2031,6 @@ class MainWindow_T1(MainWindow):
         sheetT = book.add_sheet('T-test results')
         sheetU = book.add_sheet('U-test results')
         sheetChiq = book.add_sheet('Chi-square-test results')
-        # sheetA = book.add_sheet('ANOVA results')
 
         QIBA_functions.WriteToExcelSheet_T1_percentage(sheetNaN, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_NaN_percentage], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_mean], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)

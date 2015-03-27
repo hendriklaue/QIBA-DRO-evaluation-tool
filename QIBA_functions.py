@@ -195,15 +195,18 @@ def EstimatePatch(dataInPatch, patchValueMethod, nrOfRows, nrOfColumns):
     # some statistics test like normality test could be applied to decide which value to take. But considering there are many patches, how to synchronise is also a question.
     # currently the solution is, to open one new window when the 'process' button is pressed, on which the histograms of the patches will be shown. Whether to choose mean value
     # or median value to represent a patch is up to the user.
+
+    t = [9 , 3, numpy.nan]
+    t=DropNaN(t)
     temp = [[]for i in range(nrOfRows) ]
     if patchValueMethod == 'MEAN':
         for i in range(nrOfRows):
             for j in range (nrOfColumns):
-                temp[i].append(numpy.mean(dataInPatch[i][j]))
+                temp[i].append(numpy.mean(DropNaN(dataInPatch[i][j])[0]))
     if patchValueMethod == 'MEDIAN':
         for i in range(nrOfRows):
             for j in range (nrOfColumns):
-                temp[i].append(numpy.median(dataInPatch[i][j]))
+                temp[i].append(numpy.median(DropNaN(dataInPatch[i][j])[0]))
     return temp
 
 def FittingLinearModel(calculated, reference, dimensionIndex):
@@ -250,7 +253,7 @@ def CalculateMean(inPatch, nrOfRows, nrOfColumns):
     temp = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp[i].append(numpy.mean(inPatch[i][j]))
+            temp[i].append(numpy.mean(DropNaN(inPatch[i][j])[0]))
     return temp
 
 def CalculateMedian(inPatch, nrOfRows, nrOfColumns):
@@ -258,7 +261,7 @@ def CalculateMedian(inPatch, nrOfRows, nrOfColumns):
     temp = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp[i].append(numpy.median(inPatch[i][j]))
+            temp[i].append(numpy.median(DropNaN(inPatch[i][j])[0]))
     return temp
 
 def CalculateSTDDeviation(inPatch, nrOfRows, nrOfColumns):
@@ -266,7 +269,7 @@ def CalculateSTDDeviation(inPatch, nrOfRows, nrOfColumns):
     temp = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp[i].append(numpy.std(inPatch[i][j]))
+            temp[i].append(numpy.std(DropNaN(inPatch[i][j])[0]))
     return temp
 
 def Calculate1stAnd3rdQuartile(inPatch, nrOfRows, nrOfColumns):
@@ -275,8 +278,8 @@ def Calculate1stAnd3rdQuartile(inPatch, nrOfRows, nrOfColumns):
     temp3rdQuartile = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp1stQuartile[i].append(stats.mstats.mquantiles(inPatch[i][j],prob = 0.25))
-            temp3rdQuartile[i].append(stats.mstats.mquantiles(inPatch[i][j],prob = 0.75))
+            temp1stQuartile[i].append(stats.mstats.mquantiles(DropNaN(inPatch[i][j])[0],prob = 0.25))
+            temp3rdQuartile[i].append(stats.mstats.mquantiles(DropNaN(inPatch[i][j])[0],prob = 0.75))
     return temp1stQuartile, temp3rdQuartile
 
 def CalculateMinAndMax(inPatch, nrOfRows, nrOfColumns):
@@ -285,8 +288,8 @@ def CalculateMinAndMax(inPatch, nrOfRows, nrOfColumns):
     tempMax = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            tempMin[i].append(numpy.min(inPatch[i][j]))
-            tempMax[i].append(numpy.max(inPatch[i][j]))
+            tempMin[i].append(numpy.min(DropNaN(inPatch[i][j])[0]))
+            tempMax[i].append(numpy.max(DropNaN(inPatch[i][j])[0]))
     return tempMin, tempMax
 
 def T_Test_OneSample(dataToBeTested, expectedMean, nrOfRows, nrOfColumns):
@@ -295,8 +298,8 @@ def T_Test_OneSample(dataToBeTested, expectedMean, nrOfRows, nrOfColumns):
     temp_p = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp_t[i].append(stats.ttest_1samp(dataToBeTested[i][j], expectedMean[i][j])[0])
-            temp_p[i].append(stats.ttest_1samp(dataToBeTested[i][j], expectedMean[i][j])[1])
+            temp_t[i].append(stats.ttest_1samp(DropNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[0])
+            temp_p[i].append(stats.ttest_1samp(DropNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[1])
     return temp_t, temp_p
 
 def U_Test(dataToBeTested, referenceData, nrOfRows, nrOfColumns):
@@ -305,8 +308,10 @@ def U_Test(dataToBeTested, referenceData, nrOfRows, nrOfColumns):
     temp_p = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp_u[i].append(stats.mannwhitneyu(dataToBeTested[i][j], referenceData[i][j])[0])
-            temp_p[i].append(stats.mannwhitneyu(dataToBeTested[i][j], referenceData[i][j])[1])
+            refData = numpy.array(referenceData[i][j])
+            refData = refData[~DropNaN(dataToBeTested[i][j])[1]]
+            temp_u[i].append(stats.mannwhitneyu(DropNaN(dataToBeTested[i][j])[0], refData)[0])
+            temp_p[i].append(stats.mannwhitneyu(DropNaN(dataToBeTested[i][j])[0], refData)[1])
     return temp_u, temp_p
 
 def ANOVA_OneWay(inPatch, dimensionIndex1, dimensionIndex2):
@@ -315,8 +320,13 @@ def ANOVA_OneWay(inPatch, dimensionIndex1, dimensionIndex2):
     temp_f = []
     temp_p = []
     for i in range(dimensionIndex1):
-        temp_f.append(stats.f_oneway(*inPatch[i])[0])
-        temp_p.append(stats.f_oneway(*inPatch[i])[1])
+        temp = []
+        for element in inPatch[i]:
+            temp.append(DropNaN(element)[0])
+        # temp_f.append(stats.f_oneway(*inPatch[i])[0])
+        # temp_p.append(stats.f_oneway(*inPatch[i])[1])
+        temp_f.append(stats.f_oneway(*temp)[0])
+        temp_p.append(stats.f_oneway(*temp)[1])
 
     return temp_f, temp_p
 
@@ -328,8 +338,8 @@ def ChiSquare_Test(inPatch, nrR, nrC):
     temp_p = [[]for i in range(nrR) ]
     for i in range(nrR):
         for j in range(nrC):
-            temp_c[i].append(stats.chisquare(inPatch[i][j])[0])
-            temp_p[i].append(stats.chisquare(inPatch[i][j])[1])
+            temp_c[i].append(stats.chisquare(DropNaN(inPatch[i][j])[0])[0])
+            temp_p[i].append(stats.chisquare(DropNaN(inPatch[i][j])[0])[1])
     return temp_c, temp_p
 
 def EditTable(caption, headersHorizontal, headersVertical, entryName, entryData):
@@ -698,22 +708,38 @@ def CCC(calData, refData, nrR, nrC):
             temp[i].append(ccc)
     return temp
 
-def DealWithNaN(inMap, threshold):
+def DealWithNaN(inMap, mode, threshold):
     '''
     filter the map, to deal with the NaN in it.
+    mode1: clamp; mode2: outside range
     '''
     patchSize = 100
     outMap = inMap
     percentMap = [[] for i in range(len(inMap))]
-    for i, row in enumerate(inMap):
-        for j, patch in enumerate(row):
-            count = 0
-            for p, pixel in enumerate(patch):
-                if (pixel > threshold[1]) or (pixel < threshold[0]):
-                    count += 1
-                    outMap[i][j][p] = 0.001
-            percentMap[i].append(count/patchSize)
+
+    if mode == 'MODE1':
+        for i, row in enumerate(inMap):
+            for j, patch in enumerate(row):
+                count = 0
+                for p, pixel in enumerate(patch):
+                    if (pixel < threshold[1]) and (pixel > threshold[0]):
+                        count += 1
+                        outMap[i][j][p] = numpy.nan
+                percentMap[i].append(count/patchSize)
+    elif mode == 'MODE2':
+        for i, row in enumerate(inMap):
+            for j, patch in enumerate(row):
+                count = 0
+                for p, pixel in enumerate(patch):
+                    if (pixel > threshold[1]) or (pixel < threshold[0]):
+                        count += 1
+                        outMap[i][j][p] = numpy.nan
+                percentMap[i].append(count/patchSize)
     return outMap, percentMap
 
-
-
+def DropNaN(data):
+    '''
+    drop the NaN data in an array, also return the NaN map
+    '''
+    data = numpy.array(data)
+    return data[~numpy.isnan(data)], numpy.isnan(data)

@@ -566,8 +566,8 @@ class Model_KV():
         self.Ve_cal_inRow = self.Ve_cal_raw[self.patchLen:-self.patchLen]
         self.Ve_cal_inPatch_raw = QIBA_functions.Rearrange(self.Ve_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
-        self.Ktrans_cal, self.Ktrans_NaN_percentage = QIBA_functions.DealWithNaN(self.Ktrans_cal_inPatch_raw, [-10000, 10000])
-        self.Ve_cal, self.Ve_NaN_percentage = QIBA_functions.DealWithNaN(self.Ve_cal_inPatch_raw, [-10000, 10000])
+        self.Ktrans_cal, self.Ktrans_NaN_percentage = QIBA_functions.DealWithNaN(self.Ktrans_cal_inPatch_raw, 'MODE1', [0.51, 0.53])
+        self.Ve_cal, self.Ve_NaN_percentage = QIBA_functions.DealWithNaN(self.Ve_cal_inPatch_raw, 'MODE1', [-0.001, 0.001])
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
@@ -1023,7 +1023,8 @@ class Model_T1():
         self.T1_cal_inRow = self.T1_cal_raw[self.patchLen:]
         self.T1_cal_inPatch_raw = QIBA_functions.Rearrange(self.T1_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
-        self.T1_cal, self.T1_NaN_percentage = QIBA_functions.DealWithNaN(self.T1_cal_inPatch_raw, [-10000, 10000])
+        # mode1: clamp; mode2: outside
+        self.T1_cal, self.T1_NaN_percentage = QIBA_functions.DealWithNaN(self.T1_cal_inPatch_raw, 'MODE1', [-0.001, 0.001])
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
