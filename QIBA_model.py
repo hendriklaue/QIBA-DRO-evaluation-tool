@@ -48,6 +48,10 @@ class Model_KV():
         self.Ktrans_cal_patch_mean = [[]for i in range(self.nrOfRows)]
         self.Ve_cal_patch_mean = [[]for i in range(self.nrOfRows)]
 
+        # the NaN map
+        self.Ktrans_NaN_percentage = [[]for i in range(self.nrOfRows)]
+        self.Ve_NaN_percentage = [[]for i in range(self.nrOfRows)]
+
         # the median value
         self.Ktrans_ref_patch_median = [[]for i in range(self.nrOfRows)]
         self.Ve_ref_patch_median = [[]for i in range(self.nrOfRows)]
@@ -140,6 +144,7 @@ class Model_KV():
         self.ChiSquareTestForModel()
 
         # write HTML result
+        self.htmlNaN()
         self.htmlCovCorrResults()
         self.htmlModelFitting()
         self.htmlT_TestResults()
@@ -178,6 +183,26 @@ class Model_KV():
 
         # put the text into html structure
         self.StatisticsInHTML = self.packInHtml(KtransStatisticsTable + '<br>' + VeStatisticsTable)
+
+    def htmlNaN(self):
+        # write the NaN to html form
+
+        # Ktrans NaN table
+        KtransNaNTable = \
+                        '<h2>The NaN percentage of each patch in calculated Ktrans:</h2>'
+
+        KtransNaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.Ktrans_NaN_percentage])
+
+        # Ve NaN table
+        VeNaNTable = \
+                        '<h2>The NaN percentage of each patch in calculated Ve:</h2>'
+
+        VeNaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.Ve_NaN_percentage])
+
+
+
+        # put the text into html structure
+        self.NaNPercentageInHTML = self.packInHtml(KtransNaNTable + '<br>' + VeNaNTable)
 
     def htmlModelFitting(self):
         # write the model fitting results to html
@@ -532,16 +557,17 @@ class Model_KV():
         self.Ktrans_ref_inRow = self.Ktrans_ref_raw[self.patchLen:-self.patchLen]
         self.Ktrans_ref = QIBA_functions.Rearrange(self.Ktrans_ref_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
-
         self.Ktrans_cal_inRow = self.Ktrans_cal_raw[self.patchLen:-self.patchLen]
-        self.Ktrans_cal = QIBA_functions.Rearrange(self.Ktrans_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.Ktrans_cal_inPatch_raw = QIBA_functions.Rearrange(self.Ktrans_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
         self.Ve_ref_inRow = self.Ve_ref_raw[self.patchLen:-self.patchLen]
         self.Ve_ref = QIBA_functions.Rearrange(self.Ve_ref_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
-
         self.Ve_cal_inRow = self.Ve_cal_raw[self.patchLen:-self.patchLen]
-        self.Ve_cal = QIBA_functions.Rearrange(self.Ve_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.Ve_cal_inPatch_raw = QIBA_functions.Rearrange(self.Ve_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
+
+        self.Ktrans_cal, self.Ktrans_NaN_percentage = QIBA_functions.DealWithNaN(self.Ktrans_cal_inPatch_raw, [-10000, 10000])
+        self.Ve_cal, self.Ve_NaN_percentage = QIBA_functions.DealWithNaN(self.Ve_cal_inPatch_raw, [-10000, 10000])
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
@@ -676,6 +702,9 @@ class Model_T1():
         self.T1_ref_patch_mean = [[]for i in range(self.nrOfRows)]
         self.T1_cal_patch_mean = [[]for i in range(self.nrOfRows)]
 
+        # the NaN percentage
+        self.T1_NaN_percentage = [[]for i in range(self.nrOfRows)]
+
         # the median value
         self.T1_ref_patch_median = [[]for i in range(self.nrOfRows)]
         self.T1_cal_patch_median = [[]for i in range(self.nrOfRows)]
@@ -752,6 +781,7 @@ class Model_T1():
         # self.ANOVAForModel()
 
         # write HTML result
+        self.htmlNaN()
         self.htmlCovCorrResults()
         self.htmlModelFitting()
         self.htmlT_TestResults()
@@ -782,6 +812,18 @@ class Model_T1():
 
         # put the text into html structure
         self.StatisticsInHTML = self.packInHtml(T1StatisticsTable)
+
+    def htmlNaN(self):
+        # write the NaN to html form
+
+        # T1 NaN table
+        T1NaNTable = \
+                        '<h2>The NaN percentage of each patch in calculated T1:</h2>'
+
+        T1NaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.T1_NaN_percentage])
+
+        # put the text into html structure
+        self.NaNPercentageInHTML = self.packInHtml(T1NaNTable)
 
     def htmlModelFitting(self):
         # write the model fitting results to html
@@ -979,7 +1021,9 @@ class Model_T1():
         self.T1_ref = QIBA_functions.Rearrange(self.T1_ref_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
         self.T1_cal_inRow = self.T1_cal_raw[self.patchLen:]
-        self.T1_cal = QIBA_functions.Rearrange(self.T1_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
+        self.T1_cal_inPatch_raw = QIBA_functions.Rearrange(self.T1_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
+
+        self.T1_cal, self.T1_NaN_percentage = QIBA_functions.DealWithNaN(self.T1_cal_inPatch_raw, [-10000, 10000])
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files

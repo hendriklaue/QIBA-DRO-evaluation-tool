@@ -237,6 +237,7 @@ class MainWindow(wx.Frame):
         # self.pageBoxPlot = wx.Panel(self.noteBookRight)
         self.pageBoxPlot = scrolled.ScrolledPanel(self.noteBookRight)
         self.pageStatistics = wx.Panel(self.noteBookRight)
+        self.pageNaN = wx.Panel(self.noteBookRight)
         self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
         self.pageModelFitting = wx.Panel(self.noteBookRight)
         self.pageCCC = wx.Panel(self.noteBookRight)
@@ -249,6 +250,7 @@ class MainWindow(wx.Frame):
         self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
         self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
         self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
+        self.noteBookRight.AddPage(self.pageNaN, "NaN Viewer")
         self.noteBookRight.AddPage(self.pageStatistics, "Statistics Viewer")
         self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance And Correlation")
         self.noteBookRight.AddPage(self.pageCCC, "Concordance Covariance Coefficients")
@@ -293,6 +295,12 @@ class MainWindow(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(self.statisticsViewer, 1, wx.EXPAND)
         self.pageStatistics.SetSizer(sizer)
+
+        # page Nan
+        self.NaNViewer = wx.html.HtmlWindow(self.pageNaN, -1)
+        sizer = wx.BoxSizer()
+        sizer.Add(self.NaNViewer, 1, wx.EXPAND)
+        self.pageNaN.SetSizer(sizer)
 
         # page covariance and correlation
         self.covCorrViewer = wx.html.HtmlWindow(self.pageCovarianceCorrelation, -1)
@@ -370,6 +378,7 @@ class MainWindow(wx.Frame):
         self.canvasBoxPlot.draw()
 
         self.statisticsViewer.SetPage('')
+        self.NaNViewer.SetPage('')
         self.covCorrViewer.SetPage('')
         self.modelFittingViewer.SetPage('')
         self.t_testViewer.SetPage('')
@@ -712,6 +721,7 @@ class MainWindow_KV(MainWindow):
 
     def ShowResults(self):
         # show the results in the main window
+        self.NaNViewer.SetPage(self.newModel.NaNPercentageInHTML)
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
         self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
         self.cccViewer.SetPage(self.newModel.CCCResultInHTML)
@@ -1396,6 +1406,7 @@ class MainWindow_KV(MainWindow):
 
         # export the table to excel
         book = Workbook()
+        sheetNaN = book.add_sheet('NaN percentage')
         sheetMean = book.add_sheet('Mean')
         sheetStd = book.add_sheet('Standard deviation')
         sheetMedian = book.add_sheet('Median')
@@ -1412,7 +1423,7 @@ class MainWindow_KV(MainWindow):
         sheetChiq = book.add_sheet('Chi-square test results')
         sheetA = book.add_sheet('ANOVA results')
 
-
+        QIBA_functions.WriteToExcelSheet_GKM_percentage(sheetNaN, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_NaN_percentage, self.newModel.Ve_NaN_percentage], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_mean, self.newModel.Ve_cal_patch_mean], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_deviation, self.newModel.Ve_cal_patch_deviation], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_cal_patch_median, self.newModel.Ve_cal_patch_median], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
@@ -1483,6 +1494,8 @@ class MainWindow_KV(MainWindow):
         '''<p><font face="verdana">* The vertical dash lines are used to separate the rows (or columns), as each box plot is responsible for one patch. From these plots you could see (roughly) the statistics of each patch, like the mean value, the 1st and 3rd quartile, the minimum and maximum value. The more precise value of those statistics could be found in the tab "Result in HTML viewer".
         </p>''')
 
+        htmlContent += self.newModel.NaNPercentageInHTML
+
         htmlContent += self.newModel.StatisticsInHTML
 
         htmlContent += self.newModel.covCorrResultsInHtml
@@ -1543,6 +1556,7 @@ class MainWindow_T1(MainWindow):
 
     def ShowResults(self):
         # show the results in the main window
+        self.NaNViewer.SetPage(self.newModel.NaNPercentageInHTML)
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
         self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
         self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
@@ -1992,6 +2006,7 @@ class MainWindow_T1(MainWindow):
 
         # export to excel
         book = Workbook()
+        sheetNaN = book.add_sheet('NaN percentage')
         sheetMean = book.add_sheet('Mean')
         sheetStd = book.add_sheet('Standard deviation')
         sheetMedian = book.add_sheet('Median')
@@ -2008,7 +2023,7 @@ class MainWindow_T1(MainWindow):
         sheetChiq = book.add_sheet('Chi-square-test results')
         # sheetA = book.add_sheet('ANOVA results')
 
-
+        QIBA_functions.WriteToExcelSheet_T1_percentage(sheetNaN, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_NaN_percentage], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMean, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_mean], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_T1_statistics(sheetStd, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_deviation], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_T1_statistics(sheetMedian, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_median], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
@@ -2073,6 +2088,8 @@ class MainWindow_T1(MainWindow):
         '''<p><font face="verdana">* The vertical dash lines are used to separate the rows (or columns), as each box plot is responsible for one patch. From these plots you could see (roughly) the statistics of each patch, like the mean value, the 1st and 3rd quartile, the minimum and maximum value. The more precise value of those statistics could be found in the tab "Result in HTML viewer".
         </p>''')
 
+        htmlContent += self.newModel.NaNPercentageInHTML
+
         htmlContent += self.newModel.StatisticsInHTML
 
         htmlContent += self.newModel.covCorrResultsInHtml
@@ -2135,12 +2152,17 @@ def ProcessWithoutGUI(mode, calFiles, refFiles, desDir):
     patchLen = 10
     if mode == 'GKM':
         window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
+        print 'files loaded...'
         window.Show()
         window.Maximize(True)
         window.Hide()
+        print 'start to eveluate...'
         window.OnEvaluate(None)
+        print 'evaluation finished.'
+        print 'exporting result...'
         window.OnExportToFolder(desDir)
         window.OnExportToPDF(desDir)
+        print 'results exported.'
 
     elif mode == "T1":
         window = MainWindow_T1("QIBA evaluate tool (T1)", calFiles, refFiles, desDir)

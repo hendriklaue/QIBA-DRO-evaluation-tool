@@ -30,9 +30,9 @@ def formatFloatTo4DigitsString(input):
 def formatFloatTo2DigitsString(input):
     # format the float input into a string with 2 digits string
     if abs(input) < 0.01:
-        return  str('{:3.2e}'.format(float(input)))
+        return  str('{:4.2e}'.format(float(input)))
     else:
-        return  str('{:3.2f}'.format(float(input)))
+        return  str('{:4.2f}'.format(float(input)))
 
 def ImportFile(path, nrOfRows, nrOfColumns, patchLen, mode):
     # import a file.  Pre-process so that different file types have the same structure.
@@ -364,6 +364,39 @@ def EditTable(caption, headersHorizontal, headersVertical, entryName, entryData)
 
         return tableText
 
+def EditTablePercent(caption, headersHorizontal, headersVertical, entryName, entryData):
+        # edit a table of certain scale in html. return the table part html
+        # the content of the table in percent presentation
+        nrOfRows = len(headersVertical)
+        nrOfColumns = len(headersHorizontal)
+
+        # for the first line
+        tableText = '<h3>' + caption + '</h3>'
+        tableText += '<table border="1" cellspacing="10">'
+        # tableText += '<caption>' + caption + '</caption>'
+        tableText += '<tr>'
+        tableText +=     '<th></th>'
+        for horizontal in headersHorizontal:
+            tableText += '<th>' + horizontal + '</th>'
+        tableText += '</tr>'
+
+        # for the column headers and the table cells.
+        for i, vertical in zip(range(nrOfRows), headersVertical):
+            tableText += '<tr>'
+            tableText +=    '<th>' + vertical + '</th>'
+            for j in range(nrOfColumns):
+                tableText += '<td align="left">'
+                for name, data in zip(entryName, entryData):
+                    tableText += name + formatFloatTo2DigitsString(data[i][j]*100) + '%' + '<br>'
+                tableText = tableText[:-4]
+                tableText += '</td>'
+            tableText += '</tr>'
+
+        tableText += '</table>'
+        tableText += '<br>'
+
+        return tableText
+
 def RandomIndex(length):
     '''
     generate a random index of the given size
@@ -444,6 +477,32 @@ def WriteToExcelSheet_GKM_statistics(sheet, headerH, headerV, data, titlePos, nr
         row.write(0, item)
         for j in range(nrC):
             row.write(j+1, str(formatFloatTo4DigitsString(data[1][i][j])) )
+
+def WriteToExcelSheet_GKM_percentage(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.write(0,int(titlePos), 'Each patch of the calculated Ktrans')
+    row_sheet_Header_K = sheet.row(2)
+    for (j, item) in enumerate(headerH):
+        row_sheet_Header_K.write(j + 1, item)
+        sheet.col(j+1).width = 4000
+    sheet.col(0).width = 4500
+    for (i, item) in enumerate(headerV):
+        row = sheet.row(i+3)
+        row.write(0, item)
+        for j in range(nrC):
+            row.write(j+1, str(formatFloatTo4DigitsString(data[0][i][j]*100)+'%'))
+
+    sheet.write(nrR+4,int(titlePos), 'Each patch of the calculated Ve')
+    row_sheet1_Header_K = sheet.row(2 +nrR+4)
+    for (j, item) in enumerate(headerH):
+        row_sheet1_Header_K.write(j + 1, item)
+    for (i, item) in enumerate(headerV):
+        row = sheet.row(i+3 + nrR+4)
+        row.write(0, item)
+        for j in range(nrC):
+            row.write(j+1, str(formatFloatTo4DigitsString(data[1][i][j]*100)+'%') )
 
 def WriteToExcelSheet_GKM_co(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     '''
@@ -555,6 +614,21 @@ def WriteToExcelSheet_T1_statistics(sheet, headerH, headerV, data, titlePos, nrR
         for j in range(nrC):
             row.write(j+1, str(formatFloatTo4DigitsString(data[0][i][j])))
 
+def WriteToExcelSheet_T1_percentage(sheet, headerH, headerV, data, titlePos, nrR, nrC):
+    '''
+     write to a sheet in excel
+    '''
+    sheet.write(0,int(titlePos), 'Each patch of the calculated T1')
+    for (j, item) in enumerate(headerH):
+        sheet.row(2).write(j + 1, item)
+        sheet.col(j+1).width = 4000
+    sheet.col(0).width = 4500
+    for (i, item) in enumerate(headerV):
+        row = sheet.row(i+3)
+        row.write(0, item)
+        for j in range(nrC):
+            row.write(j+1, str(formatFloatTo4DigitsString(data[0][i][j]*100)+'%'))
+
 def WriteToExcelSheet_T1_co(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     '''
      write to a sheet in excel
@@ -623,3 +697,23 @@ def CCC(calData, refData, nrR, nrC):
             ccc = 2*s_xy/(sx_q + sy_q + (x_mean - y_mean)**2)
             temp[i].append(ccc)
     return temp
+
+def DealWithNaN(inMap, threshold):
+    '''
+    filter the map, to deal with the NaN in it.
+    '''
+    patchSize = 100
+    outMap = inMap
+    percentMap = [[] for i in range(len(inMap))]
+    for i, row in enumerate(inMap):
+        for j, patch in enumerate(row):
+            count = 0
+            for p, pixel in enumerate(patch):
+                if (pixel > threshold[1]) or (pixel < threshold[0]):
+                    count += 1
+                    outMap[i][j][p] = 0.001
+            percentMap[i].append(count/patchSize)
+    return outMap, percentMap
+
+
+
