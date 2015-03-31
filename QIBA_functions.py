@@ -708,7 +708,7 @@ def CCC(calData, refData, nrR, nrC):
             temp[i].append(ccc)
     return temp
 
-def DealWithNaN(inMap, mode, threshold):
+def DealWithNaN(inMap, mode, threshold, replaceVal):
     '''
     filter the map, to deal with the NaN in it.
     mode1: clamp; mode2: outside range
@@ -722,18 +722,18 @@ def DealWithNaN(inMap, mode, threshold):
             for j, patch in enumerate(row):
                 count = 0
                 for p, pixel in enumerate(patch):
-                    if (pixel < threshold[1]) and (pixel > threshold[0]):
+                    if  ((pixel > threshold[0]) and (pixel < threshold[1])):
                         count += 1
-                        outMap[i][j][p] = numpy.nan
+                        outMap[i][j][p] = replaceVal
                 percentMap[i].append(count/patchSize)
     elif mode == 'MODE2':
         for i, row in enumerate(inMap):
             for j, patch in enumerate(row):
                 count = 0
                 for p, pixel in enumerate(patch):
-                    if (pixel > threshold[1]) or (pixel < threshold[0]):
+                    if ((pixel > threshold[1]) or (pixel < threshold[0])):
                         count += 1
-                        outMap[i][j][p] = numpy.nan
+                        outMap[i][j][p] = replaceVal
                 percentMap[i].append(count/patchSize)
     return outMap, percentMap
 
@@ -743,3 +743,20 @@ def DropNaN(data):
     '''
     data = numpy.array(data)
     return data[~numpy.isnan(data)], numpy.isnan(data)
+
+def DealWithNaN_InRow(inMap, mode, threshold, replaceVal):
+    '''
+    deal with the NaN in the map which is in the row order
+    '''
+    if mode == 'MODE1':
+        for i, row in enumerate(inMap):
+            for p, pixel in enumerate(row):
+                if  ((pixel > threshold[0]) and (pixel < threshold[1])):
+                    inMap[i][p] = replaceVal
+    if mode == 'MODE2':
+        for i, row in enumerate(inMap):
+            for p, pixel in enumerate(row):
+                if  ((pixel < threshold[0]) and (pixel > threshold[1])):
+                    inMap[i][p] = replaceVal
+    return inMap
+
