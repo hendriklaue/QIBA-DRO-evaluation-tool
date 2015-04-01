@@ -1100,23 +1100,28 @@ class MainWindow_KV(MainWindow):
         for i in range(self.newModel.nrOfRows):
             for j in range(self.newModel.nrOfColumns):
                 subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
-                # subPlot_K.clear()
-                processedData_Ktrans =QIBA_functions.DropNaN(self.newModel.Ktrans_cal[i][j])[0]
-                subPlot_K.hist(processedData_Ktrans, nrOfBins)
-                minPatch_K = numpy.min(processedData_Ktrans)
-                maxPatch_K = numpy.max(processedData_Ktrans)
-                meanPatch_K = numpy.mean(processedData_Ktrans)
+                processedData_Ktrans = QIBA_functions.DealNaN(self.newModel.Ktrans_cal[i][j])[0]
+                processedData_Ktrans = QIBA_functions.DropNaN(processedData_Ktrans)
+                if len(processedData_Ktrans )==0:
+                    subPlot_K.plot([])
+                    subPlot_K.xaxis.set_ticks([])
+                    subPlot_K.yaxis.set_ticks([])
+                else:
+                    subPlot_K.hist(processedData_Ktrans, nrOfBins)
+                    minPatch_K = numpy.min(processedData_Ktrans)
+                    maxPatch_K = numpy.max(processedData_Ktrans)
+                    meanPatch_K = numpy.mean(processedData_Ktrans)
 
-                minPatch_K = QIBA_functions.formatFloatTo2DigitsString(minPatch_K)
-                maxPatch_K = QIBA_functions.formatFloatTo2DigitsString(maxPatch_K)
-                meanPatch_K = QIBA_functions.formatFloatTo2DigitsString(meanPatch_K)
+                    minPatch_K = QIBA_functions.formatFloatTo2DigitsString(minPatch_K)
+                    maxPatch_K = QIBA_functions.formatFloatTo2DigitsString(maxPatch_K)
+                    meanPatch_K = QIBA_functions.formatFloatTo2DigitsString(meanPatch_K)
 
-                subPlot_K.set_xticks([float(minPatch_K), float(maxPatch_K)])
+                    subPlot_K.set_xticks([float(minPatch_K), float(maxPatch_K)])
 
-                subPlot_K.set_xticklabels([minPatch_K, maxPatch_K])
-                subPlot_K.axvline(float(meanPatch_K), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
-                subPlot_K.set_ylim([0, pixelCountInPatch])
-                subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size = 'x-small') # parameters: location_x, location_y, text, size
+                    subPlot_K.set_xticklabels([minPatch_K, maxPatch_K])
+                    subPlot_K.axvline(float(meanPatch_K), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+                    subPlot_K.set_ylim([0, pixelCountInPatch])
+                    subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
                     subPlot_K.set_xlabel(self.newModel.headersHorizontal[j])
                     subPlot_K.xaxis.set_label_position('top')
@@ -1125,20 +1130,26 @@ class MainWindow_KV(MainWindow):
 
                 subPlot_V = self.figureHist_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1 )
                 # subPlot_V.clear()
-                processedData_Ve = QIBA_functions.DropNaN(self.newModel.Ve_cal[i][j])[0]
-                subPlot_V.hist(processedData_Ve, nrOfBins)
-                minPatch_V = numpy.min(processedData_Ve)
-                maxPatch_V = numpy.max(processedData_Ve)
-                meanPatch_V = numpy.mean(processedData_Ve)
-                minPatch_V = QIBA_functions.formatFloatTo2DigitsString(minPatch_V)
-                maxPatch_V = QIBA_functions.formatFloatTo2DigitsString(maxPatch_V)
-                meanPatch_V = QIBA_functions.formatFloatTo2DigitsString(meanPatch_V)
+                processedData_Ve = QIBA_functions.DealNaN(self.newModel.Ve_cal[i][j])[0]
+                processedData_Ve = QIBA_functions.DropNaN(processedData_Ve)
+                if len(processedData_Ve)==0:
+                    subPlot_V.plot([])
+                    subPlot_V.xaxis.set_ticks([])
+                    subPlot_V.yaxis.set_ticks([])
+                else:
+                    subPlot_V.hist(processedData_Ve, nrOfBins)
+                    minPatch_V = numpy.min(processedData_Ve)
+                    maxPatch_V = numpy.max(processedData_Ve)
+                    meanPatch_V = numpy.mean(processedData_Ve)
+                    minPatch_V = QIBA_functions.formatFloatTo2DigitsString(minPatch_V)
+                    maxPatch_V = QIBA_functions.formatFloatTo2DigitsString(maxPatch_V)
+                    meanPatch_V = QIBA_functions.formatFloatTo2DigitsString(meanPatch_V)
 
-                subPlot_V.set_xticks([float(minPatch_V), float(maxPatch_V)])
-                subPlot_V.set_xticklabels([minPatch_V, maxPatch_V])
-                subPlot_V.axvline(float(meanPatch_V), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
-                subPlot_V.set_ylim([0, pixelCountInPatch])
-                subPlot_V.text(float(meanPatch_V) + 0.01 * float(meanPatch_V), 0.9 * pixelCountInPatch, meanPatch_V, size = 'x-small') # parameters: location_x, location_y, text, size
+                    subPlot_V.set_xticks([float(minPatch_V), float(maxPatch_V)])
+                    subPlot_V.set_xticklabels([minPatch_V, maxPatch_V])
+                    subPlot_V.axvline(float(meanPatch_V), color = 'r', linestyle = 'dashed', linewidth = 1) # draw a vertical line at the mean value
+                    subPlot_V.set_ylim([0, pixelCountInPatch])
+                    subPlot_V.text(float(meanPatch_V) + 0.01 * float(meanPatch_V), 0.9 * pixelCountInPatch, meanPatch_V, size = 'x-small') # parameters: location_x, location_y, text, size
                 if i == 0:
                     subPlot_V.set_xlabel(self.newModel.headersHorizontal[j])
                     subPlot_V.xaxis.set_label_position('top')
@@ -1233,7 +1244,7 @@ class MainWindow_KV(MainWindow):
         for i in range(self.newModel.nrOfRows):
             temp_temp = []
             for element in self.newModel.Ktrans_cal[i]:
-                temp_temp.append(QIBA_functions.DropNaN(element)[0])
+                temp_temp.append(QIBA_functions.DealNaN(element)[0])
             temp.extend(temp_temp)
             referValueK.append(float('{0:.2f}'.format(self.newModel.Ktrans_ref[i][0][0])))
         subPlotK.boxplot(temp, notch = 1, sym = 'r+', whis=1.5)
@@ -1246,7 +1257,7 @@ class MainWindow_KV(MainWindow):
         for j in range(self.newModel.nrOfColumns):
             for i in range(self.newModel.nrOfRows):
                 # temp.append(self.newModel.Ve_cal[i][j])
-                temp.append(QIBA_functions.DropNaN(self.newModel.Ve_cal[i][j])[0])
+                temp.append(QIBA_functions.DealNaN(self.newModel.Ve_cal[i][j])[0])
             referValueV.append(float('{0:.2f}'.format(zip(*self.newModel.Ve_ref)[j][0][0])))
         subPlotV.boxplot(temp, notch = 1, sym = 'r+', whis=1.5)
 
@@ -1327,25 +1338,25 @@ class MainWindow_KV(MainWindow):
     def DrawScatter(self):
         # draw the scatters
         if self.SCATTER_SWITCH:
-            minLim_x_K = numpy.min(self.newModel.Ktrans_ref_inRow)
-            maxLim_x_K = numpy.max(self.newModel.Ktrans_ref_inRow)
-            minLim_y_K = numpy.min( [numpy.min(self.newModel.Ktrans_ref_inRow), numpy.min(self.newModel.Ktrans_cal_inRow)])
-            maxLim_y_K = numpy.max( [numpy.max(self.newModel.Ktrans_ref_inRow), numpy.max(self.newModel.Ktrans_cal_inRow)])
+            minLim_x_K = numpy.nanmin(self.newModel.Ktrans_ref_inRow)
+            maxLim_x_K = numpy.nanmax(self.newModel.Ktrans_ref_inRow)
+            minLim_y_K = numpy.nanmin( [numpy.min(self.newModel.Ktrans_ref_inRow), numpy.min(self.newModel.Ktrans_cal_inRow)])
+            maxLim_y_K = numpy.nanmax( [numpy.max(self.newModel.Ktrans_ref_inRow), numpy.max(self.newModel.Ktrans_cal_inRow)])
 
-            minLim_x_V = numpy.min(self.newModel.Ve_ref_inRow)
-            maxLim_x_V = numpy.max(self.newModel.Ve_ref_inRow)
-            minLim_y_V = numpy.min( [numpy.min(self.newModel.Ve_ref_inRow), numpy.min(self.newModel.Ve_cal_inRow)])
-            maxLim_y_V = numpy.max( [numpy.max(self.newModel.Ve_ref_inRow), numpy.max(self.newModel.Ve_cal_inRow)])
+            minLim_x_V = numpy.nanmin(self.newModel.Ve_ref_inRow)
+            maxLim_x_V = numpy.nanmax(self.newModel.Ve_ref_inRow)
+            minLim_y_V = numpy.nanmin( [numpy.min(self.newModel.Ve_ref_inRow), numpy.min(self.newModel.Ve_cal_inRow)])
+            maxLim_y_V = numpy.nanmax( [numpy.max(self.newModel.Ve_ref_inRow), numpy.max(self.newModel.Ve_cal_inRow)])
         else:
-            minLim_x_K = numpy.min(self.newModel.Ktrans_ref_patchValue)
-            maxLim_x_K = numpy.max(self.newModel.Ktrans_ref_patchValue)
-            minLim_y_K = numpy.min( [numpy.min(self.newModel.Ktrans_ref_patchValue), numpy.min(self.newModel.Ktrans_cal_patchValue)])
-            maxLim_y_K = numpy.max( [numpy.max(self.newModel.Ktrans_ref_patchValue), numpy.max(self.newModel.Ktrans_cal_patchValue)])
+            minLim_x_K = numpy.nanmin(self.newModel.Ktrans_ref_patchValue)
+            maxLim_x_K = numpy.nanmax(self.newModel.Ktrans_ref_patchValue)
+            minLim_y_K = numpy.nanmin( [numpy.min(self.newModel.Ktrans_ref_patchValue), numpy.min(self.newModel.Ktrans_cal_patchValue)])
+            maxLim_y_K = numpy.nanmax( [numpy.max(self.newModel.Ktrans_ref_patchValue), numpy.max(self.newModel.Ktrans_cal_patchValue)])
 
-            minLim_x_V = numpy.min(self.newModel.Ve_ref_patchValue)
-            maxLim_x_V = numpy.max(self.newModel.Ve_ref_patchValue)
-            minLim_y_V = numpy.min( [numpy.min(self.newModel.Ve_ref_patchValue), numpy.min(self.newModel.Ve_cal_patchValue)])
-            maxLim_y_V = numpy.max( [numpy.max(self.newModel.Ve_ref_patchValue), numpy.max(self.newModel.Ve_cal_patchValue)])
+            minLim_x_V = numpy.nanmin(self.newModel.Ve_ref_patchValue)
+            maxLim_x_V = numpy.nanmax(self.newModel.Ve_ref_patchValue)
+            minLim_y_V = numpy.nanmin( [numpy.min(self.newModel.Ve_ref_patchValue), numpy.min(self.newModel.Ve_cal_patchValue)])
+            maxLim_y_V = numpy.nanmax( [numpy.max(self.newModel.Ve_ref_patchValue), numpy.max(self.newModel.Ve_cal_patchValue)])
         spacing_x_K = (maxLim_x_K - minLim_x_K) * 0.05
         spacing_y_K = (maxLim_y_K - minLim_y_K) * 0.05
 
@@ -1804,7 +1815,7 @@ class MainWindow_T1(MainWindow):
             for j in range(self.newModel.nrOfColumns):
                 subPlot_T1 = self.figureHist_T1.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
                 # subPlot_K.clear()
-                processedData_T1 = QIBA_functions.DropNaN(self.newModel.T1_cal[i][j])[0]
+                processedData_T1 = QIBA_functions.DealNaN(self.newModel.T1_cal[i][j])[0]
                 subPlot_T1.hist(processedData_T1, nrOfBins) # normed=True if want the bars to be normalized
                 minPatch_T1 = numpy.min(processedData_T1)
                 maxPatch_T1 = numpy.max(processedData_T1)
@@ -1881,7 +1892,7 @@ class MainWindow_T1(MainWindow):
         for j in range(self.newModel.nrOfColumns):
             temp_temp = []
             for element in zip(*self.newModel.R1_cal)[j]:
-                temp_temp.append(QIBA_functions.DropNaN(element)[0])
+                temp_temp.append(QIBA_functions.DealNaN(element)[0])
             temp.extend(temp_temp)
             # referValue_R1.append(QIBA_functions.formatFloatTo2DigitsString(self.newModel.T1_ref[j][0][0]))
         subPlot_R1.boxplot(temp, notch = 1, sym = 'r+', whis=1.5)

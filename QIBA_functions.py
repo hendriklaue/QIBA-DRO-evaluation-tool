@@ -195,18 +195,15 @@ def EstimatePatch(dataInPatch, patchValueMethod, nrOfRows, nrOfColumns):
     # some statistics test like normality test could be applied to decide which value to take. But considering there are many patches, how to synchronise is also a question.
     # currently the solution is, to open one new window when the 'process' button is pressed, on which the histograms of the patches will be shown. Whether to choose mean value
     # or median value to represent a patch is up to the user.
-
-    t = [9 , 3, numpy.nan]
-    t=DropNaN(t)
     temp = [[]for i in range(nrOfRows) ]
     if patchValueMethod == 'MEAN':
         for i in range(nrOfRows):
             for j in range (nrOfColumns):
-                temp[i].append(numpy.mean(DropNaN(dataInPatch[i][j])[0]))
+                temp[i].append(numpy.mean(DealNaN(dataInPatch[i][j])[0]))
     if patchValueMethod == 'MEDIAN':
         for i in range(nrOfRows):
             for j in range (nrOfColumns):
-                temp[i].append(numpy.median(DropNaN(dataInPatch[i][j])[0]))
+                temp[i].append(numpy.median(DealNaN(dataInPatch[i][j])[0]))
     return temp
 
 def FittingLinearModel(calculated, reference, dimensionIndex):
@@ -234,7 +231,14 @@ def FittingLogarithmicModel(calculated, reference, dimensionIndex):
     temp_b = []
 
     for i in range(dimensionIndex):
-        popt, pcov = optimize.curve_fit(func_for_log_calculation, reference[i], calculated[i])
+        postCal = numpy.array(calculated[i])
+        postCal = DealNaN(postCal)[0]
+        postRef = numpy.array(reference[i])
+        postRef = postRef[~DealNaN(calculated[i])[1]]
+        if len(postRef)in (0,1):
+            popt = [numpy.nan, numpy.nan]
+        else:
+            popt, pcov = optimize.curve_fit(func_for_log_calculation, postRef, postCal)
         temp_a.append(popt[0])
         temp_b.append(popt[1])
 
@@ -253,7 +257,7 @@ def CalculateMean(inPatch, nrOfRows, nrOfColumns):
     temp = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp[i].append(numpy.mean(DropNaN(inPatch[i][j])[0]))
+            temp[i].append(numpy.mean(DealNaN(inPatch[i][j])[0]))
     return temp
 
 def CalculateMedian(inPatch, nrOfRows, nrOfColumns):
@@ -261,7 +265,7 @@ def CalculateMedian(inPatch, nrOfRows, nrOfColumns):
     temp = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp[i].append(numpy.median(DropNaN(inPatch[i][j])[0]))
+            temp[i].append(numpy.median(DealNaN(inPatch[i][j])[0]))
     return temp
 
 def CalculateSTDDeviation(inPatch, nrOfRows, nrOfColumns):
@@ -269,7 +273,7 @@ def CalculateSTDDeviation(inPatch, nrOfRows, nrOfColumns):
     temp = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp[i].append(numpy.std(DropNaN(inPatch[i][j])[0]))
+            temp[i].append(numpy.std(DealNaN(inPatch[i][j])[0]))
     return temp
 
 def Calculate1stAnd3rdQuartile(inPatch, nrOfRows, nrOfColumns):
@@ -278,8 +282,8 @@ def Calculate1stAnd3rdQuartile(inPatch, nrOfRows, nrOfColumns):
     temp3rdQuartile = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp1stQuartile[i].append(stats.mstats.mquantiles(DropNaN(inPatch[i][j])[0],prob = 0.25))
-            temp3rdQuartile[i].append(stats.mstats.mquantiles(DropNaN(inPatch[i][j])[0],prob = 0.75))
+            temp1stQuartile[i].append(stats.mstats.mquantiles(DealNaN(inPatch[i][j])[0],prob = 0.25))
+            temp3rdQuartile[i].append(stats.mstats.mquantiles(DealNaN(inPatch[i][j])[0],prob = 0.75))
     return temp1stQuartile, temp3rdQuartile
 
 def CalculateMinAndMax(inPatch, nrOfRows, nrOfColumns):
@@ -288,8 +292,8 @@ def CalculateMinAndMax(inPatch, nrOfRows, nrOfColumns):
     tempMax = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            tempMin[i].append(numpy.min(DropNaN(inPatch[i][j])[0]))
-            tempMax[i].append(numpy.max(DropNaN(inPatch[i][j])[0]))
+            tempMin[i].append(numpy.min(DealNaN(inPatch[i][j])[0]))
+            tempMax[i].append(numpy.max(DealNaN(inPatch[i][j])[0]))
     return tempMin, tempMax
 
 def T_Test_OneSample(dataToBeTested, expectedMean, nrOfRows, nrOfColumns):
@@ -298,8 +302,8 @@ def T_Test_OneSample(dataToBeTested, expectedMean, nrOfRows, nrOfColumns):
     temp_p = [[]for i in range(nrOfRows) ]
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
-            temp_t[i].append(stats.ttest_1samp(DropNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[0])
-            temp_p[i].append(stats.ttest_1samp(DropNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[1])
+            temp_t[i].append(stats.ttest_1samp(DealNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[0])
+            temp_p[i].append(stats.ttest_1samp(DealNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[1])
     return temp_t, temp_p
 
 def U_Test(dataToBeTested, referenceData, nrOfRows, nrOfColumns):
@@ -309,9 +313,9 @@ def U_Test(dataToBeTested, referenceData, nrOfRows, nrOfColumns):
     for i in range(nrOfRows):
         for j in range(nrOfColumns):
             refData = numpy.array(referenceData[i][j])
-            refData = refData[~DropNaN(dataToBeTested[i][j])[1]]
-            temp_u[i].append(stats.mannwhitneyu(DropNaN(dataToBeTested[i][j])[0], refData)[0])
-            temp_p[i].append(stats.mannwhitneyu(DropNaN(dataToBeTested[i][j])[0], refData)[1])
+            refData = refData[~DealNaN(dataToBeTested[i][j])[1]]
+            temp_u[i].append(stats.mannwhitneyu(DealNaN(dataToBeTested[i][j])[0], refData)[0])
+            temp_p[i].append(stats.mannwhitneyu(DealNaN(dataToBeTested[i][j])[0], refData)[1])
     return temp_u, temp_p
 
 def ANOVA_OneWay(inPatch, dimensionIndex1, dimensionIndex2):
@@ -322,7 +326,7 @@ def ANOVA_OneWay(inPatch, dimensionIndex1, dimensionIndex2):
     for i in range(dimensionIndex1):
         temp = []
         for element in inPatch[i]:
-            temp.append(DropNaN(element)[0])
+            temp.append(DealNaN(element)[0])
         # temp_f.append(stats.f_oneway(*inPatch[i])[0])
         # temp_p.append(stats.f_oneway(*inPatch[i])[1])
         temp_f.append(stats.f_oneway(*temp)[0])
@@ -338,8 +342,8 @@ def ChiSquare_Test(inPatch, nrR, nrC):
     temp_p = [[]for i in range(nrR) ]
     for i in range(nrR):
         for j in range(nrC):
-            temp_c[i].append(stats.chisquare(DropNaN(inPatch[i][j])[0])[0])
-            temp_p[i].append(stats.chisquare(DropNaN(inPatch[i][j])[0])[1])
+            temp_c[i].append(stats.chisquare(DealNaN(inPatch[i][j])[0])[0])
+            temp_p[i].append(stats.chisquare(DealNaN(inPatch[i][j])[0])[1])
     return temp_c, temp_p
 
 def EditTable(caption, headersHorizontal, headersVertical, entryName, entryData):
@@ -708,9 +712,9 @@ def CCC(calData, refData, nrR, nrC):
             temp[i].append(ccc)
     return temp
 
-def DealWithNaN(inMap, mode, threshold, replaceVal):
+def DefineNaN(inMap, mode, threshold, replaceVal):
     '''
-    filter the map, to deal with the NaN in it.
+    filter the map, to define the NaN in it.
     mode1: clamp; mode2: outside range
     '''
     patchSize = 100
@@ -737,14 +741,24 @@ def DealWithNaN(inMap, mode, threshold, replaceVal):
                 percentMap[i].append(count/patchSize)
     return outMap, percentMap
 
+def DealNaN(data):
+    '''
+    deal with the NaN data in an array, also return the NaN map
+    '''
+    Data = numpy.array(data)
+    if ~numpy.any(Data[~numpy.isnan(data)]):
+        return data, numpy.isnan(data)
+    else:
+        return Data[~numpy.isnan(data)], numpy.isnan(data)
+
 def DropNaN(data):
     '''
-    drop the NaN data in an array, also return the NaN map
+    drop the NaN
     '''
     data = numpy.array(data)
-    return data[~numpy.isnan(data)], numpy.isnan(data)
+    return data[~numpy.isnan(data)]
 
-def DealWithNaN_InRow(inMap, mode, threshold, replaceVal):
+def DefineNaN_InRow(inMap, mode, threshold, replaceVal):
     '''
     deal with the NaN in the map which is in the row order
     '''

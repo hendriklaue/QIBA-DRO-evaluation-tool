@@ -1,6 +1,6 @@
 # this package contains the models to be evaluated, with respect to the parameter of Ktrans-Ve or T1.
 import QIBA_functions
-
+import numpy
 
 class Model_KV():
     '''
@@ -566,12 +566,12 @@ class Model_KV():
         self.Ve_cal_inRow = self.Ve_cal_raw[self.patchLen:-self.patchLen]
         self.Ve_cal_inPatch_raw = QIBA_functions.Rearrange(self.Ve_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
-        replaceValue = 0
-        self.Ktrans_cal, self.Ktrans_NaN_percentage = QIBA_functions.DealWithNaN(self.Ktrans_cal_inPatch_raw, 'MODE2', [-9999, 9999], replaceValue)
-        self.Ve_cal, self.Ve_NaN_percentage = QIBA_functions.DealWithNaN(self.Ve_cal_inPatch_raw, 'MODE2', [-9999, 9999], replaceValue)
+        replaceValue = numpy.nan
+        self.Ktrans_cal, self.Ktrans_NaN_percentage = QIBA_functions.DefineNaN(self.Ktrans_cal_inPatch_raw, 'MODE1', [-10001, -9999], replaceValue)
+        self.Ve_cal, self.Ve_NaN_percentage = QIBA_functions.DefineNaN(self.Ve_cal_inPatch_raw, 'MODE1', [-10001, -9999], replaceValue)
 
-        self.Ktrans_cal_inRow = QIBA_functions.DealWithNaN_InRow(self.Ktrans_cal_inRow, 'MODE1', [-10001, -9999], replaceValue)
-        self.Ve_cal_inRow = QIBA_functions.DealWithNaN_InRow(self.Ve_cal_inRow, 'MODE1', [-10001, -9999], replaceValue)
+        self.Ktrans_cal_inRow = QIBA_functions.DefineNaN_InRow(self.Ktrans_cal_inRow, 'MODE1', [-10001, -9999], numpy.nan)
+        self.Ve_cal_inRow = QIBA_functions.DefineNaN_InRow(self.Ve_cal_inRow, 'MODE1', [-10001, -9999], numpy.nan)
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
