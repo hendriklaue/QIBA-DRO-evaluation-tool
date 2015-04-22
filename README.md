@@ -1,11 +1,15 @@
 ================================================
+
 QIBA-PDF-evaluation-tool
+
 ================================================
 
 The QIBA-PDA-evaluation tool allows to compare the results from DCE-MRI analysis software applied to digital phantom data with the initial parameters.
 
 ================================================
+
 Organization of the source folder
+
 ================================================
 
 The application is till under development. Till now it is available in source code and Windows installer.
@@ -21,7 +25,9 @@ The reference and calculated data for demonstration could be found in the folder
 The 'temp' folder is used during the exporting results to PDF file.
 
 ================================================
+
 Required packages or tools(all are in 32bit version)
+
 ================================================
 
 -- this tool is developed in Pyhton2.7: https://www.python.org/
@@ -44,7 +50,9 @@ Required packages or tools(all are in 32bit version)
 -- to export the results to Excel file, the tool 'xlwt' is used: https://pypi.python.org/pypi/xlwt
 
 ================================================
+
 To Build installer
+
 ================================================
 
 The installer for Windows is built with cx_Freeze: http://cx-freeze.sourceforge.net/
