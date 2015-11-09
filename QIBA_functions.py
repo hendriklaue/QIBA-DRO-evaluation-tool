@@ -185,7 +185,7 @@ def CalculateNormalizedError(cal, ref):
     errorRow = []
     for row_cal, row_ref in zip(cal, ref):
         for pixel_cal, pixel_ref in zip(row_cal, row_ref):
-            errorRow.append((pixel_cal - pixel_ref) * 100 / (pixel_ref + delta))
+            errorRow.append((pixel_cal - pixel_ref) *100 / (pixel_ref + delta))
         errorAllNormalized.append(errorRow)
         errorRow = []
     return errorAllNormalized
