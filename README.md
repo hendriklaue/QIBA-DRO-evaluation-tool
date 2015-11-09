@@ -1,16 +1,15 @@
-CONTENTS OF THIS FILE
+
+# QIBA-DRO-evaluation tool (QDET)
+
+The QIBA-DRO-evaluation tool allows to compare the results from DCE-MRI analysis software applied to digital phantom data with the initial parameters.
+
+OVERVIEW
 ----------
 
 * Introduction
 * Organization of the source codes
 * Required modules
 * How to build the installer (for Windows)
-* Maintainer
-
-INTRODUCTION
-----------
-
-The QIBA-PDA-evaluation tool allows to compare the results from DCE-MRI analysis software applied to digital phantom data with the initial parameters.
 
 Organization of the source codes
 ----------
@@ -66,7 +65,3 @@ How to Build the installer (for Windows)
 to build.Two new folders are created: */built* and */dist*;
 
 * The Windows installer shall be found under the folder */dist*, named as **QIBA evaluate tool-0.1-win32.msi**.
-
-Maintainer
------------
-Tianbao Zhang, email: tianbao.zhang@yahoo.com
