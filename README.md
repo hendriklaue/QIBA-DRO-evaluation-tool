@@ -4,7 +4,7 @@ CONTENTS OF THIS FILE
 * Introduction
 * Organization of the source codes
 * Required modules
-* Installation
+* How to build the installer (for Windows)
 * Maintainer
 
 INTRODUCTION
@@ -52,7 +52,7 @@ Required packages or tools (all are in 32bit version)
 	
 * to export the results to Excel file, the tool **xlwt** is used: https://pypi.python.org/pypi/xlwt
 
-To Build installer (for Windows) 
+How to Build the installer (for Windows) 
 ----------
 
 * The installer for Windows is built with **cx_Freeze**: http://cx-freeze.sourceforge.net/
@@ -66,3 +66,7 @@ To Build installer (for Windows)
 to build.Two new folders are created: */built* and */dist*;
 
 * The Windows installer shall be found under the folder */dist*, named as **QIBA evaluate tool-0.1-win32.msi**.
+
+Maintainer
+-----------
+Tianbao Zhang, email: tianbao.zhang@yahoo.com
