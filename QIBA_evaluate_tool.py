@@ -410,7 +410,9 @@ class MainWindow(wx.Frame):
         for i in range(nrOfSubFigRows):
             for j in range(nrOfSubFigColumns):
                 subplot = self.figureImagePreview.add_subplot(nrOfSubFigRows, nrOfSubFigColumns, i * nrOfSubFigColumns + j + 1)
-                handler = subplot.imshow(dataList[i][j], cmap = colorMapList[i][j], interpolation='nearest')
+                lmin = numpy.nanmin(dataList[i][j])-0.01
+                lmax = numpy.nanmax(dataList[i][j])+0.01
+                handler = subplot.imshow(dataList[i][j], cmap = colorMapList[i][j], interpolation='nearest', vmin = lmin, vmax = lmax)
                 divider = make_axes_locatable(subplot.get_figure().gca()) # for tight up the color bar
                 cax = divider.append_axes("right", "5%", pad="3%")
                 subplot.get_figure().colorbar(handler, cax = cax).set_label(unitList[i][j]) # show color bar and the label
@@ -473,7 +475,7 @@ class MainWindow(wx.Frame):
             for j in range(nrOfSubFigColumns):
                 subPlot = self.figureScatter.add_subplot(nrOfSubFigRows, nrOfSubFigColumns, i * nrOfSubFigColumns + j + 1)
                 subPlot.scatter(refDataList[i][j], dataList[i][j], color = 'b', alpha = 1, label = 'calculated value')
-                subPlot.scatter(refDataList[i][j], refDataList[i][j], color = 'g', alpha = 1, label = 'reference value')
+                subPlot.scatter(refDataList[i][j], refDataList[i][j], color = 'r', alpha = 1, label = 'reference value')
                 subPlot.legend(loc = 'upper left')
                 subPlot.set_xlim(xLim[i])
                 subPlot.set_ylim(yLim[i])
