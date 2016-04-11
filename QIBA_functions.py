@@ -712,6 +712,21 @@ def CCC(calData, refData, nrR, nrC):
             temp[i].append(ccc)
     return temp
 
+def RMS(calData, nrR, nrC):
+    '''
+    Root mean square
+    '''
+    patchSize = 100
+    returnValue = [[]for i in range(nrR)]
+    for i in range(nrR):
+        for j in range(nrC):
+            temp = 0
+            for n in range(patchSize):
+                temp += calData[i][j][n]**2
+            returnValue[i].append(numpy.sqrt(numpy.sum(temp)/patchSize))
+    return returnValue
+
+
 def DefineNaN(inMap, mode, threshold, replaceVal):
     '''
     filter the map, to define the NaN in it.

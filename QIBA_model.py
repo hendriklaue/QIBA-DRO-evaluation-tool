@@ -133,6 +133,7 @@ class Model_KV():
         self.CalculateCorrelationForModel()
         self.CalculateCovarianceForModel()
         self.CalculateCCCForModel()
+        self.CalculateRMSForModel()
         self.CalculateMeanForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
@@ -150,6 +151,7 @@ class Model_KV():
         self.htmlT_TestResults()
         self.htmlU_TestResults()
         self.htmlCCCResults()
+        self.htmlRMSResults()
         self.htmlStatistics()
         self.htmlANOVAResults()
         self.htmlChiqResults()
@@ -419,6 +421,24 @@ class Model_KV():
         # put the text into html structure
         self.CCCResultInHTML = self.packInHtml(KtransCCCTable + '<br>' + VeCCCtTable)
 
+    def htmlRMSResults(self):
+        # write the calculated RMS results into HTML form
+
+        # Ktrans
+        KtransRMSTable = \
+                        '<h2>The root mean aquares of each patch in calculated anf reference Ktrans:</h2>'
+
+        KtransRMSTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rms'], [self.Ktrans_rms])
+
+        # Ve
+        VeRMStTable = \
+                        '<h2>The root mean squares of each patch in calculated anf reference Ve:</h2>'
+
+        VeRMStTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rms'], [self.Ve_rms])
+
+        # put the text into html structure
+        self.RMSResultInHTML = self.packInHtml(KtransRMSTable + '<br>' + VeRMStTable)
+
     def htmlChiq_TestResults(self):
         # write the chi-square-test results into HTML form
 
@@ -624,6 +644,11 @@ class Model_KV():
         # calculate the concordance covariance coefficients between the calculated parameters and the reference parameters
         self.Ktrans_ccc = QIBA_functions.CCC(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
         self.Ve_ccc = QIBA_functions.CCC(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
+
+    def CalculateRMSForModel(self):
+        # calculate the root mean squares of each the calculated parameters
+        self.Ktrans_rms = QIBA_functions.RMS(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ve_rms = QIBA_functions.RMS(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
 
     def CalculateMeanForModel(self):
         # call the mean calculation function

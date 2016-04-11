@@ -240,24 +240,27 @@ class MainWindow(wx.Frame):
         self.pageNaN = wx.Panel(self.noteBookRight)
         self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
         self.pageModelFitting = wx.Panel(self.noteBookRight)
+        self.pageRMS = wx.Panel(self.noteBookRight)
         self.pageCCC = wx.Panel(self.noteBookRight)
         self.pageT_Test = wx.Panel(self.noteBookRight)
         self.pageU_Test = wx.Panel(self.noteBookRight)
         self.pageChiq = wx.Panel(self.noteBookRight)
 
+        # create tabs in the notebook
         self.noteBookRight.AddPage(self.pageStart, 'Start')
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
         self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
         self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
         self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
-        self.noteBookRight.AddPage(self.pageNaN, "NaN Viewer")
         self.noteBookRight.AddPage(self.pageStatistics, "Statistics Viewer")
-        self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance And Correlation")
+        self.noteBookRight.AddPage(self.pageNaN, "NaN Viewer")
+        self.noteBookRight.AddPage(self.pageRMS, "Root Meam Square")
+        self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance and Correlation")
         self.noteBookRight.AddPage(self.pageCCC, "Concordance Covariance Coefficients")
-        self.noteBookRight.AddPage(self.pageModelFitting, "Model fitting")
-        self.noteBookRight.AddPage(self.pageT_Test, "t-test results Viewer")
-        self.noteBookRight.AddPage(self.pageU_Test, "U-test results Viewer")
-        self.noteBookRight.AddPage(self.pageChiq, "Chi-Square test results Viewer")
+        self.noteBookRight.AddPage(self.pageModelFitting, "Model Fitting")
+        self.noteBookRight.AddPage(self.pageT_Test, "t-test Results")
+        self.noteBookRight.AddPage(self.pageU_Test, "U-test Results")
+        self.noteBookRight.AddPage(self.pageChiq, "Chi-Square Test Results")
 
 
         # show the calculated images and error images
@@ -302,6 +305,12 @@ class MainWindow(wx.Frame):
         sizer.Add(self.NaNViewer, 1, wx.EXPAND)
         self.pageNaN.SetSizer(sizer)
 
+        # page RMS
+        self.RMSViewer = wx.html.HtmlWindow(self.pageRMS, -1)
+        sizer = wx.BoxSizer()
+        sizer.Add(self.RMSViewer, 1, wx.EXPAND)
+        self.pageRMS.SetSizer(sizer)
+
         # page covariance and correlation
         self.covCorrViewer = wx.html.HtmlWindow(self.pageCovarianceCorrelation, -1)
 
@@ -344,8 +353,6 @@ class MainWindow(wx.Frame):
         sizer.Add(self.ChiqViewer, 1, wx.EXPAND)
         self.pageChiq.SetSizer(sizer)
 
-
-
         # sizer for the right panel
         sizer = wx.BoxSizer()
         sizer.Add(self.noteBookRight, 1, wx.EXPAND)
@@ -356,7 +363,10 @@ class MainWindow(wx.Frame):
         pass
 
     def OnSwitchViewing(self, event):
-        # switch the viewing in scatter plot page
+        '''
+        switch the viewing in scatter plot page
+        in case the data is spared
+        '''
         self.SetStatusText("Rearranging the scatter plot...")
         self.SCATTER_SWITCH = not self.SCATTER_SWITCH
         self.buttonSwitch.Disable()
@@ -377,13 +387,46 @@ class MainWindow(wx.Frame):
         self.figureBoxPlot.clear()
         self.canvasBoxPlot.draw()
 
-        self.statisticsViewer.SetPage('')
-        self.NaNViewer.SetPage('')
-        self.covCorrViewer.SetPage('')
-        self.modelFittingViewer.SetPage('')
-        self.t_testViewer.SetPage('')
-        self.U_testViewer.SetPage('')
-        self.cccViewer.SetPage('')
+        # clear page by setting them to empty strings
+        try:
+            self.statisticsViewer.SetPage('')
+        except:
+            pass
+
+        try:
+            self.covCorrViewer.SetPage('')
+        except:
+            pass
+
+        try:
+            self.NaNViewer.SetPage('')
+        except:
+            pass
+
+        try:
+            self.RMSViewer.SetPage('')
+        except:
+            pass
+
+        try:
+            self.cccViewer.SetPage('')
+        except:
+            pass
+
+        try:
+            self.modelFittingViewer.SetPage('')
+        except:
+            pass
+
+        try:
+            self.t_testViewer.SetPage('')
+        except:
+            pass
+
+        try:
+            self.U_testViewer.SetPage('')
+        except:
+            pass        
 
         try:
             self.ChiqViewer.SetPage('')
@@ -727,6 +770,7 @@ class MainWindow_KV(MainWindow):
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
         self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
         self.cccViewer.SetPage(self.newModel.CCCResultInHTML)
+        self.RMSViewer.SetPage(self.newModel.RMSResultInHTML)
         self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
@@ -1435,6 +1479,7 @@ class MainWindow_KV(MainWindow):
         sheetMax = book.add_sheet('Maximum')
         sheetCov = book.add_sheet('Covariance')
         sheetCor = book.add_sheet('Correlation')
+        sheetRMS = book.add_sheet('RMS')
         sheetCCC = book.add_sheet('CCC')
         sheetFit = book.add_sheet('Model fitting')
         sheetT = book.add_sheet('T-test results')
@@ -1454,6 +1499,9 @@ class MainWindow_KV(MainWindow):
         QIBA_functions.WriteToExcelSheet_GKM_co(sheetCor, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.corr_KK,self.newModel.corr_KV,self.newModel.corr_VK,self.newModel.corr_VV], 1, self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_GKM_co(sheetCov, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.cov_KK,self.newModel.cov_KV,self.newModel.cov_VK,self.newModel.cov_VV], 1, self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetCCC, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_ccc, self.newModel.Ve_ccc], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+
+        QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetRMS, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_rms, self.newModel.Ve_rms], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
+
 
         QIBA_functions.WriteToExcelSheet_GKM_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_Ktrans, self.newModel.b_lin_Ktrans, self.newModel.r_squared_lin_K, self.newModel.a_log_Ktrans,self.newModel.b_log_Ktrans,self.newModel.a_lin_Ve, self.newModel.b_lin_Ve, self.newModel.r_squared_lin_V, self.newModel.a_log_Ve,self.newModel.b_log_Ve], 1, self.nrOfRow, self.nrOfColumn)
 
@@ -1520,6 +1568,8 @@ class MainWindow_KV(MainWindow):
         htmlContent += self.newModel.covCorrResultsInHtml
 
         htmlContent += self.newModel.CCCResultInHTML
+
+        htmlContent += self.newModel.RMSResultInHTML
 
         htmlContent += self.newModel.ModelFittingInHtml
 
