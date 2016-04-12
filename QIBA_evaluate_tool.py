@@ -234,6 +234,7 @@ class MainWindow(wx.Frame):
         self.pageScatter = wx.Panel(self.noteBookRight)
         # self.pageHistogram = wx.Panel(self.noteBookRight)
         self.pageHistogram = scrolled.ScrolledPanel(self.noteBookRight)
+        self.pageLoA = scrolled.ScrolledPanel(self.noteBookRight)
         # self.pageBoxPlot = wx.Panel(self.noteBookRight)
         self.pageBoxPlot = scrolled.ScrolledPanel(self.noteBookRight)
         self.pageStatistics = wx.Panel(self.noteBookRight)
@@ -249,12 +250,13 @@ class MainWindow(wx.Frame):
         # create tabs in the notebook
         self.noteBookRight.AddPage(self.pageStart, 'Start')
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
-        self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots Viewer")
-        self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots Viewer")
-        self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots Viewer")
-        self.noteBookRight.AddPage(self.pageStatistics, "Statistics Viewer")
+        self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots")
+        self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots")
+        self.noteBookRight.AddPage(self.pageLoA, "Bland-Altman Plots")
+        self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots")
+        self.noteBookRight.AddPage(self.pageStatistics, "Statistics")
         self.noteBookRight.AddPage(self.pageNaN, "NaN Viewer")
-        self.noteBookRight.AddPage(self.pageRMS, "Root Meam Square")
+        self.noteBookRight.AddPage(self.pageRMS, "Root Mean Square")
         self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance and Correlation")
         self.noteBookRight.AddPage(self.pageCCC, "Concordance Covariance Coefficients")
         self.noteBookRight.AddPage(self.pageModelFitting, "Model Fitting")
@@ -284,6 +286,9 @@ class MainWindow(wx.Frame):
 
         # page histogram
         self.SetupPage_Histogram()
+
+        # page Bland-Altman plots
+        self.SetupPage_LoA()
 
         # page box plots
         self.SetupPage_BoxPlot()
@@ -383,6 +388,7 @@ class MainWindow(wx.Frame):
         self.canvasScatter.draw()
 
         self.ClearPage_Histogram()
+        self.ClearPage_LoA()
 
         self.figureBoxPlot.clear()
         self.canvasBoxPlot.draw()
@@ -783,6 +789,7 @@ class MainWindow_KV(MainWindow):
         self.DrawMaps()
         self.DrawScatter()
         self.DrawHistograms()
+        self.DrawBlandAltmanPlots()
         self.DrawBoxPlot()
 
     def SetupPageANOVA(self):
@@ -971,6 +978,30 @@ class MainWindow_KV(MainWindow):
         self.figureHist_Ve.clear()
         self.canvasHist_Ve.draw()
 
+    def SetupPage_LoA(self):
+        # setup the LoA page
+        self.figureLoA_Ktrans = Figure()
+        self.canvasLoA_Ktrans = FigureCanvas(self.pageLoA, -1, self.figureLoA_Ktrans)
+
+        self.figureLoA_Ve = Figure()
+        self.canvasLoA_Ve = FigureCanvas(self.pageLoA, -1, self.figureLoA_Ve)
+
+        self.verticalLineLoA = wx.StaticLine(self.pageLoA, -1,
+                                              style=wx.LI_VERTICAL)  # vertical line to separate the two subplots
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(self.canvasLoA_Ktrans, 35, wx.EXPAND)
+        sizer.Add(self.verticalLineLoA, 1, wx.EXPAND)
+        sizer.Add(self.canvasLoA_Ve, 35, wx.EXPAND)
+        self.pageLoA.SetSizer(sizer)
+
+    def ClearPage_LoA(self):
+        # clear the LoA page
+        self.figureLoA_Ktrans.clear()
+        self.canvasLoA_Ktrans.draw()
+        self.figureLoA_Ve.clear()
+        self.canvasLoA_Ve.draw()
+
     def GenerateModel(self):
         # generate the model for evaluation
         self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V, [self.nrOfRow, self.nrOfColumn])
@@ -1148,7 +1179,7 @@ class MainWindow_KV(MainWindow):
                 subPlot_K = self.figureHist_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
                 processedData_Ktrans = QIBA_functions.DealNaN(self.newModel.Ktrans_cal[i][j])[0]
                 processedData_Ktrans = QIBA_functions.DropNaN(processedData_Ktrans)
-                if len(processedData_Ktrans )==0:
+                if len(processedData_Ktrans)==0:
                     subPlot_K.plot([])
                     subPlot_K.xaxis.set_ticks([])
                     subPlot_K.yaxis.set_ticks([])
@@ -1277,6 +1308,135 @@ class MainWindow_KV(MainWindow):
             self.canvasHist_Ve.PopupMenu(self.popmenu_hist_V, event.GetPosition())
         else:
             pass
+
+    def DrawBlandAltmanPlots(self):
+        '''
+        draw Bland-Altman plots of imported calculated Ktrans and Ve maps, for viewing limits of agreement.
+        '''
+
+        pixelCountInPatch = self.newModel.patchLen ** 2
+
+        self.figureLoA_Ktrans.suptitle('The Bland-Altman plots between the calculated and reference Ktrans' )  # fontsize = 18)
+        self.figureLoA_Ve.suptitle('The Bland-Altman plots between the calculated and reference Ve')  # , fontsize = 18)
+
+        for i in range(self.newModel.nrOfRows):
+            for j in range(self.newModel.nrOfColumns):
+                subPlot_K = self.figureLoA_Ktrans.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
+
+                diff = numpy.asarray(self.newModel.Ktrans_cal[i][j]) - numpy.asarray(self.newModel.Ktrans_ref[i][j])
+                mean = (numpy.asarray(self.newModel.Ktrans_cal[i][j]) + numpy.asarray(self.newModel.Ktrans_ref[i][j]))/2
+                md = numpy.mean(diff)
+                sd = numpy.std(diff, axis=0)
+
+                # subPlot_K.scatter(self.newModel.Ktrans_ref[i][j], diff, color='b')
+                subPlot_K.scatter(mean, diff, color='b', alpha=0.2)
+
+                refPatch_K = QIBA_functions.formatFloatTo2DigitsString(numpy.median(mean))
+
+                subPlot_K.set_xticks([float(numpy.median(mean))])
+                subPlot_K.set_xticklabels([refPatch_K])
+
+                subPlot_K.axhline(float(md), color='g', linestyle='solid',
+                                  linewidth=1)  # draw a horizontal line at the mean of difference
+                subPlot_K.axhline(float(md + 1.96*sd), color='r', linestyle='dashed',
+                                  linewidth=1)  # draw a horizontal line for limits of agreement
+                subPlot_K.axhline(float(md - 1.96 * sd), color='r', linestyle='dashed',
+                                  linewidth=1)  # draw a horizontal line for limits of agreement
+                # subPlot_K.set_ylim([0, pixelCountInPatch])
+                # subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size='x-small')  # parameters: location_x, location_y, text, size
+                if i == 0:
+                    subPlot_K.set_xlabel(self.newModel.headersHorizontal[j])
+                    subPlot_K.xaxis.set_label_position('top')
+                if j == 0:
+                    subPlot_K.set_ylabel(self.newModel.headersVertical[i])
+
+                # draw for the calculated Ve
+                subPlot_V = self.figureLoA_Ve.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
+                mean = (numpy.asarray(self.newModel.Ve_cal[i][j]) + numpy.asarray(self.newModel.Ve_ref[i][j])) / 2
+                diff = numpy.asarray(self.newModel.Ve_cal[i][j]) - numpy.asarray(self.newModel.Ve_ref[i][j])
+                md = numpy.mean(diff)
+                sd = numpy.std(diff, axis=0)
+
+                subPlot_V.scatter(mean, diff, color='b', alpha=0.2)
+
+                refPatch_V = QIBA_functions.formatFloatTo2DigitsString(numpy.median(mean))
+
+                subPlot_V.set_xticks([float(numpy.median(mean))])
+
+                subPlot_V.set_xticklabels([refPatch_V])
+                subPlot_V.axhline(float(md), color='g', linestyle='solid',
+                                  linewidth=1)  # draw a horizontal line at the mean of difference
+                subPlot_V.axhline(float(md + 1.96*sd), color='r', linestyle='dashed',
+                                  linewidth=1)  # draw a horizontal line for limits of agreement
+                subPlot_V.axhline(float(md - 1.96 * sd), color='r', linestyle='dashed',
+                                  linewidth=1)  # draw a horizontal line for limits of agreement
+                # subPlot_K.set_ylim([0, pixelCountInPatch])
+                # subPlot_K.text(float(meanPatch_K) + 0.01 * float(meanPatch_K), 0.9 * pixelCountInPatch, meanPatch_K, size='x-small')  # parameters: location_x, location_y, text, size
+                if i == 0:
+                    subPlot_V.set_xlabel(self.newModel.headersHorizontal[j])
+                    subPlot_V.xaxis.set_label_position('top')
+                if j == 0:
+                    subPlot_V.set_ylabel(self.newModel.headersVertical[i])
+
+        # setup the toolbar
+        self.toolbar_hist_K = NavigationToolbar(self.canvasHist_Ktrans)
+        self.toolbar_hist_K.Hide()
+        self.toolbar_hist_V = NavigationToolbar(self.canvasHist_Ve)
+        self.toolbar_hist_V.Hide()
+
+        '''
+        # right click
+        self.figureHist_Ktrans.canvas.mpl_connect('axes_enter_event', self.enter_axes)
+        self.figureHist_Ktrans.canvas.mpl_connect('axes_leave_event', self.leave_axes)
+        self.figureHist_Ve.canvas.mpl_connect('axes_enter_event', self.enter_axes)
+        self.figureHist_Ve.canvas.mpl_connect('axes_leave_event', self.leave_axes)
+        wx.EVT_RIGHT_DOWN(self.canvasHist_Ktrans, self.rightDown_hist_K)
+        wx.EVT_RIGHT_DOWN(self.canvasHist_Ve, self.rightDown_hist_V)
+
+        self.popmenu_hist_K = wx.Menu()
+        self.ID_POPUP_HITS_PAN_K = wx.NewId()
+        self.ID_POPUP_HITS_ZOOM_K = wx.NewId()
+        self.ID_POPUP_HITS_SAVE_K = wx.NewId()
+
+        OnHist_pan_K = wx.MenuItem(self.popmenu_hist_K, self.ID_POPUP_HITS_PAN_K, 'Pan')
+        OnHist_zoom_K = wx.MenuItem(self.popmenu_hist_K, self.ID_POPUP_HITS_ZOOM_K, 'Zooom')
+        OnHist_save_K = wx.MenuItem(self.popmenu_hist_K, self.ID_POPUP_HITS_SAVE_K, 'Save')
+        self.popmenu_hist_K.AppendItem(OnHist_pan_K)
+        self.popmenu_hist_K.AppendItem(OnHist_zoom_K)
+        self.popmenu_hist_K.AppendItem(OnHist_save_K)
+        wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_PAN_K, self.toolbar_hist_K.pan)
+        wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_ZOOM_K, self.toolbar_hist_K.zoom)
+        wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_SAVE_K, self.toolbar_hist_K.save_figure)
+
+        self.popmenu_hist_V = wx.Menu()
+        self.ID_POPUP_HITS_PAN_V = wx.NewId()
+        self.ID_POPUP_HITS_ZOOM_V = wx.NewId()
+        self.ID_POPUP_HITS_SAVE_V = wx.NewId()
+
+        OnHist_pan = wx.MenuItem(self.popmenu_hist_V, self.ID_POPUP_HITS_PAN_V, 'Pan')
+        OnHist_zoom = wx.MenuItem(self.popmenu_hist_V, self.ID_POPUP_HITS_ZOOM_V, 'Zooom')
+        OnHist_save = wx.MenuItem(self.popmenu_hist_V, self.ID_POPUP_HITS_SAVE_V, 'Save')
+        self.popmenu_hist_V.AppendItem(OnHist_pan)
+        self.popmenu_hist_V.AppendItem(OnHist_zoom)
+        self.popmenu_hist_V.AppendItem(OnHist_save)
+        wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_PAN_V, self.toolbar_hist_V.pan)
+        wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_ZOOM_V, self.toolbar_hist_V.zoom)
+        wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_SAVE_V, self.toolbar_hist_V.save_figure)
+
+        # double click
+        wx.EVT_LEFT_DCLICK(self.canvasHist_Ktrans, self.toolbar_hist_K.home)
+        wx.EVT_LEFT_DCLICK(self.canvasHist_Ve, self.toolbar_hist_V.home)
+        '''
+
+
+        self.figureLoA_Ve.tight_layout()
+        self.figureLoA_Ktrans.tight_layout()
+
+        self.figureLoA_Ktrans.subplots_adjust(top=0.94, right=0.95)
+        self.figureLoA_Ve.subplots_adjust(top=0.94, right=0.95)
+
+        self.canvasLoA_Ktrans.draw()
+        self.canvasLoA_Ve.draw()
 
     def DrawBoxPlot(self):
         '''
@@ -1462,6 +1622,18 @@ class MainWindow_KV(MainWindow):
             return
 
         try:
+            self.figureHist_Ktrans.savefig(os.path.join(saveDir, 'LoA_K.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
+
+        try:
+            self.figureHist_Ve.savefig(os.path.join(saveDir, 'LoA_V.png'))
+        except:
+            self.SetStatusText('Please close related files and try to export again.')
+            return
+
+        try:
             self.figureBoxPlot.savefig(os.path.join(saveDir, 'boxplot.png'))
         except:
             self.SetStatusText('Please close related files and try to export again.')
@@ -1529,6 +1701,8 @@ class MainWindow_KV(MainWindow):
         self.figureScatter.savefig(os.path.join(os.getcwd(), 'temp', 'figureScatters.png'))
         self.figureHist_Ktrans.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_K.png'))
         self.figureHist_Ve.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_V.png'))
+        self.figureHist_Ktrans.savefig(os.path.join(os.getcwd(), 'temp', 'figureLoA_K.png'))
+        self.figureHist_Ve.savefig(os.path.join(os.getcwd(), 'temp', 'figureLoA_V.png'))
         self.figureBoxPlot.savefig(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
 
         htmlContent += self.newModel.packInHtml('<h1 align="center">QIBA DRO Evaluation Tool Results Report<br>(Ktrans-Ve)</h1>')
