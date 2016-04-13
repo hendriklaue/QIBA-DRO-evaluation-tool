@@ -241,6 +241,7 @@ class MainWindow(wx.Frame):
         self.pageNaN = wx.Panel(self.noteBookRight)
         self.pageCovarianceCorrelation = wx.Panel(self.noteBookRight)
         self.pageModelFitting = wx.Panel(self.noteBookRight)
+        self.pageTDI = wx.Panel(self.noteBookRight)
         self.pageRMS = wx.Panel(self.noteBookRight)
         self.pageCCC = wx.Panel(self.noteBookRight)
         self.pageT_Test = wx.Panel(self.noteBookRight)
@@ -260,6 +261,7 @@ class MainWindow(wx.Frame):
         self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance and Correlation")
         self.noteBookRight.AddPage(self.pageCCC, "Concordance Covariance Coefficients")
         self.noteBookRight.AddPage(self.pageModelFitting, "Model Fitting")
+        self.noteBookRight.AddPage(self.pageTDI, "TDI")
         self.noteBookRight.AddPage(self.pageT_Test, "t-test Results")
         self.noteBookRight.AddPage(self.pageU_Test, "U-test Results")
         self.noteBookRight.AddPage(self.pageChiq, "Chi-Square Test Results")
@@ -336,6 +338,13 @@ class MainWindow(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(self.modelFittingViewer, 1, wx.EXPAND)
         self.pageModelFitting.SetSizer(sizer)
+
+        # total deviation index
+        self.TDIViewer = wx.html.HtmlWindow(self.pageTDI, -1)
+
+        sizer = wx.BoxSizer()
+        sizer.Add(self.TDIViewer, 1, wx.EXPAND)
+        self.pageTDI.SetSizer(sizer)
 
         # page t-test
         self.t_testViewer = wx.html.HtmlWindow(self.pageT_Test, -1)
@@ -421,6 +430,11 @@ class MainWindow(wx.Frame):
 
         try:
             self.modelFittingViewer.SetPage('')
+        except:
+            pass
+
+        try:
+            self.TDIViewer.SetPage('')
         except:
             pass
 
@@ -773,10 +787,12 @@ class MainWindow_KV(MainWindow):
     def ShowResults(self):
         # show the results in the main window
         self.NaNViewer.SetPage(self.newModel.NaNPercentageInHTML)
+
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
         self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
         self.cccViewer.SetPage(self.newModel.CCCResultInHTML)
         self.RMSViewer.SetPage(self.newModel.RMSResultInHTML)
+        self.TDIViewer.SetPage(self.newModel.TDIResultInHTML)
         self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
@@ -1744,6 +1760,8 @@ class MainWindow_KV(MainWindow):
         htmlContent += self.newModel.CCCResultInHTML
 
         htmlContent += self.newModel.RMSResultInHTML
+
+        htmlContent += self.newModel.TDIResultInHTML
 
         htmlContent += self.newModel.ModelFittingInHtml
 

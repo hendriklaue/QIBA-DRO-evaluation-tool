@@ -134,6 +134,7 @@ class Model_KV():
         self.CalculateCovarianceForModel()
         self.CalculateCCCForModel()
         self.CalculateRMSForModel()
+        self.CalculateTDIForModel()  # based on the results from RMS and linear model
         self.CalculateMeanForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
@@ -152,6 +153,7 @@ class Model_KV():
         self.htmlU_TestResults()
         self.htmlCCCResults()
         self.htmlRMSResults()
+        self.htmlTDIResults()
         self.htmlStatistics()
         self.htmlANOVAResults()
         self.htmlChiqResults()
@@ -426,18 +428,38 @@ class Model_KV():
 
         # Ktrans
         KtransRMSTable = \
-                        '<h2>The root mean aquares of each patch in calculated anf reference Ktrans:</h2>'
+                        '<h2>The root mean squares of each patch in calculated anf reference Ktrans:</h2>'
 
         KtransRMSTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rms'], [self.Ktrans_rms])
 
         # Ve
-        VeRMStTable = \
+        VeRMSTable = \
                         '<h2>The root mean squares of each patch in calculated anf reference Ve:</h2>'
 
-        VeRMStTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rms'], [self.Ve_rms])
+        VeRMSTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rms'], [self.Ve_rms])
 
         # put the text into html structure
-        self.RMSResultInHTML = self.packInHtml(KtransRMSTable + '<br>' + VeRMStTable)
+        self.RMSResultInHTML = self.packInHtml(KtransRMSTable + '<br>' + VeRMSTable)
+
+    def htmlTDIResults(self):
+        # write the TDI results into HTML form
+
+        # Ktrans
+        KtransTDITable = \
+            '<h2>The total deviation index of each patch in calculated anf reference Ktrans:</h2>'
+
+        KtransTDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['TDI'],
+                                                   [self.Ktrans_TDI])
+
+        # Ve
+        VeTDITable = \
+            '<h2>The total deviation index of each patch in calculated anf reference Ve:</h2>'
+
+        VeTDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['TDI'],
+                                                [self.Ve_TDI])
+
+        # put the text into html structure
+        self.TDIResultInHTML = self.packInHtml(KtransTDITable + '<br>' + VeTDITable)
 
     def htmlChiq_TestResults(self):
         # write the chi-square-test results into HTML form
@@ -649,6 +671,11 @@ class Model_KV():
         # calculate the root mean squares of each the calculated parameters
         self.Ktrans_rms = QIBA_functions.RMS(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
         self.Ve_rms = QIBA_functions.RMS(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+
+    def CalculateTDIForModel(self):
+        # calculate the root mean squares of each the calculated parameters
+        self.Ktrans_TDI = QIBA_functions.TDI(self.Ktrans_rms, self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
+        self.Ve_TDI = QIBA_functions.TDI(self.Ve_rms, self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
 
     def CalculateMeanForModel(self):
         # call the mean calculation function
