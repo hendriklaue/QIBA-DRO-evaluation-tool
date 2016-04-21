@@ -728,30 +728,22 @@ def RMS(calData, nrR, nrC):
             returnValue[i].append(numpy.sqrt(numpy.sum(temp)/patchSize))
     return returnValue
 
-def TDI(rms, calValue, refValue, nrR, nrC):
+def TDI(calValue, refValue, nrR, nrC):
     '''
     The approximation for the TDI, described in Lin LI: Total deviation index for measuring individual agreement with applications in laboratory performance and bioequivalence. Statistics in Medicine. 2000, 19: 255-270. 10.1002/(SICI)1097-0258(20000130)19:2<255::AID-SIM293>3.0.CO;2-8.
 
-    :param rms: root mean square
     :param calValue: calculated value
     :param refValue: reference value
     :param nrR: number of rows in the map
     :param nrC: number of columns in the map
     :return: the map of TDI with the dimension of nrR*nrC
     '''
-    patchSize = 100
     returnValue = [[]for i in range(nrR)]
     for i in range(nrR):
         for j in range(nrC):
-            temp = 0
             x = numpy.asarray(calValue[i][j])
             y = numpy.asarray(refValue[i][j])
-            kapa = 0.1*refValue[i][j][0]  # set kapa to be 10% of the reference value
-            se = rms[i][j]
-            for n in range(patchSize):
-                # not sure about the calculation here, need to be confirmed
-                temp += norm.cdf((kapa-(y[n]-x[n]))/se) - norm.cdf((kapa-(y[n]-x[n]))/se)
-            returnValue[i].append(temp/patchSize)
+            returnValue[i].append(1.96 * (numpy.var(x - y))**0.5)
     return returnValue
 
 

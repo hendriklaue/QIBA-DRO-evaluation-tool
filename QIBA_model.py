@@ -674,8 +674,8 @@ class Model_KV():
 
     def CalculateTDIForModel(self):
         # calculate the root mean squares of each the calculated parameters
-        self.Ktrans_TDI = QIBA_functions.TDI(self.Ktrans_rms, self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
-        self.Ve_TDI = QIBA_functions.TDI(self.Ve_rms, self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_TDI = QIBA_functions.TDI(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
+        self.Ve_TDI = QIBA_functions.TDI(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
 
     def CalculateMeanForModel(self):
         # call the mean calculation function

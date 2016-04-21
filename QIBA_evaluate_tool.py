@@ -249,22 +249,22 @@ class MainWindow(wx.Frame):
         self.pageChiq = wx.Panel(self.noteBookRight)
 
         # create tabs in the notebook
-        self.noteBookRight.AddPage(self.pageStart, 'Start')
+        self.noteBookRight.AddPage(self.pageStart, 'Start Page')
         self.noteBookRight.AddPage(self.pageImagePreview, "Image Viewer")
         self.noteBookRight.AddPage(self.pageScatter, "Scatter Plots")
-        self.noteBookRight.AddPage(self.pageHistogram, "Histograms Plots")
+        self.noteBookRight.AddPage(self.pageHistogram, "Histograms")
         self.noteBookRight.AddPage(self.pageLoA, "Bland-Altman Plots")
         self.noteBookRight.AddPage(self.pageBoxPlot, "Box Plots")
         self.noteBookRight.AddPage(self.pageStatistics, "Statistics")
         self.noteBookRight.AddPage(self.pageNaN, "NaN Viewer")
-        self.noteBookRight.AddPage(self.pageRMS, "Root Mean Square")
+        self.noteBookRight.AddPage(self.pageRMS, "RMS")
         self.noteBookRight.AddPage(self.pageCovarianceCorrelation, "Covariance and Correlation")
-        self.noteBookRight.AddPage(self.pageCCC, "Concordance Covariance Coefficients")
+        self.noteBookRight.AddPage(self.pageCCC, "CCC" ) # "Concordance Covariance Coefficients"
         self.noteBookRight.AddPage(self.pageModelFitting, "Model Fitting")
         self.noteBookRight.AddPage(self.pageTDI, "TDI")
-        self.noteBookRight.AddPage(self.pageT_Test, "t-test Results")
-        self.noteBookRight.AddPage(self.pageU_Test, "U-test Results")
-        self.noteBookRight.AddPage(self.pageChiq, "Chi-Square Test Results")
+        self.noteBookRight.AddPage(self.pageT_Test, "t-test")
+        self.noteBookRight.AddPage(self.pageU_Test, "U-test")
+        self.noteBookRight.AddPage(self.pageChiq, "Chi-Square Test")
 
 
         # show the calculated images and error images
@@ -785,35 +785,53 @@ class MainWindow_KV(MainWindow):
         self.canvasBoxPlot = FigureCanvas(self.pageBoxPlot,-1, self.figureBoxPlot)
 
     def ShowResults(self):
-        # show the results in the main window
-        self.NaNViewer.SetPage(self.newModel.NaNPercentageInHTML)
 
+        # draw the figures
+        self.SetStatusText("Drawing image maps...")
+        self.DrawMaps()
+        self.SetStatusText("Drawing scatter plots...")
+        self.DrawScatter()
+        self.SetStatusText("Drawing histograms...")
+        self.DrawHistograms()
+        self.SetStatusText("Drawing Bland-Altman plots...")
+        self.DrawBlandAltmanPlots()
+        self.SetStatusText("Drawing box plots...")
+        self.DrawBoxPlot()
+
+        # show the results in the main window
+        self.SetStatusText("Wrting on NaN viewer page...")
+        self.NaNViewer.SetPage(self.newModel.NaNPercentageInHTML)
+        self.SetStatusText("Writing on status viewer page...")
         self.statisticsViewer.SetPage(self.newModel.GetStatisticsInHTML())
+        self.SetStatusText("Writing on covariance correlation viewer page...")
         self.covCorrViewer.SetPage(self.newModel.GetCovarianceCorrelationInHTML())
+        self.SetStatusText("Writing on CCC viewer page...")
         self.cccViewer.SetPage(self.newModel.CCCResultInHTML)
+        self.SetStatusText("Writing on RMS viewer page... ")
         self.RMSViewer.SetPage(self.newModel.RMSResultInHTML)
+        self.SetStatusText("Writing on TDI viewer page...")
         self.TDIViewer.SetPage(self.newModel.TDIResultInHTML)
+        self.SetStatusText("Writing on model fitting page...")
         self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
+        self.SetStatusText("Writing on t-test results page...")
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
+        self.SetStatusText("Writing on U-test results page...")
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
+        self.SetStatusText("Writing on ANOVA viewer page...")
         self.ANOVAViewer.SetPage(self.newModel.GetANOVAResultsInHTML())
+        self.SetStatusText("Writing on Chi-square test results page...")
         self.ChiqViewer.SetPage(self.newModel.Chiq_testResultInHTML)
 
         self.IN_AXES = False
 
-        # draw the figures
-        self.DrawMaps()
-        self.DrawScatter()
-        self.DrawHistograms()
-        self.DrawBlandAltmanPlots()
-        self.DrawBoxPlot()
+
 
     def SetupPageANOVA(self):
         '''
         setup page of ANOVA
         '''
         self.pageANOVA = wx.Panel(self.noteBookRight)
-        self.noteBookRight.AddPage(self.pageANOVA, "ANOVA results Viewer")
+        self.noteBookRight.AddPage(self.pageANOVA, "ANOVA Results")
         self.ANOVAViewer = wx.html.HtmlWindow(self.pageANOVA, -1)
 
         sizer = wx.BoxSizer()
