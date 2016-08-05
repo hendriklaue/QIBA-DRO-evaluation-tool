@@ -1,12 +1,13 @@
 # this package contains the models to be evaluated, with respect to the parameter of Ktrans-Ve or T1.
+import os
 import QIBA_functions
-import numpy
+import math, numpy
 
 class Model_KV():
     '''
     the class for Ktrans-Ve model.
     '''
-    def __init__(self, path_ref_K, path_ref_V, path_cal_K, path_cal_V, dimension):
+    def __init__(self, path_ref_K, path_ref_V, path_cal_K, path_cal_V, dimension, allowable_total_error, mask):
         # initializes the class
         self.path_ref_K = path_ref_K
         self.path_ref_V = path_ref_V
@@ -19,11 +20,28 @@ class Model_KV():
         self.METHOD = '' # for patch value decision
 
         # the raw image data as pixel flow
+        # This is needed for some calculations
         self.Ktrans_ref = []
         self.Ve_ref = []
         self.Ktrans_cal = []
         self.Ve_cal = []
 
+        # the raw image data, with NaNs and pixel values of 0 removed
+        # This is needed for other calculations
+        self.Ktrans_ref_no_bad_pixels = []
+        self.Ve_ref_no_bad_pixels = []
+        self.Ktrans_cal_no_bad_pixels = []
+        self.Ve_cal_no_bad_pixels = []
+        
+        # list of the number of NaN pixels per 10x10 patch
+        # (Reported as a percent)
+        self.Ktrans_NaNs_per_patch = []
+        self.Ve_NaNs_per_patch = []
+        
+        # the number of NaN pixels
+        self.Ktrans_nan_pixel_count = 0
+        self.Ve_nan_pixel_count = 0
+        
         # the image data in row, for showing the preview of the images
         self.Ktrans_ref_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
         self.Ve_ref_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
@@ -119,22 +137,48 @@ class Model_KV():
         self.ImportFiles()
         self.PreprocessFilesForGKM()
 
+        # The allowable total error - used to calculate Sigma metric
+        self.allowable_total_error = allowable_total_error
+        
+        # The mask, which determines if a pixel is evaluated
+        # A mask value of 255 means that the pixel will be evaluated.
+        # Any other mask value means that the pixel will not be evaluated.
+        # In the future, pixel values other than 0 and 255 can be used
+        # to create a "weighted" mask.
+        self.mask = mask
+        
     def Evaluate(self):
         # evaluation
-
+        
+        #Reformat the mask so that it can be used with the i,j,k coordinate system
+        self.Ktrans_mask_reformatted = self.reformatMask(self.mask, self.Ktrans_ref)
+        self.Ve_mask_reformatted = self.reformatMask(self.mask, self.Ve_ref)
+        
         # pre-process for the imported files
         self.CalculateErrorForModel()
         self.EstimatePatchForModel('MEAN')
         self.PrepareHeaders()
 
+        #Create a list of NaN pixels per 10x10 patch
+        self.Ktrans_NaNs_per_patch = self.countNaNsForEachPatch(self.Ktrans_cal)
+        self.Ve_NaNs_per_patch = self.countNaNsForEachPatch(self.Ve_cal)
+        
+        #Remove NaNs and pixel values of 0
+        self.Ktrans_ref_no_bad_pixels, self.Ktrans_cal_no_bad_pixels, self.Ktrans_mask_no_bad_pixels, self.Ktrans_nan_pixel_count = self.removeInvalidPixels(self.Ktrans_ref, self.Ktrans_cal, self.mask)
+        self.Ve_ref_no_bad_pixels, self.Ve_cal_no_bad_pixels, self.Ve_mask_no_bad_pixels, self.Ve_nan_pixel_count = self.removeInvalidPixels(self.Ve_ref, self.Ve_cal, self.mask)
+        #print(str(self.Ktrans_nan_pixel_count) + " NaN pixel(s) found in Ktrans") #for testing
+        #print(str(self.Ve_nan_pixel_count) + " NaN pixel(s) found in Ve") #for testing
+        
         # evaluation operations
         self.FittingLinearModelForModel()
         self.FittingLogarithmicModelForModel()
         self.CalculateCorrelationForModel()
         self.CalculateCovarianceForModel()
+        self.CalculateRMSDForModel()
         self.CalculateCCCForModel()
-        self.CalculateRMSForModel()
-        self.CalculateTDIForModel()  # based on the results from RMS and linear model
+        self.CalculateTDIForModel()
+        #self.CalculateLOAForModel()
+        self.CalculateSigmaMetricForModel()
         self.CalculateMeanForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
@@ -151,13 +195,143 @@ class Model_KV():
         self.htmlModelFitting()
         self.htmlT_TestResults()
         self.htmlU_TestResults()
+        self.htmlRMSDResults()
         self.htmlCCCResults()
-        self.htmlRMSResults()
         self.htmlTDIResults()
+        #self.htmlLOAResults()
+        self.htmlSigmaMetricResults()
         self.htmlStatistics()
         self.htmlANOVAResults()
         self.htmlChiqResults()
 
+    def countNaNsForEachPatch(self, data_list_cal):
+        '''Count the number of NaNs in each 10x10 patch. Return a 3-dimensional list with the number of NaNs,
+        to be used by the htmlNaN function instead of the original
+        self.Ktrans_NaN_percentage and self.Ve_NaN_percentage inputs.
+        
+        The values are reported as a percent, because that is how the htmlNaN function expects them.
+        
+        This function *does not* remove NaNs and should be called before removeInvalidPixels
+        '''
+        i_dimension = len(data_list_cal) #Should be 6
+        j_dimension = len(data_list_cal[0]) #Should be 5
+        k_dimension = len(data_list_cal[0][0]) #Should be 100
+        temp_list = list()
+        nan_pixel_count = 0
+        
+        for i in range(i_dimension):
+            temp_list_2 = list()
+            for j in range(j_dimension):
+                nan_pixel_count = 0
+                #temp_list_3 = list()
+                for k in range(k_dimension):
+                    pixel_cal = data_list_cal[i][j][k]
+                    if math.isnan(pixel_cal):
+                        nan_pixel_count = nan_pixel_count + 1
+                temp_list_2.append(float(nan_pixel_count) / float(k_dimension))
+            temp_list.append(temp_list_2)
+        #print("NaN Pixel Counts:") #for testing
+        #print(temp_list) #for testing
+        return temp_list
+    
+    def reformatMask(self, input_mask, reference_data_list):
+        """Loaded masks by default have an (x,y) coordinate system where
+        x=number of pixels in x-direction and
+        y=number of pixels in y-direction
+        
+        This function reformats a mask so that it can be used with the i,j,k 
+        coordinate system where i=number of patches in the x-direction,
+        j=number of patches in the y-direction, and 
+        k=number of pixels in each patch
+        
+        The reference_data_list is used to determine the dimensions of
+        the reformatted mask.
+        
+        This function does not remove any pixels. The removeInvalidPixels
+        function does this, as well as reformats a mask
+        """
+        i_dimension = len(reference_data_list) #Should be 6
+        j_dimension = len(reference_data_list[0]) #Should be 5
+        k_dimension = len(reference_data_list[0][0]) #Should be 100
+        #print("i_dimension="+str(i_dimension)+", j_dimension="+str(j_dimension)+", k_dimension="+str(k_dimension)) #for debugging
+        temp_list_mask = []
+        
+        for i in range(i_dimension):
+            temp_list_mask_2 = []
+            for j in range(j_dimension):
+                temp_list_mask_3 = []
+                for k in range(k_dimension):
+                    
+                    # Convert the (i,j,k) coordinate used by the calculated
+                    # and reference data to an (x,y) coordinate for the mask
+                    mask_x_coord = (k%10)+(i*10)
+                    mask_y_coord = (k/10)+(j*10)
+                    #print("mask_x_coord="+str(mask_x_coord)+", mask_y_coord="+str(mask_y_coord)) #for debugging
+                    pixel_mask = input_mask[mask_x_coord][mask_y_coord]
+                    temp_list_mask_3.append(pixel_mask)
+                temp_list_mask_2.append(temp_list_mask_3)
+            temp_list_mask.append(temp_list_mask_2)
+        return temp_list_mask
+    
+    def removeInvalidPixels(self, data_list_ref, data_list_cal, mask):
+        #To do: Count the number of NaN pixels. Count the number of out-of-range pixels.
+        i_dimension = len(data_list_cal) #Should be 6
+        j_dimension = len(data_list_cal[0]) #Should be 5
+        k_dimension = len(data_list_cal[0][0]) #Should be 100
+        temp_list_cal = []
+        temp_list_ref = []
+        temp_list_mask = []
+        nan_pixel_count = 0
+        
+        #print("i_dimension="+str(i_dimension)+", j_dimension="+str(j_dimension)+", k_dimension="+str(k_dimension)) #for testing
+        for i in range(i_dimension):
+            temp_list_cal_2 = []
+            temp_list_ref_2 = []
+            temp_list_mask_2 = []
+            for j in range(j_dimension):
+                temp_list_cal_3 = []
+                temp_list_ref_3 = []
+                temp_list_mask_3 = []
+                for k in range(k_dimension):
+                    pixel_cal = data_list_cal[i][j][k]
+                    pixel_ref = data_list_ref[i][j][k]
+                    
+                    # Convert the (i,j,k) coordinate for cal and ref values
+                    # to an (x,y) coordinate for the mask
+                    mask_x_coord = (k%10)+(i*10)
+                    mask_y_coord = (k/10)+(j*10)
+                    pixel_mask = mask[mask_x_coord][mask_y_coord]
+                    #print("("+str(i)+","+str(j)+","+str(k)+") = ("+str(mask_x_coord)+","+str(mask_y_coord)+")") #for testing
+                    
+                    if not math.isnan(pixel_cal) and pixel_cal != 0:
+                        #print("pixel_cal="+str(pixel_cal)) #for testing
+                        temp_list_cal_3.append(pixel_cal)
+                        temp_list_ref_3.append(pixel_ref)
+                        temp_list_mask_3.append(pixel_mask)
+                    elif math.isnan(pixel_cal):
+                        #print("NaN at ("+str(i)+","+str(j)+","+str(k)+")")
+                        nan_pixel_count = nan_pixel_count + 1
+                    elif pixel_cal == 0:
+                        pass #Don't do anything at the moment
+                        #pixel_cal = 1e-9 #prevents division by 0 errors
+                        #temp_list_cal_3.append(pixel_cal)
+                        #temp_list_ref_3.append(pixel_ref)
+                        #print("0 pixel value at ("+str(i)+","+str(j)+","+str(k)+")")
+                number_of_pixels_in_patch = len(temp_list_cal_3) #for testing
+                #print("Number of pixels counted in patch="+str(number_of_pixels_in_patch)) #for testing
+                temp_list_cal_2.append(temp_list_cal_3)
+                temp_list_ref_2.append(temp_list_ref_3)
+                temp_list_mask_2.append(temp_list_mask_3)
+            temp_list_cal.append(temp_list_cal_2)
+            temp_list_ref.append(temp_list_ref_2)
+            temp_list_mask.append(temp_list_mask_2)
+        #print(temp_list_cal)
+        total_pixels_counted = len(temp_list_cal[0][0]) #for testing
+        #total_pixels_counted = len(temp_list_cal) * len(temp_list_cal[0]) * len(temp_list_cal[0][0]) #for testing
+        #print("Total number of pixels included in analysis:"+str(total_pixels_counted)) #for testing
+        
+        return temp_list_ref, temp_list_cal, temp_list_mask, nan_pixel_count
+        
     def PrepareHeaders(self):
         # prepare the headers for table editing
         for i in range(self.nrOfRows):
@@ -195,14 +369,25 @@ class Model_KV():
         KtransNaNTable = \
                         '<h2>The NaN percentage of each patch in calculated Ktrans:</h2>'
 
-        KtransNaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.Ktrans_NaN_percentage])
+        #KtransNaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.Ktrans_NaN_percentage])
+        KtransNaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.Ktrans_NaNs_per_patch])
 
+        if self.Ktrans_nan_pixel_count != 1:
+            KtransNaNTable += "<h4>"+str(self.Ktrans_nan_pixel_count)+" NaN pixels were found in the Ktrans map.</h4>"
+        else:
+            KtransNaNTable += "<h4>"+str(self.Ktrans_nan_pixel_count)+" NaN pixel was found in the Ktrans map.</h4>"
+            
         # Ve NaN table
         VeNaNTable = \
                         '<h2>The NaN percentage of each patch in calculated Ve:</h2>'
 
-        VeNaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.Ve_NaN_percentage])
+        #VeNaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.Ve_NaN_percentage])
+        VeNaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.Ve_NaNs_per_patch])
 
+        if self.Ve_nan_pixel_count != 1:
+            VeNaNTable += "<h4>"+str(self.Ve_nan_pixel_count)+" NaN pixels were found in the Ve map.</h4>"
+        else:
+            VeNaNTable += "<h4>"+str(self.Ve_nan_pixel_count)+" NaN pixel was found in the Ve map.</h4>"
 
 
         # put the text into html structure
@@ -405,61 +590,99 @@ class Model_KV():
         # put the text into html structure
         self.U_testResultInHTML = self.packInHtml(KtransU_TestTable + '<br>' + VeU_TestTable)
 
+    def htmlRMSDResults(self):
+        # write the calculated RMSD results into HTML form
+        
+        # Ktrans
+        KtransRMSDTable = \
+                        '<h2>The root mean square deviation of each patch in calculated and reference Ktrans:</h2>'
+        KtransRMSDTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rmsd'], [self.Ktrans_rmsd])
+        
+        KtransRMSDTable += \
+                        '<h4>The root mean square deviation of all patches combined in calculated and reference Ktrans='+str(self.Ktrans_rmsd_all_regions)+'</h4>'
+        
+        # Ve
+        VeRMSDTable = \
+                        '<h2>The root mean square deviation of each patch in calculated and reference Ve:</h2>'
+        VeRMSDTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rmsd'], [self.Ve_rmsd])
+        
+        VeRMSDTable += \
+                        '<h4>The root mean square deviation of all patches combined in calculated and reference Ve='+str(self.Ve_rmsd_all_regions)+'</h4>'
+        
+        # put the text into html structure
+        self.RMSDResultInHTML = self.packInHtml(KtransRMSDTable + '<br>' + VeRMSDTable)
+
     def htmlCCCResults(self):
         # write the calculated CCC results into HTML form
 
         # Ktrans
         KtransCCCTable = \
-                        '<h2>The concordance correlation coefficients of each patch in calculated anf reference Ktrans:</h2>'
-
+                        '<h2>The concordance correlation coefficients of each patch in calculated and reference Ktrans:</h2>'
+        
         KtransCCCTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['ccc'], [self.Ktrans_ccc])
 
+        KtransCCCTable += \
+                        '<h4>The concordance correlation coefficient of all patches combined in calculated and reference Ktrans='+str(self.Ktrans_ccc_all_regions)+'</h4>'
         # Ve
         VeCCCtTable = \
-                        '<h2>The concordance correlation coefficients of each patch in calculated anf reference Ve:</h2>'
+                        '<h2>The concordance correlation coefficients of each patch in calculated and reference Ve:</h2>'
 
         VeCCCtTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['ccc'], [self.Ve_ccc])
+
+        VeCCCtTable += \
+                        '<h4>The concordance correlation coefficient of all patches combined in calculated and reference Ve='+str(self.Ve_ccc_all_regions)+'</h4>'
 
         # put the text into html structure
         self.CCCResultInHTML = self.packInHtml(KtransCCCTable + '<br>' + VeCCCtTable)
 
-    def htmlRMSResults(self):
-        # write the calculated RMS results into HTML form
-
-        # Ktrans
-        KtransRMSTable = \
-                        '<h2>The root mean squares of each patch in calculated anf reference Ktrans:</h2>'
-
-        KtransRMSTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rms'], [self.Ktrans_rms])
-
-        # Ve
-        VeRMSTable = \
-                        '<h2>The root mean squares of each patch in calculated anf reference Ve:</h2>'
-
-        VeRMSTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rms'], [self.Ve_rms])
-
-        # put the text into html structure
-        self.RMSResultInHTML = self.packInHtml(KtransRMSTable + '<br>' + VeRMSTable)
-
     def htmlTDIResults(self):
-        # write the TDI results into HTML form
-
+        # write the calcuated TDI results into HTML form
+        
         # Ktrans
         KtransTDITable = \
-            '<h2>The total deviation index of each patch in calculated anf reference Ktrans:</h2>'
-
-        KtransTDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['TDI'],
-                                                   [self.Ktrans_TDI])
-
+                        '<h2>The total deviation indexes of each patch in calculated and reference Ktrans:</h2>'
+        KtransTDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['tdi'], [self.Ktrans_tdi])
+        
+        KtransTDITable += \
+                        '<h4>The total deviation index of all patches combined in calculated and reference Ktrans='+str(self.Ktrans_tdi_all_regions)+'</h4>'
+                        
         # Ve
         VeTDITable = \
-            '<h2>The total deviation index of each patch in calculated anf reference Ve:</h2>'
-
-        VeTDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['TDI'],
-                                                [self.Ve_TDI])
-
-        # put the text into html structure
+                        '<h2>The total deviation indexes of each patch in calculated and reference Ve:</h2>'
+        VeTDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['tdi'], [self.Ve_tdi])
+        
+        VeTDITable += \
+                        '<h4>The total deviation index of all patches combined in calculated and reference Ve='+str(self.Ve_tdi_all_regions)+'</h4>'
+                        
         self.TDIResultInHTML = self.packInHtml(KtransTDITable + '<br>' + VeTDITable)
+        
+    def htmlLOAResults(self):
+        # 1/22/16: This might not be required.
+        self.LOAResultInHTML = ""
+        #Change this later
+        
+        
+    def htmlSigmaMetricResults(self):
+        #write the calculated sigma metric into HTML form
+        
+        # Ktrans
+        KtransSigmaMetricTable = \
+                                '<h2>The sigma metric of each patch in calculated and reference Ktrans:</h2>'
+        KtransSigmaMetricTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['sigma metric'], [self.Ktrans_sigma_metric])
+        
+        KtransSigmaMetricTable += \
+                                '<h4>The sigma metric of all patches combined in calculated and reference Ktrans='+str(self.Ktrans_sigma_metric_all_regions)+'</h4>'
+                                
+        # Ve
+        VeSigmaMetricTable = \
+                                '<h2>The sigma metric of each patch in calculated and reference Ve:</h2>'
+        VeSigmaMetricTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['sigma metric'], [self.Ve_sigma_metric])
+        
+        VeSigmaMetricTable += \
+                                '<h4>The sigma metric of all patches combined in calculated and reference Ve='+str(self.Ve_sigma_metric_all_regions)+'</h4>'
+        
+        self.sigmaMetricResultInHTML = self.packInHtml(KtransSigmaMetricTable + '<br>' + VeSigmaMetricTable)
+
 
     def htmlChiq_TestResults(self):
         # write the chi-square-test results into HTML form
@@ -598,7 +821,10 @@ class Model_KV():
         # pre-process
         self.Ktrans_ref_inRow = self.Ktrans_ref_raw[self.patchLen:-self.patchLen]
         self.Ktrans_ref = QIBA_functions.Rearrange(self.Ktrans_ref_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
-
+        #print("***Ktrans_ref_inRow:***") #for testing
+        #print(str(self.Ktrans_ref_inRow)) #for testing
+        #print("***Ktrans_ref:***") #for testing
+        #print(str(self.Ktrans_ref)) #for testing
         self.Ktrans_cal_inRow = self.Ktrans_cal_raw[self.patchLen:-self.patchLen]
         self.Ktrans_cal_inPatch_raw = QIBA_functions.Rearrange(self.Ktrans_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
@@ -629,106 +855,153 @@ class Model_KV():
         self.Ve_ref_patchValue = QIBA_functions.EstimatePatch(self.Ve_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns)
         self.Ktrans_cal_patchValue = QIBA_functions.EstimatePatch(self.Ktrans_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns)
         self.Ve_cal_patchValue = QIBA_functions.EstimatePatch(self.Ve_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns)
-
+        
+        
+        #Apply the mask to cal_ and ref_patchValues
+        self.Ktrans_ref_patchValue_masked = QIBA_functions.EstimatePatchMasked(self.Ktrans_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_ref_patchValue_masked = QIBA_functions.EstimatePatchMasked(self.Ve_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
+        self.Ktrans_cal_patchValue_masked = QIBA_functions.EstimatePatchMasked(self.Ktrans_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patchValue_masked = QIBA_functions.EstimatePatchMasked(self.Ve_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
+        
+        # Create new lists that remove NaN values.  New lists are needed
+        # because the number of items in each list must equal the number of
+        # rows or columns. Otherwise, an error will be raised when the results
+        # are displayed.
+        #self.Ktrans_ref_patchValue_no_nans = [[n for n in sublist if n is not numpy.nan] for sublist in self.Ktrans_ref_patchValue]
+        #self.Ve_ref_patchValue_no_nans = [[n for n in sublist if n is not numpy.nan] for sublist in self.Ve_ref_patchValue]
+        #self.Ktrans_cal_patchValue_no_nans = [[n for n in sublist if n is not numpy.nan] for sublist in self.Ktrans_cal_patchValue]
+        #self.Ve_cal_patchValue_no_nans = [[n for n in sublist if n is not numpy.nan] for sublist in self.Ve_cal_patchValue]
+        
     def FittingLinearModelForModel(self):
         # fit a planar for the calculated Ktrans and Ve maps
-        self.a_lin_Ktrans, self.b_lin_Ktrans, self.r_squared_lin_K = QIBA_functions.FittingLinearModel(zip(*self.Ktrans_cal_patchValue), zip(*self.Ktrans_ref_patchValue), self.nrOfColumns)
-        self.a_lin_Ve, self.b_lin_Ve, self.r_squared_lin_V = QIBA_functions.FittingLinearModel(self.Ve_cal_patchValue, self.Ve_ref_patchValue, self.nrOfRows)
+        #self.a_lin_Ktrans, self.b_lin_Ktrans, self.r_squared_lin_K = QIBA_functions.FittingLinearModel(zip(*self.Ktrans_cal_patchValue_no_nans), zip(*self.Ktrans_ref_patchValue_no_nans), self.nrOfColumns)
+        #self.a_lin_Ve, self.b_lin_Ve, self.r_squared_lin_V = QIBA_functions.FittingLinearModel(self.Ve_cal_patchValue_no_nans, self.Ve_ref_patchValue_no_nans, self.nrOfRows)
+        self.a_lin_Ktrans, self.b_lin_Ktrans, self.r_squared_lin_K = QIBA_functions.FittingLinearModel(zip(*self.Ktrans_cal_patchValue_masked), zip(*self.Ktrans_ref_patchValue_masked), self.nrOfColumns)
+        self.a_lin_Ve, self.b_lin_Ve, self.r_squared_lin_V = QIBA_functions.FittingLinearModel(self.Ve_cal_patchValue_masked, self.Ve_ref_patchValue_masked, self.nrOfRows)
+
 
     def FittingLogarithmicModelForModel(self):
         # fitting logarithmic model
-        self.a_log_Ktrans, self.b_log_Ktrans = QIBA_functions.FittingLogarithmicModel(zip(*self.Ktrans_cal_patchValue), zip(*self.Ktrans_ref_patchValue), self.nrOfColumns) # , self.c_log_Ktrans
-        self.a_log_Ve, self.b_log_Ve = QIBA_functions.FittingLogarithmicModel(self.Ve_cal_patchValue, self.Ve_ref_patchValue, self.nrOfRows) # , self.c_log_Ve
+        #print("Before FittingLogarithmicModelForModel") #for debugging
+        #print(self.Ve_cal_patchValue_masked) #for debugging
+        #print(self.Ve_ref_patchValue_masked) #for debugging
+        self.a_log_Ktrans, self.b_log_Ktrans = QIBA_functions.FittingLogarithmicModel(zip(*self.Ktrans_cal_patchValue_masked), zip(*self.Ktrans_ref_patchValue_masked), self.nrOfColumns) # , self.c_log_Ktrans
+        self.a_log_Ve, self.b_log_Ve = QIBA_functions.FittingLogarithmicModel(self.Ve_cal_patchValue_masked, self.Ve_ref_patchValue_masked, self.nrOfRows) # , self.c_log_Ve
 
     def CalculateCorrelationForModel(self):
         # calculate the correlation between the calculated parameters and the reference parameters
         # 'Corre_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
-
+        #print(str(zip(*self.Ve_cal_patchValue))) #for debugging
+        #print(str(zip(*self.Ktrans_ref_patchValue))) #for debugging
         for i in range(self.nrOfColumns):
-            self.corr_KK.append(QIBA_functions.CalCorrMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-            self.corr_VK.append(QIBA_functions.CalCorrMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.corr_KK.append(QIBA_functions.CalCorrMatrix(zip(*self.Ktrans_cal_patchValue_masked)[i], zip(*self.Ktrans_ref_patchValue_masked)[i])[0][1])
+            self.corr_VK.append(QIBA_functions.CalCorrMatrix(zip(*self.Ve_cal_patchValue_masked)[i], zip(*self.Ktrans_ref_patchValue_masked)[i])[0][1])
         for j in range(self.nrOfRows):
-            self.corr_VV.append(QIBA_functions.CalCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-            self.corr_KV.append(QIBA_functions.CalCorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.corr_VV.append(QIBA_functions.CalCorrMatrix(self.Ve_cal_patchValue_masked[j], self.Ve_ref_patchValue_masked[j])[0][1])
+            self.corr_KV.append(QIBA_functions.CalCorrMatrix(self.Ktrans_cal_patchValue_masked[j], self.Ve_ref_patchValue_masked[j])[0][1])
 
     def CalculateCovarianceForModel(self):
         # calculate the covariance between the calculated parameters and the reference parameters
         # e.g. 'cov_KV' stands for 'correlation coefficient between calculate Ktrans and reference Ve', etc.
 
         for i in range(self.nrOfColumns):
-            self.cov_KK.append(QIBA_functions.CalCovMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-            self.cov_VK.append(QIBA_functions.CalCovMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
+            self.cov_KK.append(QIBA_functions.CalCovMatrix(zip(*self.Ktrans_cal_patchValue_masked)[i], zip(*self.Ktrans_ref_patchValue_masked)[i])[0][1])
+            self.cov_VK.append(QIBA_functions.CalCovMatrix(zip(*self.Ve_cal_patchValue_masked)[i], zip(*self.Ktrans_ref_patchValue_masked)[i])[0][1])
         for j in range(self.nrOfRows):
-            self.cov_VV.append(QIBA_functions.CalCovMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-            self.cov_KV.append(QIBA_functions.CalCovMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
+            self.cov_VV.append(QIBA_functions.CalCovMatrix(self.Ve_cal_patchValue_masked[j], self.Ve_ref_patchValue_masked[j])[0][1])
+            self.cov_KV.append(QIBA_functions.CalCovMatrix(self.Ktrans_cal_patchValue_masked[j], self.Ve_ref_patchValue_masked[j])[0][1])
+
+    def CalculateRMSDForModel(self):
+        # calculate the root mean square deviation between the calculated parameters and the reference parameters
+        self.Ktrans_rmsd, self.Ktrans_rmsd_all_regions = QIBA_functions.RMSD(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns, self.Ktrans_cal_no_bad_pixels, self.Ktrans_ref_no_bad_pixels, self.mask, self.Ktrans_mask_no_bad_pixels)
+        self.Ve_rmsd, self.Ve_rmsd_all_regions = QIBA_functions.RMSD(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns, self.Ve_cal_no_bad_pixels, self.Ve_ref_no_bad_pixels, self.mask, self.Ve_mask_no_bad_pixels)
 
     def CalculateCCCForModel(self):
-        # calculate the concordance covariance coefficients between the calculated parameters and the reference parameters
-        self.Ktrans_ccc = QIBA_functions.CCC(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
-        self.Ve_ccc = QIBA_functions.CCC(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
-
-    def CalculateRMSForModel(self):
-        # calculate the root mean squares of each the calculated parameters
-        self.Ktrans_rms = QIBA_functions.RMS(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_rms = QIBA_functions.RMS(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        # calculate the concordance correlation coefficients between the calculated parameters and the reference parameters
+        self.Ktrans_ccc, self.Ktrans_ccc_all_regions = QIBA_functions.CCC(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns, self.Ktrans_cal_no_bad_pixels, self.Ktrans_ref_no_bad_pixels, self.mask, self.Ktrans_mask_no_bad_pixels)
+        self.Ve_ccc, self.Ve_ccc_all_regions = QIBA_functions.CCC(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns, self.Ve_cal_no_bad_pixels, self.Ve_ref_no_bad_pixels, self.mask, self.Ve_mask_no_bad_pixels)
 
     def CalculateTDIForModel(self):
-        # calculate the root mean squares of each the calculated parameters
-        self.Ktrans_TDI = QIBA_functions.TDI(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
-        self.Ve_TDI = QIBA_functions.TDI(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
-
+        # calculate the total deviation index between the calculated parameters and the reference parameters
+        # *** The arguments for QIBA_functions.TDI may be the inverse normal distribution and RMSD ***
+        #self.Ktrans_tdi, self.Ktrans_tdi_all_regions = QIBA_functions.TDI(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
+        #self.Ve_tdi, self.Ve_tdi_all_regions = QIBA_functions.TDI(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_tdi, self.Ktrans_tdi_all_regions = QIBA_functions.TDI(self.Ktrans_rmsd, self.Ktrans_rmsd_all_regions, self.nrOfRows, self.nrOfColumns)
+        self.Ve_tdi, self.Ve_tdi_all_regions = QIBA_functions.TDI(self.Ve_rmsd, self.Ve_rmsd_all_regions, self.nrOfRows, self.nrOfColumns)
+        
+    #def CalculateLOAForModel(self):
+        # Draw the Bland-Altman Limits of Agreement plot
+        # 1/22/16: The function to draw the BA LOA Plot may belong in QIBA_evaluate_tool.
+    #    pass #Complete later
+        
+    def CalculateSigmaMetricForModel(self):
+        # Calculate the sigma metric
+        self.Ktrans_sigma_metric, self.Ktrans_sigma_metric_all_regions = QIBA_functions.SigmaMetric(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns, self.Ktrans_cal_no_bad_pixels, self.Ktrans_ref_no_bad_pixels, self.allowable_total_error, self.mask, self.Ktrans_mask_no_bad_pixels)
+        self.Ve_sigma_metric, self.Ve_sigma_metric_all_regions = QIBA_functions.SigmaMetric(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns, self.Ve_cal_no_bad_pixels, self.Ve_ref_no_bad_pixels, self.allowable_total_error, self.mask, self.Ktrans_mask_no_bad_pixels)
+        
     def CalculateMeanForModel(self):
         # call the mean calculation function
-        self.Ktrans_cal_patch_mean = QIBA_functions.CalculateMean(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_mean = QIBA_functions.CalculateMean(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_cal_patch_mean = QIBA_functions.CalculateMean(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patch_mean = QIBA_functions.CalculateMean(self.Ve_cal, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
 
     def CalculateMedianForModel(self):
         # call the median calculation function
-        self.Ktrans_cal_patch_median = QIBA_functions.CalculateMedian(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_median = QIBA_functions.CalculateMedian(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_cal_patch_median = QIBA_functions.CalculateMedian(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patch_median = QIBA_functions.CalculateMedian(self.Ve_cal, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
 
     def CalculateSTDDeviationForModel(self):
         # call the std deviation calculation function
-        self.Ktrans_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.Ve_cal, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
 
     def Calculate1stAnd3rdQuartileForModel(self):
         # call the 1st and 3rd quartile calculation function
-        self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.Ve_cal, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
 
     def CalculateMinAndMaxForModel(self):
-        self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_min, self.Ve_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patch_min, self.Ve_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.Ve_cal, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
 
     def T_TestForModel(self):
         # call the Ttest function
-        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.Ktrans_cal, self.Ktrans_ref_patchValue, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.Ve_cal, self.Ve_ref_patchValue, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_cal_patch_ttest_t, self.Ktrans_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.Ktrans_cal, self.Ktrans_ref_patchValue, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.Ve_cal, self.Ve_ref_patchValue, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
 
     def U_TestForModel(self):
         # call the U test function
-        self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_cal_patch_Utest_u, self.Ktrans_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patch_Utest_u, self.Ve_cal_patch_Utest_p = QIBA_functions.U_Test(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
 
     def ChiSquareTestForModel(self):
         # call the U test function
-        self.Ktrans_cal_patch_Chisquare_c, self.Ktrans_cal_patch_Chisquare_p = QIBA_functions.ChiSquare_Test(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_Chisquare_c, self.Ve_cal_patch_Chisquare_p = QIBA_functions.ChiSquare_Test(self.Ve_cal, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_cal_patch_Chisquare_c, self.Ktrans_cal_patch_Chisquare_p = QIBA_functions.ChiSquare_Test(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patch_Chisquare_c, self.Ve_cal_patch_Chisquare_p = QIBA_functions.ChiSquare_Test(self.Ve_cal, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
 
     def ANOVAForModel(self):
         # call the ANOVA function
-        self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.Ve_cal), self.nrOfColumns, self.nrOfRows)
 
+        # original - for debugging
+        #self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay_Original(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
+        #self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay_Original(zip(*self.Ve_cal), self.nrOfColumns, self.nrOfRows)
+
+        self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.Ve_cal), self.nrOfColumns, self.nrOfRows, zip(*self.Ve_mask_reformatted))
+
+        #old - don't use
+        #self.Ve_cal_patch_ANOVA_f, self.Ve_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.Ve_cal), self.nrOfColumns, self.nrOfRows, self.Ve_mask_reformatted)
 
 class Model_T1():
     '''
     the class for T1 model.
     '''
-    def __init__(self, path_ref_T1, path_cal_T1, dimension):
+    def __init__(self, path_ref_T1, path_cal_T1, dimension, T1_R1_flag, allowable_total_error, mask):
         # initializes the class
 
+        #T1_R1_flag is a string that should be one of two values: T1 or R1.
+        #If it is R1, then convert path_cal_T1 to R1 by taking the reciprocal
+        self.T1_R1_flag = T1_R1_flag
+        
         # pass the paths
         self.path_ref_T1 = path_ref_T1
         self.path_cal_T1 = path_cal_T1
@@ -742,6 +1015,14 @@ class Model_T1():
         self.T1_ref = []
         self.T1_cal = []
 
+        # the raw image data, with NaNs and pixel values of 0 removed
+        # This is needed for other calculations
+        self.T1_ref_no_bad_pixels = []
+        self.T1_cal_no_bad_pixels = []
+        
+        # the number of NaN pixels
+        self.T1_nan_pixel_count = 0
+        
         # the image data in row, for showing the preview of the images
         self.T1_ref_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
         self.T1_cal_inRow = [[]for i in range(self.nrOfRows * self.patchLen)]
@@ -810,22 +1091,50 @@ class Model_T1():
         # R1 value from T1
         self.R1_cal = []
         self.R1_ref = []
+        
+        # The allowable total error - used to calculate Sigma metric
+        self.allowable_total_error = allowable_total_error
+        
+        # The mask, which determines if a pixel is evaluated
+        # A mask value of 255 means that the pixel will be evaluated.
+        # Any other mask value means that the pixel will not be evaluated.
+        # In the future, pixel values other than 0 and 255 can be used
+        # to create a "weighted" mask.
+        self.mask = mask
 
     def Evaluate(self):
         # evaluation
 
+        #Reformat the mask so that it can be used with the i,j,k coordinate system
+        self.T1_mask_reformatted = self.reformatMask(self.mask, self.T1_ref)
+        
         # pre-process for the imported files
         self.CalculateErrorForModel()
         self.EstimatePatchForModel('MEAN')
-        self.CalculateR1()
+        self.CalculateR1() #This is used by PrepareHeaders()
         self.PrepareHeaders()
+        
+        #Convert calculated R1 map to T1 map
+        if self.T1_R1_flag == "R1":
+            self.T1_cal = self.convertR1ToT1(self.T1_cal, self.nrOfRows, self.nrOfColumns)
+
+        #Create a list of NaN pixels per 10x10 patch
+        self.T1_NaNs_per_patch = self.countNaNsForEachPatch(self.T1_cal)
+        
+        #Remove NaNs and pixel values of 0
+        self.T1_ref_no_bad_pixels, self.T1_cal_no_bad_pixels, self.T1_mask_no_bad_pixels, self.T1_nan_pixel_count = self.removeInvalidPixels(self.T1_ref, self.T1_cal, self.mask)
+        #print(str(self.T1_nan_pixel_count) + " NaN pixel(s) found in T1") #for testing
 
         # evaluation operations
         self.FittingLinearModelForModel()
         self.FittingLogarithmicModelForModel()
         self.CalculateCorrelationForModel()
         self.CalculateCovarianceForModel()
+        self.CalculateRMSDForModel()
         self.CalculateCCCForModel()
+        self.CalculateTDIForModel()
+        #self.CalculateLOAForModel()
+        self.CalculateSigmaMetricForModel()
         self.CalculateMeanForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
@@ -842,11 +1151,137 @@ class Model_T1():
         self.htmlModelFitting()
         self.htmlT_TestResults()
         self.htmlU_TestResults()
+        self.htmlRMSDResults()
         self.htmlCCCResults()
+        self.htmlTDIResults()
+        #self.htmlLOAResults()
+        self.htmlSigmaMetricResults()
         self.htmlStatistics()
         self.htmlChiq_TestResults()
         # self.htmlANOVAResults()
 
+        # print("T1_ref") #debugging
+        # print(self.T1_ref) #debugging
+        # print("T1_cal") #debugging
+        # print(self.T1_cal) #debugging
+
+    def countNaNsForEachPatch(self, data_list_cal):
+        '''Count the number of NaNs in each 10x10 patch. Return a 3-dimensional list with the number of NaNs,
+        to be used by the htmlNaN function instead of the original
+        self.T1_NaN_percentage input.
+        
+        The values are reported as a percent, because that is how the htmlNaN function expects them.
+        
+        This function *does not* remove NaNs and should be called before removeInvalidPixels
+        '''
+        i_dimension = len(data_list_cal)
+        j_dimension = len(data_list_cal[0])
+        k_dimension = len(data_list_cal[0][0])
+        temp_list = list()
+        nan_pixel_count = 0
+        
+        for i in range(i_dimension):
+            temp_list_2 = list()
+            for j in range(j_dimension):
+                nan_pixel_count = 0
+                #temp_list_3 = list()
+                for k in range(k_dimension):
+                    pixel_cal = data_list_cal[i][j][k]
+                    if math.isnan(pixel_cal):
+                        nan_pixel_count = nan_pixel_count + 1
+                temp_list_2.append(float(nan_pixel_count) / float(k_dimension))
+            temp_list.append(temp_list_2)
+        #print("NaN Pixel Counts:") #for testing
+        #print(temp_list) #for testing
+        return temp_list
+    
+    def reformatMask(self, input_mask, reference_data_list):
+        """Loaded masks by default have an (x,y) coordinate system where
+        x=number of pixels in x-direction and
+        y=number of pixels in y-direction
+        
+        This function reformats a mask so that it can be used with the i,j,k 
+        coordinate system where i=number of patches in the x-direction,
+        j=number of patches in the y-direction, and 
+        k=number of pixels in each patch
+        
+        The reference_data_list is used to determine the dimensions of
+        the reformatted mask.
+        
+        This function does not remove any pixels. The removeInvalidPixels
+        function does this, as well as reformats a mask
+        """
+        i_dimension = len(reference_data_list) #Should be 6
+        j_dimension = len(reference_data_list[0]) #Should be 5
+        k_dimension = len(reference_data_list[0][0]) #Should be 100
+        temp_list_mask = []
+        
+        for i in range(i_dimension):
+            temp_list_mask_2 = []
+            for j in range(j_dimension):
+                temp_list_mask_3 = []
+                for k in range(k_dimension):
+                    
+                    # Convert the (i,j,k) coordinate used by the calculated
+                    # and reference data to an (x,y) coordinate for the mask
+                    mask_x_coord = (k%10)+(i*10)
+                    mask_y_coord = (k/10)+(j*10)
+                    pixel_mask = input_mask[mask_x_coord][mask_y_coord]
+                    temp_list_mask_3.append(pixel_mask)
+                temp_list_mask_2.append(temp_list_mask_3)
+            temp_list_mask.append(temp_list_mask_2)
+        return temp_list_mask
+    
+    def removeInvalidPixels(self, data_list_ref, data_list_cal, mask):
+        """Removes calculated pixels with invalid (NaN) values.
+        Also removes corresponding reference and mask pixels.
+        """
+        
+        #To do: Count the number of NaN pixels. Count the number of out-of-range pixels.
+        i_dimension = len(data_list_cal) #Should be 6
+        j_dimension = len(data_list_cal[0]) #Should be 5
+        k_dimension = len(data_list_cal[0][0]) #Should be 100
+        temp_list_cal = []
+        temp_list_ref = []
+        temp_list_mask = []
+        nan_pixel_count = 0
+        
+        #print("i_dimension="+str(i_dimension)+", j_dimension="+str(j_dimension)+", k_dimension="+str(k_dimension)) #for testing
+        for i in range(i_dimension):
+            temp_list_cal_2 = []
+            temp_list_ref_2 = []
+            temp_list_mask_2 = []
+            for j in range(j_dimension):
+                temp_list_cal_3 = []
+                temp_list_ref_3 = []
+                temp_list_mask_3 = []
+                for k in range(k_dimension):
+                    pixel_cal = data_list_cal[i][j][k]
+                    pixel_ref = data_list_ref[i][j][k]
+                    
+                    # Convert the (i,j,k) coordinate for cal and ref values
+                    # to an (x,y) coordinate for the mask
+                    mask_x_coord = (k%10)+(i*10)
+                    mask_y_coord = (k/10)+(j*10)
+                    pixel_mask = mask[mask_x_coord][mask_y_coord]
+                    
+                    if not math.isnan(pixel_cal) and pixel_cal != 0:
+                        temp_list_cal_3.append(pixel_cal)
+                        temp_list_ref_3.append(pixel_ref)
+                        temp_list_mask_3.append(pixel_mask)
+                    elif math.isnan(pixel_cal):
+                        #print("NaN at ("+str(i)+","+str(j)+","+str(k)+")")
+                        nan_pixel_count = nan_pixel_count + 1
+                        
+                temp_list_cal_2.append(temp_list_cal_3)
+                temp_list_ref_2.append(temp_list_ref_3)
+                temp_list_mask_2.append(temp_list_mask_3)
+            temp_list_cal.append(temp_list_cal_2)
+            temp_list_ref.append(temp_list_ref_2)
+            temp_list_mask.append(temp_list_mask_2)
+        #print(temp_list_cal)
+        return temp_list_ref, temp_list_cal, temp_list_mask, nan_pixel_count
+        
     def PrepareHeaders(self):
         # prepare the headers for table editing
         # for i in range(self.nrOfRows):
@@ -876,8 +1311,13 @@ class Model_T1():
         T1NaNTable = \
                         '<h2>The NaN percentage of each patch in calculated T1:</h2>'
 
-        T1NaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.T1_NaN_percentage])
-
+        #T1NaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.T1_NaN_percentage])
+        T1NaNTable += QIBA_functions.EditTablePercent('', self.headersHorizontal, self.headersVertical, [''], [self.T1_NaNs_per_patch])
+        if self.T1_nan_pixel_count != 1:
+            T1NaNTable += "<h4>"+str(self.T1_nan_pixel_count)+" NaN pixels were found in the T1 map.</h4>"
+        else:
+            T1NaNTable += "<h4>"+str(self.T1_nan_pixel_count)+" NaN pixel was found in the T1 map.</h4>"
+            
         # put the text into html structure
         self.NaNPercentageInHTML = self.packInHtml(T1NaNTable)
 
@@ -975,18 +1415,69 @@ class Model_T1():
         # put the text into html structure
         self.U_testResultInHTML = self.packInHtml(T1_U_TestTable)
 
+    def htmlRMSDResults(self):
+        # write the calculated RMSD results into HTML form
+        
+        # Ktrans
+        T1RMSDTable = \
+                        '<h2>The root mean square deviation of each patch in calculated and reference T1:</h2>'
+        T1RMSDTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['rmsd'], [self.T1_rmsd])
+        
+        T1RMSDTable += \
+                        '<h4>The root mean square deviation of all patches combined in calculated and reference T1='+str(self.T1_rmsd_all_regions)+'</h4>'
+                        
+        # put the text into html structure
+        self.RMSDResultInHTML = self.packInHtml(T1RMSDTable)
+
     def htmlCCCResults(self):
         # write the calculated CCC results into HTML form
 
-        # Ktrans
+        # T1
         T1CCCTable = \
-                        '<h2>The concordance correlation coefficients of each patch in calculated anf reference T1:</h2>'
+                        '<h2>The concordance correlation coefficients of each patch in calculated and reference T1:</h2>'
 
         T1CCCTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['ccc'], [self.T1_ccc])
 
+        T1CCCTable += \
+                        '<h4>The concordance correlation coefficient of each patch combined in calculated and reference T1='+str(self.T1_ccc_all_regions)+'</h4>'
         # put the text into html structure
         self.CCCResultInHTML = self.packInHtml(T1CCCTable)
 
+    def htmlTDIResults(self):
+        # write the calculated TDI results into HTML form
+        
+        # T1
+        T1TDITable = \
+                    '<h2>The total deviation indexes of each patch in calculated and reference T1:</h2>'
+                    
+        T1TDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['tdi'], [self.T1_tdi])
+        
+        T1TDITable += \
+                        '<h4>The total deviation index of each patch combined in calculated and reference T1='+str(self.T1_tdi_all_regions)+'</h4>'
+                        
+        self.TDIResultInHTML = self.packInHtml(T1TDITable)
+        
+    def htmlLOAResults(self):
+        # 1/22/16: This may not be required
+        self.LOAResultInHTML = ""
+        #Change this later
+        
+        
+    def htmlSigmaMetricResults(self):
+        # write the calculated sigma metric results into HTML form
+        
+        # T1
+        T1SigmaMetricTable = \
+                            '<h2>The sigma metric of each patch in calculated and reference T1:</h2>'
+                            
+        T1SigmaMetricTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['sigma metric'], [self.T1_sigma_metric])
+        
+        T1SigmaMetricTable += \
+                            '<h4>The sigma metric of each patch combined in calculated and reference T1='+str(self.T1_sigma_metric_all_regions)+'</h4>'
+                            
+        self.sigmaMetricResultInHTML = self.packInHtml(T1SigmaMetricTable)
+        
+        
     def htmlChiq_TestResults(self):
         # write the U-test results into HTML form
 
@@ -1080,7 +1571,21 @@ class Model_T1():
         self.T1_cal_inPatch_raw = QIBA_functions.Rearrange(self.T1_cal_inRow, self.nrOfRows, self.nrOfColumns, self.patchLen)
 
         # mode1: clamp; mode2: outside
-        self.T1_cal, self.T1_NaN_percentage = QIBA_functions.DealWithNaN(self.T1_cal_inPatch_raw, 'MODE1', [-0.001, 0.001])
+        #self.T1_cal, self.T1_NaN_percentage = QIBA_functions.DealWithNaN(self.T1_cal_inPatch_raw, 'MODE1', [-0.001, 0.001]) #QIBA_functions.DealWithNaN is not yet defined. The correct function may be DefineNaN
+
+        # Batch mode only: If the reference map is R1, then convert it to T1
+        ref_filename = os.path.basename(self.path_ref_T1)
+        if "R1" in ref_filename:
+            self.T1_ref_inRow = self.convertRawR1ToT1(self.T1_ref_inRow, self.nrOfRows*10, self.nrOfColumns*10)
+            self.T1_ref = self.convertR1ToT1(self.T1_ref, self.nrOfRows, self.nrOfColumns)
+
+        if self.T1_R1_flag != "R1":
+            self.T1_cal, self.T1_NaN_percentage = QIBA_functions.DefineNaN(self.T1_cal_inPatch_raw, 'MODE1', [-0.001, 0.001], numpy.nan)
+        else:
+            #This will call DefineNaN if a calculated R1 map is provided, but pixels outside the threshold won't be converted to NaN.
+            #(The threshold condition of > 0.001 and < -0.001 is impossible to meet, and 'MODE-R1' is a "special" mode that will not convert pixels to NaN)
+            #DefineNaN was originally intended for T1 maps -- if an R1 map is used, otherwise valid R1 values would be converted to NaN.
+            self.T1_cal, self.T1_NaN_percentage = QIBA_functions.DefineNaN(self.T1_cal_inPatch_raw, 'MODE-R1', [0.001, -0.001], numpy.nan)
 
     def CalculateErrorForModel(self):
         # calculate the error between calculated and reference files
@@ -1092,65 +1597,146 @@ class Model_T1():
         self.T1_ref_patchValue = QIBA_functions.EstimatePatch(self.T1_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns)
         self.T1_cal_patchValue = QIBA_functions.EstimatePatch(self.T1_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns)
 
+        # Apply the mask to cal_ and ref_patchValues
+        self.T1_ref_patchValue_masked = QIBA_functions.EstimatePatchMasked(self.T1_ref, patchValueMethod, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
+        self.T1_cal_patchValue_masked = QIBA_functions.EstimatePatchMasked(self.T1_cal, patchValueMethod, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
+
     def FittingLinearModelForModel(self):
         # fit a planar for the calculated Ktrans and Ve maps
-        self.a_lin_T1, self.b_lin_T1, self.r_squared_lin_T1 = QIBA_functions.FittingLinearModel(self.T1_cal_patchValue,self.T1_ref_patchValue, self.nrOfRows)
+        self.a_lin_T1, self.b_lin_T1, self.r_squared_lin_T1 = QIBA_functions.FittingLinearModel(self.T1_cal_patchValue_masked,self.T1_ref_patchValue_masked, self.nrOfRows)
 
     def FittingLogarithmicModelForModel(self):
         # fitting logarithmic model
-        self.a_log_T1,self.b_log_T1 = QIBA_functions.FittingLogarithmicModel(self.T1_cal_patchValue, self.T1_ref_patchValue, self.nrOfRows) # , self.c_log_Ve
+        self.a_log_T1,self.b_log_T1 = QIBA_functions.FittingLogarithmicModel(self.T1_cal_patchValue_masked, self.T1_ref_patchValue_masked, self.nrOfRows) # , self.c_log_Ve
 
     def CalculateCorrelationForModel(self):
         # calculate the correlation between the calculated parameters and the reference parameter.
         for j in range(self.nrOfRows):
-            self.corr_T1T1.append(QIBA_functions.CalCorrMatrix(self.T1_cal_patchValue[j], self.T1_ref_patchValue[j])[0][1])
+            self.corr_T1T1.append(QIBA_functions.CalCorrMatrix(self.T1_cal_patchValue_masked[j], self.T1_ref_patchValue_masked[j])[0][1])
 
     def CalculateCovarianceForModel(self):
         # calculate the covariance between the calculated parameters and the reference parameters
 
         for j in range(self.nrOfRows):
-            self.cov_T1T1.append(QIBA_functions.CalCovMatrix(self.T1_cal_patchValue[j], self.T1_ref_patchValue[j])[0][1])
+            self.cov_T1T1.append(QIBA_functions.CalCovMatrix(self.T1_cal_patchValue_masked[j], self.T1_ref_patchValue_masked[j])[0][1])
+    
+    def CalculateRMSDForModel(self):
+        # calculate the root mean square deviation between the calculated parameters and the reference parameters
+        self.T1_rmsd, self.T1_rmsd_all_regions = QIBA_functions.RMSD(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns, self.T1_cal_no_bad_pixels, self.T1_ref_no_bad_pixels, self.mask, self.T1_mask_no_bad_pixels) 
 
     def CalculateCCCForModel(self):
-        # calculate the concordance covariance coefficients between the calculated parameters and the reference parameters
-        self.T1_ccc = QIBA_functions.CCC(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns)
+        # calculate the concordance correlation coefficients between the calculated parameters and the reference parameters
+        self.T1_ccc, self.T1_ccc_all_regions = QIBA_functions.CCC(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns, self.T1_cal_no_bad_pixels, self.T1_ref_no_bad_pixels, self.mask, self.T1_mask_no_bad_pixels)
+
+    def CalculateTDIForModel(self):
+        # calculate the total deviation index between the calculated parameters and the reference parameters
+        #self.T1_tdi, self.T1_tdi_all_regions = QIBA_functions.TDI(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns)
+        self.T1_tdi, self.T1_tdi_all_regions = QIBA_functions.TDI(self.T1_rmsd, self.T1_rmsd_all_regions, self.nrOfRows, self.nrOfColumns)
+        
+    #def CalculateLOAForModel(self):
+        # draw a Bland-Altman Limits of Agreement plot
+        # 1/22/16: This may belong in QIBA_evaluate_tool.
+    #    pass #complete later
+        
+    def CalculateSigmaMetricForModel(self):
+        # calculate sigma metric
+        self.T1_sigma_metric, self.T1_sigma_metric_all_regions = QIBA_functions.SigmaMetric(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns, self.T1_cal_no_bad_pixels, self.T1_ref_no_bad_pixels, self.allowable_total_error, self.mask, self.T1_mask_no_bad_pixels)
 
     def CalculateMeanForModel(self):
         # call the mean calculation function
-        self.T1_cal_patch_mean = QIBA_functions.CalculateMean(self.T1_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_mean = QIBA_functions.CalculateMean(self.T1_cal, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
 
     def CalculateMedianForModel(self):
         # call the median calculation function
-        self.T1_cal_patch_median = QIBA_functions.CalculateMedian(self.T1_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_median = QIBA_functions.CalculateMedian(self.T1_cal, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
 
     def CalculateSTDDeviationForModel(self):
         # call the std deviation calculation function
-        self.T1_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.T1_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_deviation = QIBA_functions.CalculateSTDDeviation(self.T1_cal, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
 
     def ChiSquareTestForModel(self):
         # call the std deviation calculation function
-        self.T1_cal_patch_chisquare_c, self.T1_cal_patch_chisquare_p = QIBA_functions.ChiSquare_Test(self.T1_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_chisquare_c, self.T1_cal_patch_chisquare_p = QIBA_functions.ChiSquare_Test(self.T1_cal, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
 
     def Calculate1stAnd3rdQuartileForModel(self):
         # call the 1st and 3rd quartile calculation function
-        self.T1_cal_patch_1stQuartile, self.T1_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.T1_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_1stQuartile, self.T1_cal_patch_3rdQuartile = QIBA_functions.Calculate1stAnd3rdQuartile(self.T1_cal, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
 
     def CalculateMinAndMaxForModel(self):
-        self.T1_cal_patch_min, self.T1_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.T1_cal, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_min, self.T1_cal_patch_max = QIBA_functions.CalculateMinAndMax(self.T1_cal, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
 
     def T_TestForModel(self):
         # call the T test function
-        self.T1_cal_patch_ttest_t, self.T1_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.T1_cal, self.T1_ref_patchValue, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_ttest_t, self.T1_cal_patch_ttest_p = QIBA_functions.T_Test_OneSample(self.T1_cal, self.T1_ref_patchValue, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
 
     def U_TestForModel(self):
         # call the U test function
-        self.T1_cal_patch_Utest_u, self.T1_cal_patch_Utest_p = QIBA_functions.U_Test(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns)
+        self.T1_cal_patch_Utest_u, self.T1_cal_patch_Utest_p = QIBA_functions.U_Test(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
 
     def ANOVAForModel(self):
         # call the ANOVA function
         #self.Ktrans_cal_patch_ANOVA_f, self.Ktrans_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns)
-        self.T1_cal_patch_ANOVA_f, self.T1_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.T1_cal), self.nrOfColumns, self.nrOfRows)
+        self.T1_cal_patch_ANOVA_f, self.T1_cal_patch_ANOVA_p = QIBA_functions.ANOVA_OneWay(zip(*self.T1_cal), self.nrOfColumns, self.nrOfRows, zip(*self.T1_mask_reformatted))
 
+    def convertR1ToT1(self, R1_values, nrOfRows, nrOfColumns):
+        """Converts the calculated R1 map to T1.
+        
+        The toolkit expects the calculated maps to be T1 maps and not R1 maps.
+        Called when the filename contains "R1".
+
+        Use this function for data arranged in 3 dimensions
+        (i.e. number of rows x number of columns x number of pixels per patch)
+
+        Arguments:
+        R1_values -- The original R1 map data
+        nrOfRows, nrOfColumns -- The dimensions of the 10x10 patch grid
+        
+        Returns:
+        The T1 map
+        """
+        
+        T1_values = R1_values
+        k_dimension = len(R1_values[0][0]) #Should be 100
+
+        for i in range(nrOfRows):
+            for j in range(nrOfColumns):
+                for k in range(k_dimension):
+                    R1 = R1_values[i][j][k]
+                    try:
+                        T1 = 1/R1
+                        T1_values[i][j][k] = T1
+                    except ValueError:
+                        pass
+        return T1_values
+
+    def convertRawR1ToT1(self, R1_values, nrOfRows, nrOfColumns):
+        """Converts the reference R1 map to T1.
+
+        The toolkit expects the calculated maps to be T1 maps and not R1 maps.
+        Called when a reference R1 map is loaded from batch mode.
+
+        Use this function for data arranged in 2 dimensions
+        (i.e. number of rows (pixels) x number of columns (pixels)
+
+        Arguments:
+        R1_values -- The original R1 map data
+        nrOfRows, nrOfColumns -- The dimensions of the 10x10 patch grid
+
+        Returns:
+        The T1 map
+        """
+        T1_values = R1_values
+
+        for i in range(nrOfRows):
+            for j in range(nrOfColumns):
+                R1 = R1_values[i][j]
+                try:
+                    T1 = 1 / R1
+                    T1_values[i][j] = T1
+                except ValueError:
+                    pass
+        return T1_values
+        
     def CalculateR1(self):
         # calculate the R1 from T1, as R1 = 1 / T1
         tempPatch_cal = []
