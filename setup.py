@@ -7,32 +7,32 @@ from cx_Freeze import setup, Executable
 # Create the shortcut table
 shortcut_table = [
     ("DesktopShortcut",        # Shortcut
-     "DesktopFolder",          # Directory_
-     "QIBA evaluate tool",           # Name
-     "TARGETDIR",              # Component_
-     "[TARGETDIR]QIBA_evaluate_tool.exe",# Target
-     None,                     # Arguments
-     None,                     # Description
-     None,                     # Hotkey
-     None,                     # Icon
-     None,                     # IconIndex
-     None,                     # ShowCmd
-     'TARGETDIR'               # WkDir
-     ),
-	 
-	 ("ProgramMenuShortcut",        # Shortcut
-     "ProgramMenuFolder",          # Directory_
-     "QIBA evaluate tool",     # Name
-     "TARGETDIR",              # Component_
-     "[TARGETDIR]QIBA_evaluate_tool.exe",   # Target
-     None,                     # Arguments
-     None,                     # Description
-     None,                     # Hotkey
-     None,                     # Icon
-     None,                     # IconIndex
-     None,                     # ShowCmd
-     'TARGETDIR'               # WkDir
-     )
+    "DesktopFolder",          # Directory_
+    "QIBA evaluate tool",           # Name
+    "TARGETDIR",              # Component_
+    "[TARGETDIR]QIBA_evaluate_tool.exe",# Target
+    None,                     # Arguments
+    None,                     # Description
+    None,                     # Hotkey
+    None,                     # Icon
+    None,                     # IconIndex
+    None,                     # ShowCmd
+    'TARGETDIR'               # WkDir
+    ),
+    
+    ("ProgramMenuShortcut",        # Shortcut
+    "ProgramMenuFolder",          # Directory_
+    "QIBA evaluate tool",     # Name
+    "TARGETDIR",              # Component_
+    "[TARGETDIR]QIBA_evaluate_tool.exe",   # Target
+    None,                     # Arguments
+    None,                     # Description
+    None,                     # Hotkey
+    None,                     # Icon
+    None,                     # IconIndex
+    None,                     # ShowCmd
+    'TARGETDIR'               # WkDir
+    )
     ]
 
 # Now create the table dictionary
@@ -42,23 +42,24 @@ msi_data = {"Shortcut": shortcut_table}
 bdist_msi_options = {'data': msi_data, "upgrade_code": "{96a85bac-52af-4019-9e94-3afcc9e1ad0c}"}
 
 # Declare the packages that will be loaded in the main script, and the files that should be packed with the installer
-build_exe_options = {"packages": ["os", "platform", "wx", "dicom", "pylab","numpy","scipy","matplotlib", "time", "struct", "subprocess", "QIBA_functions", "QIBA_model", "xlwt"],
-		"excludes": ["tkinter"],
-		'include_files': ["reference_data", "calculated_data", "splashImage_small.jpg", "logo.ico", "temp", "tools"]}
+build_exe_options = {"packages": ["os", "platform", "wx", "dicom", "pylab","numpy","scipy","matplotlib", "time", "struct", "subprocess", "ATEDialogBox", "QIBA_functions", \
+        "QIBA_functions_for_table", "QIBA_model", "QIBA_table_model_KV", "QIBA_table_model_T1", "xlwt"],
+        "excludes": ["tkinter"],
+        'include_files': ["reference_data", "calculated_data", "splashImage_small.jpg", "logo.ico", "temp", "tools"]}
 
 # GUI applications require a different base on Windows (the default is for a console application).
 base = None
 if sys.platform == "win32":
     base = "Win32GUI"
-	
+    
 
 setup(  name = "QIBA evaluate tool",
         version = "0.1",
         description = "QIBA evaluate tool",
         options = {"build_exe": build_exe_options,
-					"bdist_msi": bdist_msi_options},
+                    "bdist_msi": bdist_msi_options},
         executables = [Executable(script="QIBA_evaluate_tool.py", icon="logo.ico", base=base)]
-	 )
-			
-			
-			
+)
+            
+            
+            
