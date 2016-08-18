@@ -1,3 +1,6 @@
+.DS_Store
+.idea
+"test data"
 *.py[cod]
 
 # C extensions
