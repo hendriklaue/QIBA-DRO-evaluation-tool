@@ -2211,7 +2211,7 @@ class MainWindow_KV(MainWindow):
         self.popmenu_LOA_K.AppendItem(OnLOA_save_K)
         wx.EVT_MENU(self.popmenu_LOA_K, self.ID_POPUP_LOA_PAN_K, self.toolbar_LOA_K.pan)
         wx.EVT_MENU(self.popmenu_LOA_K, self.ID_POPUP_LOA_ZOOM_K, self.toolbar_LOA_K.zoom)
-        wx.EVT_MENU(self.popmenu_LOA_K, self.ID_POPUP_LOA_SAVE_K, self.toolbar_LOA_K.save)
+        wx.EVT_MENU(self.popmenu_LOA_K, self.ID_POPUP_LOA_SAVE_K, self.toolbar_LOA_K.save_figure)
         
         self.popmenu_LOA_V = wx.Menu()
         self.ID_POPUP_LOA_PAN_V = wx.NewId()
@@ -2225,7 +2225,7 @@ class MainWindow_KV(MainWindow):
         self.popmenu_LOA_V.AppendItem(OnLOA_save_V)
         wx.EVT_MENU(self.popmenu_LOA_V, self.ID_POPUP_LOA_PAN_V, self.toolbar_LOA_V.pan)
         wx.EVT_MENU(self.popmenu_LOA_V, self.ID_POPUP_LOA_ZOOM_V, self.toolbar_LOA_V.zoom)
-        wx.EVT_MENU(self.popmenu_LOA_V, self.ID_POPUP_LOA_SAVE_V, self.toolbar_LOA_V.save)
+        wx.EVT_MENU(self.popmenu_LOA_V, self.ID_POPUP_LOA_SAVE_V, self.toolbar_LOA_V.save_figure)
         
         # Draw the Bland-Altman plot for Ktrans
         font = {'fontname':'Arial', 'fontsize':12, 'weight':'bold'}
