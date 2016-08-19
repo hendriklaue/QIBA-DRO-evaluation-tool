@@ -549,12 +549,16 @@ class MainWindow(wx.Frame):
 
     def OnSwitchViewing(self, event):
         # switch the viewing in scatter plot page
-        self.SetStatusText("Rearranging the scatter plot...")
-        self.SCATTER_SWITCH = not self.SCATTER_SWITCH
-        self.buttonSwitch.Disable()
-        self.DrawScatter()
-        self.buttonSwitch.Enable()
-        self.SetStatusText("Rearranging the scatter plot finished.")
+        if self.type_of_data_loaded == "image":
+            self.SetStatusText("Rearranging the scatter plot...")
+            self.SCATTER_SWITCH = not self.SCATTER_SWITCH
+            self.buttonSwitch.Disable()
+            self.DrawScatter()
+            self.buttonSwitch.Enable()
+            self.SetStatusText("Rearranging the scatter plot finished.")
+        else:
+            print "Warning: no implementation for switch viewing for table data. Should be impemented or the button "+\
+            "should be disabled/removed for table data. "
 
     def ClearInterface(self):
         # clear the plots in the interface, so that when the evaluated models are cleared, the interface will also be cleaned.
@@ -640,7 +644,7 @@ class MainWindow(wx.Frame):
         self.popmenu_maps.AppendItem(OnMaps_save)
         wx.EVT_MENU(self.popmenu_maps, self.ID_POPUP_MAPS_PAN, self.toolbar_maps.pan)
         wx.EVT_MENU(self.popmenu_maps, self.ID_POPUP_MAPS_ZOOM, self.toolbar_maps.zoom)
-        wx.EVT_MENU(self.popmenu_maps, self.ID_POPUP_MAPS_SAVE, self.toolbar_maps.save)
+        wx.EVT_MENU(self.popmenu_maps, self.ID_POPUP_MAPS_SAVE, self.toolbar_maps.save_figure)
 
         # double click
         wx.EVT_LEFT_DCLICK(self.canvasImagePreview, self.toolbar_maps.home)
@@ -775,7 +779,7 @@ class MainWindow(wx.Frame):
         # call the method to execute evaluation
         try:
             if self.type_of_data_loaded == "image":
-                self.newModel.Evaluate()
+                self.newModel.evaluate()
             elif self.type_of_data_loaded == "table":
                 self.newModel.evaluate()
         except RuntimeError:
@@ -891,7 +895,7 @@ class MainWindow(wx.Frame):
         # call the method to execute evaluation
         try:
             if self.type_of_data_loaded == "image":
-                self.newModel.Evaluate()
+                self.newModel.evaluate()
             elif self.type_of_data_loaded == "table":
                 self.newModel.evaluate()
         except RuntimeError:
@@ -1902,7 +1906,7 @@ class MainWindow_KV(MainWindow):
         self.popmenu_hist_K.AppendItem(OnHist_save_K)
         wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_PAN_K, self.toolbar_hist_K.pan)
         wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_ZOOM_K, self.toolbar_hist_K.zoom)
-        wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_SAVE_K, self.toolbar_hist_K.save)
+        wx.EVT_MENU(self.popmenu_hist_K, self.ID_POPUP_HITS_SAVE_K, self.toolbar_hist_K.save_figure)
 
         self.popmenu_hist_V = wx.Menu()
         self.ID_POPUP_HITS_PAN_V = wx.NewId()
@@ -1917,7 +1921,7 @@ class MainWindow_KV(MainWindow):
         self.popmenu_hist_V.AppendItem(OnHist_save)
         wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_PAN_V, self.toolbar_hist_V.pan)
         wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_ZOOM_V, self.toolbar_hist_V.zoom)
-        wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_SAVE_V, self.toolbar_hist_V.save)
+        wx.EVT_MENU(self.popmenu_hist_V, self.ID_POPUP_HITS_SAVE_V, self.toolbar_hist_V.save_figure)
 
         # double click
         wx.EVT_LEFT_DCLICK(self.canvasHist_Ktrans, self.toolbar_hist_K.home)
@@ -2546,7 +2550,7 @@ class MainWindow_KV(MainWindow):
         self.popmenu_box.AppendItem(OnBox_save)
         wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_PAN, self.toolbar_box.pan)
         wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_ZOOM, self.toolbar_box.zoom)
-        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_SAVE, self.toolbar_box.save)
+        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_SAVE, self.toolbar_box.save_figure)
 
         # double click
         wx.EVT_LEFT_DCLICK(self.canvasBoxPlot, self.toolbar_box.home)
