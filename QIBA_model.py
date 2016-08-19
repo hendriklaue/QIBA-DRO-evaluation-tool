@@ -147,7 +147,7 @@ class Model_KV():
         # to create a "weighted" mask.
         self.mask = mask
         
-    def Evaluate(self):
+    def evaluate(self):
         # evaluation
         
         #Reformat the mask so that it can be used with the i,j,k coordinate system
