@@ -2,6 +2,7 @@ from scipy import stats, optimize
 import struct
 import dicom
 import math
+import nibabel
 import numpy
 import os.path
 #import Image
@@ -82,6 +83,14 @@ def ImportFile(path, nrOfRows, nrOfColumns, patchLen, mode):
             im.mode = "F"
         imArray = numpy.array(im)
         return imArray
+    elif fileExtension == '.img':
+        im = nibabel.load(path)
+        img_array_raw = im.get_data()
+        x_dim = len(img_array_raw)
+        y_dim = len(img_array_raw[0])
+        img_array = img_array_raw.reshape((x_dim, y_dim))
+        imArray = numpy.rot90(img_array)
+        return imArray
     elif fileExtension in [".txt", ".csv", ".cdata"]:
         print("QIBA_functions.ImportFile --> TextFile")
             
@@ -105,6 +114,15 @@ def ImportRawFile(path, patchLen):
         imArray = numpy.array(im)
         nrOfRow, nrOfColumn = imArray.shape
         return imArray, nrOfRow / patchLen, nrOfColumn / patchLen, 'TIFF'
+    elif fileExtension == '.img':
+        im = nibabel.load(path)
+        img_array_raw = im.get_data()
+        x_dim = len(img_array_raw)
+        y_dim = len(img_array_raw[0])
+        img_array = img_array_raw.reshape((x_dim, y_dim))
+        nrOfRow, nrOfColumn = y_dim, x_dim
+        imArray = numpy.rot90(img_array)
+        return imArray, nrOfRow / patchLen, nrOfColumn / patchLen, 'IMG'
     elif fileExtension in [".txt", ".csv", ".cdata"]:
         print("QIBA_functions.ImportRawFile --> TextFile")
     else:
@@ -590,8 +608,14 @@ def U_Test(dataToBeTested, referenceData, nrOfRows, nrOfColumns, mask):
             refData_masked = applyMask(refData, mask_10x10)
 
             if len(patch_masked) > 0:
-                temp_u[i].append(stats.mannwhitneyu(DealNaN(patch_masked)[0], refData_masked)[0])
-                temp_p[i].append(stats.mannwhitneyu(DealNaN(patch_masked)[0], refData_masked)[1])
+                try:
+                    temp_u[i].append(stats.mannwhitneyu(DealNaN(patch_masked)[0], refData_masked)[0])
+                    temp_p[i].append(stats.mannwhitneyu(DealNaN(patch_masked)[0], refData_masked)[1])
+                except ValueError:
+                    #In some cases, performing this test will cause ValueError: All numbers are identical in amannwhitneyu.
+                    print("There was an error performing the Mann-Whitney U Test.")
+                    temp_u[i].append(numpy.nan)
+                    temp_p[i].append(numpy.nan)
             else:
                 temp_u[i].append(numpy.nan)
                 temp_p[i].append(numpy.nan)
@@ -1497,8 +1521,9 @@ def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_
     
     i_dimension = len(calData_nbp)
     j_dimension = len(calData_nbp[0])
-        
+
     for i in range(i_dimension):
+        #print("i=" + str(i))
         for j in range(j_dimension):
             calData_nbp_10x10 = calData_nbp[i][j] #The 10x10 pixel patch of raw pixel data (no bad pixels)
             refData_nbp_10x10 = refData_nbp[i][j] #The 10x10 pixel patch or raw pixel data (no bad pixels)
@@ -1506,7 +1531,11 @@ def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_
             
             #Remove nans from the calculated data. Nans cause the calculations to fail -- they return nan.
             #calData_10x10 = [v for v in calData_10x10 if not math.isnan(v)]
-            
+            #print("   j="+str(j))
+            print(refData_nbp_10x10)
+            #print("length="+str(len(refData_nbp_10x10)))
+            print(maskData_nbp_10x10)
+            #print("length="+str(len(maskData_nbp_10x10)))
             # Apply the mask to refData_nbp_10x10: Filter the list
             refData_nbp_10x10_masked = applyMask(refData_nbp_10x10, maskData_nbp_10x10)
             

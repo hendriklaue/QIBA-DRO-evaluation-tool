@@ -86,7 +86,7 @@ class MainWindow(wx.Frame):
         self.nrOfColumn = 0
         self.patchLen = 10
         self.WARNINGTEXT = False
-        self.supportedFileTypeList = ['.dcm', '.bin', '.raw', '.tif']
+        self.supportedFileTypeList = ['.dcm', '.bin', '.raw', '.tif', '.img']
         self.supportedTextFileTypeList = ['.csv', '.cdata', '.txt'] #Valid filetypes for reading text file tables
 
         self.CenterOnScreen()
@@ -208,7 +208,7 @@ class MainWindow(wx.Frame):
         self.selectedFilePath = ''
         # setup the tree control widget for file viewing and selection
         self.fileBrowser = wx.GenericDirCtrl(self.leftPanel, -1, dir = os.path.join(os.getcwd(), 'calculated_data'), style=wx.DIRCTRL_SHOW_FILTERS,
-                                             filter="Supported files (*.dcm *.bin *.raw *.tif *.csv *.cdata *.txt)|*.dcm;*.bin;*.raw;*.tif;*.csv;*.cdata;*.txt")
+                                             filter="Supported files (*.dcm *.bin *.raw *.tif *.img *.csv *.cdata *.txt)|*.dcm;*.bin;*.raw;*.tif;*.img;*.csv;*.cdata;*.txt")
         self.fileTree = self.fileBrowser.GetTreeCtrl()
         # setup tooltip
         self.fileTree.Bind(wx.EVT_MOTION, self.OnMouseMotion)
