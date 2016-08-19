@@ -921,14 +921,21 @@ class MainWindow(wx.Frame):
         '''
         export selection
         '''
-        exportDialog = MySelectionDialog(None, 'Export as:', 'Export as...', choices=['PDF', 'Excel file'])
-        if exportDialog.ShowModal() == wx.ID_OK:
-            if exportDialog.GetSelections() == 'PDF':
-                self.OnExportToPDF('')
-            elif exportDialog.GetSelections() == 'Excel file':
-                self.OnExportToFolder('')
-        else:
-            pass
+        if self.type_of_data_loaded == "image":
+            exportDialog = MySelectionDialog(None, 'Export as:', 'Export as...', choices=['PDF', 'Excel file'])
+            if exportDialog.ShowModal() == wx.ID_OK:
+                if exportDialog.GetSelections() == 'PDF':
+                    self.OnExportToPDF('')
+                elif exportDialog.GetSelections() == 'Excel file':
+                    self.OnExportToFolder('')
+
+                #if savePath != "" and self.type_of_data_loaded == "table":
+                #    print("savePath:"+savePath)
+                    #self.saveResultsTable(save_path=savePath)
+            else:
+                pass
+        elif self.type_of_data_loaded == "table":
+            self.saveResultsTable()
 
     def OnExportToFolder(self, desDir):
         pass
@@ -1194,7 +1201,6 @@ class MainWindow_KV(MainWindow):
             self.DrawHistogramsFromTable()
             self.DrawBoxPlotFromTable()
             self.DrawBlandAltmanPlotFromTable()
-            self.saveResultsTable()
 
     def saveResultsTable(self, save_path=None):
         """Saves the results table as a text file.
@@ -3099,7 +3105,6 @@ class MainWindow_T1(MainWindow):
             self.DrawHistogramsFromTable()
             self.DrawBoxPlotFromTable()
             self.DrawBlandAltmanPlotFromTable()
-            self.saveResultsTable()
     
     def saveResultsTable(self, save_path=None):
         """Saves the results table as a text file.
@@ -3612,7 +3617,7 @@ class MainWindow_T1(MainWindow):
         self.popmenu_hist.AppendItem(OnHist_save)
         wx.EVT_MENU(self.popmenu_hist, self.ID_POPUP_HIST_PAN, self.toolbar_hist.pan)
         wx.EVT_MENU(self.popmenu_hist, self.ID_POPUP_HIST_ZOOM, self.toolbar_hist.zoom)
-        wx.EVT_MENU(self.popmenu_hist, self.ID_POPUP_HIST_SAVE, self.toolbar_hist.save)
+        wx.EVT_MENU(self.popmenu_hist, self.ID_POPUP_HIST_SAVE, self.toolbar_hist.save_figure)
 
         # double click
         wx.EVT_LEFT_DCLICK(self.canvasHist_T1, self.toolbar_hist.home)
@@ -3777,7 +3782,7 @@ class MainWindow_T1(MainWindow):
         self.popmenu_LOA_T1.AppendItem(OnLOA_save_T1)
         wx.EVT_MENU(self.popmenu_LOA_T1, self.ID_POPUP_LOA_PAN_T1, self.toolbar_LOA_T1.pan)
         wx.EVT_MENU(self.popmenu_LOA_T1, self.ID_POPUP_LOA_ZOOM_T1, self.toolbar_LOA_T1.zoom)
-        wx.EVT_MENU(self.popmenu_LOA_T1, self.ID_POPUP_LOA_SAVE_T1, self.toolbar_LOA_T1.save)
+        wx.EVT_MENU(self.popmenu_LOA_T1, self.ID_POPUP_LOA_SAVE_T1, self.toolbar_LOA_T1.save_figure)
         
         # Draw the Bland-Altman plot for T1
         font = {'fontname':'Arial', 'fontsize':12, 'weight':'bold'}
@@ -3860,7 +3865,7 @@ class MainWindow_T1(MainWindow):
         self.popmenu_LOA_T1.AppendItem(OnLOA_save_T1)
         wx.EVT_MENU(self.popmenu_LOA_T1, self.ID_POPUP_LOA_PAN_T1, self.toolbar_LOA_T1.pan)
         wx.EVT_MENU(self.popmenu_LOA_T1, self.ID_POPUP_LOA_ZOOM_T1, self.toolbar_LOA_T1.zoom)
-        wx.EVT_MENU(self.popmenu_LOA_T1, self.ID_POPUP_LOA_SAVE_T1, self.toolbar_LOA_T1.save)
+        wx.EVT_MENU(self.popmenu_LOA_T1, self.ID_POPUP_LOA_SAVE_T1, self.toolbar_LOA_T1.save_figure)
         
         # Draw the Bland-Altman plot for T1
         font = {'fontname':'Arial', 'fontsize':12, 'weight':'bold'}
@@ -3957,7 +3962,7 @@ class MainWindow_T1(MainWindow):
         self.popmenu_box.AppendItem(OnBox_save)
         wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_PAN, self.toolbar_box.pan)
         wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_ZOOM, self.toolbar_box.zoom)
-        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_SAVE, self.toolbar_box.save)
+        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_SAVE, self.toolbar_box.save_figure)
 
         # double click
         wx.EVT_LEFT_DCLICK(self.canvasBoxPlot, self.toolbar_box.home)
@@ -4039,7 +4044,7 @@ class MainWindow_T1(MainWindow):
         self.popmenu_box.AppendItem(OnBox_save)
         wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_PAN, self.toolbar_box.pan)
         wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_ZOOM, self.toolbar_box.zoom)
-        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_SAVE, self.toolbar_box.save)
+        wx.EVT_MENU(self.popmenu_box, self.ID_POPUP_BOX_SAVE, self.toolbar_box.save_figure)
 
         # double click
         wx.EVT_LEFT_DCLICK(self.canvasBoxPlot, self.toolbar_box.home)
