@@ -782,8 +782,15 @@ class MainWindow(wx.Frame):
                 self.newModel.evaluate()
             elif self.type_of_data_loaded == "table":
                 self.newModel.evaluate()
-        except RuntimeError:
-            self.SetStatusText('RuntimeError occurs. Evaluation terminated.')
+        #except RuntimeError:
+        #original - restore
+        #    self.SetStatusText('RuntimeError occurs. Evaluation terminated.')
+        #    return False
+        except RuntimeError as e:
+            print(e)
+            ex_type, ex, tb = sys.exc_info()  # For debugging
+            traceback.print_tb(tb)  # For debugging
+            self.SetStatusText('Runtime error occurs. Evaluation terminated.')
             return False
         except Exception as e: #For debugging. Originally just "except".
             print(e) #For debugging
@@ -928,10 +935,6 @@ class MainWindow(wx.Frame):
                     self.OnExportToPDF('')
                 elif exportDialog.GetSelections() == 'Excel file':
                     self.OnExportToFolder('')
-
-                #if savePath != "" and self.type_of_data_loaded == "table":
-                #    print("savePath:"+savePath)
-                    #self.saveResultsTable(save_path=savePath)
             else:
                 pass
         elif self.type_of_data_loaded == "table":

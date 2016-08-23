@@ -312,7 +312,12 @@ class Model_KV():
                         #print("NaN at ("+str(i)+","+str(j)+","+str(k)+")")
                         nan_pixel_count = nan_pixel_count + 1
                     elif pixel_cal == 0:
-                        pass #Don't do anything at the moment
+                        #pass #Don't do anything at the moment
+                        pixel_cal = 1e-6 #prevents division by 0 errors
+                        temp_list_cal_3.append(pixel_cal)
+                        temp_list_ref_3.append(pixel_ref)
+                        temp_list_mask_3.append(pixel_mask)
+
                         #pixel_cal = 1e-9 #prevents division by 0 errors
                         #temp_list_cal_3.append(pixel_cal)
                         #temp_list_ref_3.append(pixel_ref)
@@ -322,6 +327,7 @@ class Model_KV():
                 temp_list_cal_2.append(temp_list_cal_3)
                 temp_list_ref_2.append(temp_list_ref_3)
                 temp_list_mask_2.append(temp_list_mask_3)
+
             temp_list_cal.append(temp_list_cal_2)
             temp_list_ref.append(temp_list_ref_2)
             temp_list_mask.append(temp_list_mask_2)
@@ -329,7 +335,7 @@ class Model_KV():
         total_pixels_counted = len(temp_list_cal[0][0]) #for testing
         #total_pixels_counted = len(temp_list_cal) * len(temp_list_cal[0]) * len(temp_list_cal[0][0]) #for testing
         #print("Total number of pixels included in analysis:"+str(total_pixels_counted)) #for testing
-        
+
         return temp_list_ref, temp_list_cal, temp_list_mask, nan_pixel_count
         
     def PrepareHeaders(self):
@@ -937,7 +943,7 @@ class Model_KV():
     def CalculateSigmaMetricForModel(self):
         # Calculate the sigma metric
         self.Ktrans_sigma_metric, self.Ktrans_sigma_metric_all_regions = QIBA_functions.SigmaMetric(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns, self.Ktrans_cal_no_bad_pixels, self.Ktrans_ref_no_bad_pixels, self.allowable_total_error, self.mask, self.Ktrans_mask_no_bad_pixels)
-        self.Ve_sigma_metric, self.Ve_sigma_metric_all_regions = QIBA_functions.SigmaMetric(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns, self.Ve_cal_no_bad_pixels, self.Ve_ref_no_bad_pixels, self.allowable_total_error, self.mask, self.Ktrans_mask_no_bad_pixels)
+        self.Ve_sigma_metric, self.Ve_sigma_metric_all_regions = QIBA_functions.SigmaMetric(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns, self.Ve_cal_no_bad_pixels, self.Ve_ref_no_bad_pixels, self.allowable_total_error, self.mask, self.Ve_mask_no_bad_pixels)
         
     def CalculateMeanForModel(self):
         # call the mean calculation function
@@ -1102,7 +1108,7 @@ class Model_T1():
         # to create a "weighted" mask.
         self.mask = mask
 
-    def Evaluate(self):
+    def evaluate(self):
         # evaluation
 
         #Reformat the mask so that it can be used with the i,j,k coordinate system

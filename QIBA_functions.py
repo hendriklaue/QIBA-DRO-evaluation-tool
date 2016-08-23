@@ -378,7 +378,12 @@ def FittingLogarithmicModel(calculated, reference, dimensionIndex):
         if len(postRef)in (0,1):
             popt = [numpy.nan, numpy.nan]
         else:
-            popt, pcov = optimize.curve_fit(func_for_log_calculation, postRef, postCal)
+            try:
+                popt, pcov = optimize.curve_fit(func_for_log_calculation, postRef, postCal)
+            except RuntimeError:
+                print("Error fitting logarithmic curve:")
+                print("     Optimal parameters not found: Number of calls to function has reached maxfev = 600")
+                popt = [numpy.nan, numpy.nan]
         temp_a.append(popt[0])
         temp_b.append(popt[1])
 
@@ -859,7 +864,10 @@ def WriteToExcelSheet_GKM_statistics(sheet, headerH, headerV, data, titlePos, nr
         row = sheet.row(i+3)
         row.write(0, item)
         for j in range(nrC):
-            row.write(j+1, str(formatFloatTo4DigitsString(data[0][i][j])))
+            try:
+                row.write(j+1, str(formatFloatTo4DigitsString(data[0][i][j])))
+            except:
+                row.write(j+1, "nan")
 
     sheet.write(nrR+4,int(titlePos), 'Each patch of the calculated Ve')
     row_sheet1_Header_K = sheet.row(2 +nrR+4)
@@ -869,7 +877,10 @@ def WriteToExcelSheet_GKM_statistics(sheet, headerH, headerV, data, titlePos, nr
         row = sheet.row(i+3 + nrR+4)
         row.write(0, item)
         for j in range(nrC):
-            row.write(j+1, str(formatFloatTo4DigitsString(data[1][i][j])) )
+            try:
+                row.write(j+1, str(formatFloatTo4DigitsString(data[1][i][j])) )
+            except:
+                row.write(j+1, "nan")
 
 def WriteToExcelSheet_GKM_percentage(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     '''
@@ -885,7 +896,10 @@ def WriteToExcelSheet_GKM_percentage(sheet, headerH, headerV, data, titlePos, nr
         row = sheet.row(i+3)
         row.write(0, item)
         for j in range(nrC):
-            row.write(j+1, str(formatFloatTo4DigitsString(data[0][i][j]*100)+'%'))
+            try:
+                row.write(j+1, str(formatFloatTo4DigitsString(data[0][i][j]*100)+'%'))
+            except:
+                row.write(j+1, "nan")
 
     sheet.write(nrR+4,int(titlePos), 'Each patch of the calculated Ve')
     row_sheet1_Header_K = sheet.row(2 +nrR+4)
@@ -895,7 +909,10 @@ def WriteToExcelSheet_GKM_percentage(sheet, headerH, headerV, data, titlePos, nr
         row = sheet.row(i+3 + nrR+4)
         row.write(0, item)
         for j in range(nrC):
-            row.write(j+1, str(formatFloatTo4DigitsString(data[1][i][j]*100)+'%') )
+            try:
+                row.write(j+1, str(formatFloatTo4DigitsString(data[1][i][j]*100)+'%') )
+            except:
+                row.write(j+1, "nan")
 
 def WriteToExcelSheet_GKM_co(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     '''
@@ -906,22 +923,34 @@ def WriteToExcelSheet_GKM_co(sheet, headerH, headerV, data, titlePos, nrR, nrC):
     sheet.write(1,int(titlePos), 'Between columns of calculated Ktrans and reference Ktrans')
     for (j, item) in enumerate(headerH):
         sheet.write(0*nrC+3+j, 0, item)
-        sheet.write(0*nrC+3+j, 1, str(formatFloatTo4DigitsString(data[0][j])))
+        try:
+            sheet.write(0*nrC+3+j, 1, str(formatFloatTo4DigitsString(data[0][j])))
+        except:
+            sheet.write(0*nrC+3+j, 1, "nan")
 
     sheet.write(nrC+3+1,int(titlePos), 'Between rows of calculated Ktrans and reference Ve')
     for (j, item) in enumerate(headerV):
         sheet.write(nrC+3+3+j, 0, item)
-        sheet.write(nrC+3+3+j, 1, str(formatFloatTo4DigitsString(data[1][j])))
+        try:
+            sheet.write(nrC+3+3+j, 1, str(formatFloatTo4DigitsString(data[1][j])))
+        except:
+            sheet.write(nrC+3+3+j, 1, "nan")
 
     sheet.write(nrC+3+nrR+3+1,int(titlePos), 'Between columns of calculated Ktrans and reference Ve')
     for (j, item) in enumerate(headerH):
         sheet.write(nrC+3+nrR+3+3+j, 0, item)
-        sheet.write(nrC+3+nrR+3+3+j, 1, str(formatFloatTo4DigitsString(data[2][j])))
+        try:
+            sheet.write(nrC+3+nrR+3+3+j, 1, str(formatFloatTo4DigitsString(data[2][j])))
+        except:
+            sheet.write(nrC+3+nrR+3+3+j, 1, "nan")
 
     sheet.write(2*(nrC+3)+nrR+3+1,int(titlePos), 'Between rows of calculated Ve and reference Ve')
     for (j, item) in enumerate(headerH):
         sheet.write(2*(nrC+3)+nrR+3+3+j, 0, item)
-        sheet.write(2*(nrC+3)+nrR+3+3+j, 1, str(formatFloatTo4DigitsString(data[3][j])))
+        try:
+            sheet.write(2*(nrC+3)+nrR+3+3+j, 1, str(formatFloatTo4DigitsString(data[3][j])))
+        except:
+            sheet.write(2*(nrC+3)+nrR+3+3+j, 1, "nan")
 
 
 def WriteToExcelSheet_GKM_fit(sheet, headerH, headerV, data, titlePos, nrR, nrC):
@@ -933,22 +962,33 @@ def WriteToExcelSheet_GKM_fit(sheet, headerH, headerV, data, titlePos, nrR, nrC)
     sheet.write(1,int(titlePos), 'Linear model fitting for calculated Ktrans')
     for (j, item) in enumerate(headerH):
         sheet.write(0*nrC+3+j, 0, item)
-        sheet.write(0*nrC+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ') * Ktrans_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + '), R-squared value: ' + str(formatFloatTo4DigitsString(data[2][j])))
+        try:
+            sheet.write(0*nrC+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[0][j])) + ') * Ktrans_ref + (' + str(formatFloatTo4DigitsString(data[1][j])) + '), R-squared value: ' + str(formatFloatTo4DigitsString(data[2][j])))
+        except:
+            sheet.write(0*nrC+3+j, 1, "nan")
 
     sheet.write(nrC+3+1,int(titlePos), 'Logarithmic model fitting for calculated Ktrans')
     for (j, item) in enumerate(headerH):
         sheet.write(nrC+3+3+j, 0, item)
-        sheet.write(nrC+3+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[4][j])) + ') * log10(Ktrans_ref) + (' + str(formatFloatTo4DigitsString(data[3][j])) + ')' )
+        try:
+            sheet.write(nrC+3+3+j, 1, 'Ktrans_cal = (' + str(formatFloatTo4DigitsString(data[4][j])) + ') * log10(Ktrans_ref) + (' + str(formatFloatTo4DigitsString(data[3][j])) + ')' )
+        except:
+            sheet.write(nrC+3+3+j, 1, "nan")
 
     sheet.write(2*(nrC+3)+1,int(titlePos), 'Linear model fitting for calculated Ve')
     for (j, item) in enumerate(headerV):
         sheet.write(2*(nrC+3)+3+j, 0, item)
-        sheet.write(2*(nrC+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[5][j])) + ') * Ve_ref + (' + str(formatFloatTo4DigitsString(data[6][j])) + '), R-squared value: ' + str(formatFloatTo4DigitsString(data[7][j])))
-
+        try:
+            sheet.write(2*(nrC+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[5][j])) + ') * Ve_ref + (' + str(formatFloatTo4DigitsString(data[6][j])) + '), R-squared value: ' + str(formatFloatTo4DigitsString(data[7][j])))
+        except:
+            sheet.write(2*(nrC+3)+3+j, 1, "nan")
     sheet.write(2*(nrC+3)+(nrR+3)+1,int(titlePos), 'Logarithmic model fitting for calculated Ve')
     for (j, item) in enumerate(headerV):
         sheet.write(2*(nrC+3)+(nrR+3)+3+j, 0, item)
-        sheet.write(2*(nrC+3)+(nrR+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[9][j])) + ') * log10(Ve_ref) + (' + str(formatFloatTo4DigitsString(data[8][j])) + ')' )
+        try:
+            sheet.write(2*(nrC+3)+(nrR+3)+3+j, 1, 'Ve_cal = (' + str(formatFloatTo4DigitsString(data[9][j])) + ') * log10(Ve_ref) + (' + str(formatFloatTo4DigitsString(data[8][j])) + ')' )
+        except:
+            sheet.write(2*(nrC+3)+(nrR+3)+3+j, 1, "nan")
 
 def WriteToExcelSheet_GKM_test(sheet, headerH, headerV, data, titlePos, nrR, nrC, caption):
     '''
@@ -1215,7 +1255,7 @@ def RMSD(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
             refData_nbp_10x10 = refData_nbp[i][j]
             calData_nbp_10x10 = calData_nbp[i][j]
             maskData_nbp_10x10 = mask_nbp[i][j]
-            
+
             # Apply the mask to refData_nbp_10x10: Filter the list
             refData_nbp_10x10_masked = applyMask(refData_nbp_10x10, maskData_nbp_10x10)
             
@@ -1421,7 +1461,7 @@ def CCC(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
             refData_nbp_10x10 = refData_nbp[i][j]
             calData_nbp_10x10 = calData_nbp[i][j]
             maskData_nbp_10x10 = mask_nbp[i][j]
-            
+
             # Apply the mask to refData_nbp_10x10: Filter the list
             refData_nbp_10x10_masked = applyMask(refData_nbp_10x10, maskData_nbp_10x10)
             
@@ -1532,10 +1572,17 @@ def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_
             #Remove nans from the calculated data. Nans cause the calculations to fail -- they return nan.
             #calData_10x10 = [v for v in calData_10x10 if not math.isnan(v)]
             #print("   j="+str(j))
-            print(refData_nbp_10x10)
-            #print("length="+str(len(refData_nbp_10x10)))
-            print(maskData_nbp_10x10)
-            #print("length="+str(len(maskData_nbp_10x10)))
+
+            #start debugging
+            #print(refData_nbp_10x10)
+            #print("refData length="+str(len(refData_nbp_10x10)))
+            #print(maskData_nbp_10x10)
+            #print(calData_nbp_10x10)
+            #print("calData length="+str(len(calData_nbp_10x10)))
+            #print("mask length="+str(len(maskData_nbp_10x10)))
+            #print("----------------------------------------------")
+            #end debugging
+
             # Apply the mask to refData_nbp_10x10: Filter the list
             refData_nbp_10x10_masked = applyMask(refData_nbp_10x10, maskData_nbp_10x10)
             
