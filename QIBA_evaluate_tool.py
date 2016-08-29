@@ -423,11 +423,13 @@ class MainWindow(wx.Frame):
         #sizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
         #self.pageImagePreview.SetSizer(sizer)
         
-        #New 4 lines
+        #New 6 lines
         self.imagePreviewSizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.imagePreviewSizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
+        self.tableViewer = wx.html.HtmlWindow(self.pageImagePreview, -1, style=wx.html.HW_SCROLLBAR_AUTO | wx.ALWAYS_SHOW_SB)
+        self.imagePreviewSizer.Add(self.tableViewer, 1, wx.EXPAND)  # adds table to sizer
+        self.imagePreviewSizer.Show(self.tableViewer, show=False)
+        self.imagePreviewSizer.Add(self.canvasImagePreview, 1, wx.EXPAND) #adds image preview to sizer
         self.pageImagePreview.SetSizer(self.imagePreviewSizer)
-        self.imagePreviewViewer = wx.html.HtmlWindow(self.pageImagePreview, -1, style=wx.html.HW_SCROLLBAR_AUTO | wx.ALWAYS_SHOW_SB)
 
         # page scatter
         self.figureScatter = Figure()
@@ -559,6 +561,15 @@ class MainWindow(wx.Frame):
         else:
             print "Warning: no implementation for switch viewing for table data. Should be impemented or the button "+\
             "should be disabled/removed for table data. "
+
+    def changeTabTitle(self, old_title, new_title):
+        """Changes the title of a wxPython Notebook tab. wxPython lacks
+        a way to do this with one statement, so this is the alternate.
+        """
+        for tab_id in range(self.noteBookRight.GetPageCount()):
+            if self.noteBookRight.GetPageText(tab_id) == old_title:
+                self.noteBookRight.SetPageText(tab_id, new_title)
+                return
 
     def ClearInterface(self):
         # clear the plots in the interface, so that when the evaluated models are cleared, the interface will also be cleaned.
@@ -1811,15 +1822,6 @@ class MainWindow_KV(MainWindow):
                 self.dlg.Update()
             return
 
-    def changeTabTitle(self, old_title, new_title):
-        """Changes the title of a wxPython Notebook tab. wxPython lacks
-        a way to do this with one statement, so this is the alternate.
-        """
-        for tab_id in range(self.noteBookRight.GetPageCount()):
-            if self.noteBookRight.GetPageText(tab_id) == old_title:
-                self.noteBookRight.SetPageText(tab_id, new_title)
-                return
-        
     def DrawHistograms(self):
         # draw histograms of imported calculated Ktrans and Ve maps, so that the user can have a look of the distribution of each patch.
 
@@ -2706,24 +2708,12 @@ class MainWindow_KV(MainWindow):
         ##sizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
         ##self.pageImagePreview.SetSizer(sizer, deleteOld=True)
         
-        #New: Figure out what item is attached to self.imagePreviewSizer
-        #item1 represents the figure canvas that is used to display the calculated images
-        #item2 represents the HTML viewer used to display table data
-        #If item1 is not None, then don't change the item attached to self.imagePreviewSizer
-        # (if item1 is not None, then item2 should be None)
-        #If item2 is not None, then attach self.canvasImagePreview to self.imagePreviewSizer
-        item1 = self.imagePreviewSizer.GetItem(self.canvasImagePreview)
-        item2 = self.imagePreviewSizer.GetItem(self.imagePreviewViewer)
-        
-        if item1 is None:
-            print("Trying to replace pageImagePreview with canvasImagePreview in imagePreviewSizer...")
-            self.imagePreviewSizer.Detach(self.imagePreviewViewer) #new
-            self.imagePreviewSizer.Add(self.canvasImagePreview, 1, wx.EXPAND) #new
-            self.pageImagePreview.SetSizer(self.imagePreviewSizer, deleteOld=True) #new
-            self.pageImagePreview.Layout() #new
-            #self.pageImagePreview.Show() #This is useful for debugging... When Evaluate button is clicked, the image preview appears. After a few seconds, it is replace by the table.
-        #End new
-        
+        #New 8/29/16
+        self.imagePreviewSizer.Show(self.canvasImagePreview, show=True)
+        self.imagePreviewSizer.Show(self.tableViewer, show=False)
+        self.pageImagePreview.Layout() #Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
+        #End new 8/29/16
+
         self.PlotPreview([[self.newModel.Ktrans_cal_inRow, self.newModel.Ktrans_error, self.newModel.Ktrans_error_normalized], \
             [self.newModel.Ve_cal_inRow, self.newModel.Ve_error, self.newModel.Ve_error_normalized]], \
 
@@ -2748,10 +2738,10 @@ class MainWindow_KV(MainWindow):
         #(original) self.pageImagePreview.SetSizer(sizer, deleteOld=True)
         #(original) self.pageImagePreview.SetAutoLayout(1)
         #self.pageImagePreview.SetupScrolling()
-        self.imagePreviewSizer.Detach(self.canvasImagePreview) #new
-        self.imagePreviewSizer.Add(self.imagePreviewViewer, 1, wx.EXPAND) #new
-        self.pageImagePreview.SetSizer(self.imagePreviewSizer, deleteOld=True) #new
-        
+
+        self.imagePreviewSizer.Show(self.canvasImagePreview, show=False)
+        self.imagePreviewSizer.Show(self.tableViewer, show=True)
+
         self.pageImagePreview.Layout() #Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
         #self.pageImagePreview.SetupScrolling()
         htmlText = """
@@ -2759,7 +2749,7 @@ class MainWindow_KV(MainWindow):
         <html>
         <body>
         """
-        htmlText += "<small>Use the arrow keys to scroll until the scrollbars appear.</small>"
+        htmlText += "<small>Click anywhere in the table to activate scrolling.</small>"
         htmlText += "<h2>The original Ktrans data table</h2>"
         htmlText += Ktrans_table_in_html
         htmlText += "<h2>The original Ve data table</h2>"
@@ -2769,7 +2759,7 @@ class MainWindow_KV(MainWindow):
         </body>
         </html>
         """
-        self.imagePreviewViewer.SetPage(htmlText)
+        self.tableViewer.SetPage(htmlText)
         #self.imagePreviewViewer.Bind(wx.EVT_ACTIVATE, self.ActivateTest)
         #self.buttonSwitch.Bind(wx.EVT_BUTTON, self.OnSwitchViewing)
         #wx.EVT_ACTIVATE(self.pageImagePreview, self.ActivateTest())
@@ -3434,6 +3424,7 @@ class MainWindow_T1(MainWindow):
         # pass the file path for loading
         self.path_cal_T1 = self.fileBrowser.GetPath()
         self.SetStatusText('Calculated T1 loaded.')
+        self.changeTabTitle("Table Viewer", "Image Viewer")
         self.buttonEvaluate.Enable()
         self.T1_R1_flag = "T1"
         self.path_qiba_table_T1 = None
@@ -3442,6 +3433,7 @@ class MainWindow_T1(MainWindow):
         # pass the file path for loading
         self.path_cal_T1 = self.fileBrowser.GetPath()
         self.SetStatusText('Calculated R1 loaded.')
+        self.changeTabTitle("Table Viewer", "Image Viewer")
         self.buttonEvaluate.Enable()
         self.T1_R1_flag = "R1"
         self.path_qiba_table_T1 = None
@@ -3483,6 +3475,7 @@ class MainWindow_T1(MainWindow):
             wx.MessageBox(error_message, "Error Reading T1/R1 Table", wx.OK | wx.ICON_ERROR)
             return
         self.SetStatusText("T1/R1 table file loaded successfully.")
+        self.changeTabTitle("Image Viewer", "Table Viewer")
         self.buttonEvaluate.Enable()
         self.path_cal_T1 = None
     
@@ -4068,12 +4061,18 @@ class MainWindow_T1(MainWindow):
 
     def DrawMaps(self):
         # draw the maps of the preview and error
-        self.figureImagePreview = Figure()
-        self.canvasImagePreview = FigureCanvas(self.pageImagePreview, -1, self.figureImagePreview)
-        sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
-        self.pageImagePreview.SetSizer(sizer, deleteOld=True)
-        
+
+        #Original
+        #self.figureImagePreview = Figure()
+        #self.canvasImagePreview = FigureCanvas(self.pageImagePreview, -1, self.figureImagePreview)
+        #sizer = wx.BoxSizer(wx.HORIZONTAL)
+        #sizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
+        #self.pageImagePreview.SetSizer(sizer, deleteOld=True)
+
+        self.imagePreviewSizer.Show(self.canvasImagePreview, show=True)
+        self.imagePreviewSizer.Show(self.tableViewer, show=False)
+        self.pageImagePreview.Layout()  # Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
+
         self.PlotPreview([[self.newModel.T1_cal_inRow], [self.newModel.T1_error], [self.newModel.T1_error_normalized],],
 
                                 [['Calculated T1'], ['Error map of T1'], ['Normalized Error map of T1'],],
@@ -4087,30 +4086,34 @@ class MainWindow_T1(MainWindow):
         #Make HTML versions of the Ktrans and Ve table data
         T1_table_in_html = QIBA_functions_for_table.putRawDataTableInHtml(self.data_table_T1)
         
-        self.imagePreviewViewer = wx.html.HtmlWindow(self.pageImagePreview, -1, style=wx.html.HW_SCROLLBAR_AUTO | wx.ALWAYS_SHOW_SB)
-        #self.imagePreviewViewer = wx.html.HtmlWindow(self.pageImagePreview, -1)
+        #self.imagePreviewViewer = wx.html.HtmlWindow(self.pageImagePreview, -1, style=wx.html.HW_SCROLLBAR_AUTO | wx.ALWAYS_SHOW_SB)
         
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.imagePreviewViewer, 1, wx.EXPAND)
-        self.pageImagePreview.SetSizer(sizer, deleteOld=True)
-        self.pageImagePreview.SetAutoLayout(1)
-        #self.pageImagePreview.SetupScrolling()
-        self.pageImagePreview.Layout() #Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
-        #self.pageImagePreview.SetupScrolling()
+        #sizer = wx.BoxSizer(wx.VERTICAL)
+        #sizer.Add(self.imagePreviewViewer, 1, wx.EXPAND)
+        #self.pageImagePreview.SetSizer(sizer, deleteOld=True)
+        #self.pageImagePreview.SetAutoLayout(1)
+        ##self.pageImagePreview.SetupScrolling()
+        #self.pageImagePreview.Layout() #Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
+        ##self.pageImagePreview.SetupScrolling()
+
+        self.imagePreviewSizer.Show(self.canvasImagePreview, show=False)
+        self.imagePreviewSizer.Show(self.tableViewer, show=True)
+        self.pageImagePreview.Layout()  # Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
+
         htmlText = """
         <!DOCTYPE html>
         <html>
         <body>
         """
-        htmlText += "<small>Use the arrow keys to scroll until the scrollbars appear.</small>"
+        htmlText += "<small>Click anywhere in the table to activate scrolling.</small>"
         htmlText += "<h2>The original T1 data table</h2>"
         htmlText += T1_table_in_html
-        
+
         htmlText += """
         </body>
         </html>
         """
-        self.imagePreviewViewer.SetPage(htmlText)
+        self.tableViewer.SetPage(htmlText)
         #self.imagePreviewViewer.Bind(wx.EVT_ACTIVATE, self.ActivateTest)
         #self.buttonSwitch.Bind(wx.EVT_BUTTON, self.OnSwitchViewing)
         #wx.EVT_ACTIVATE(self.pageImagePreview, self.ActivateTest())
