@@ -218,14 +218,16 @@ def RMSD(ref_cal_group_list):
     #2. Calculate RMSD for all reference values combined
     #Reference data mean, stddev, csd
     mean_refData = numpy.mean(ref_data_list)
-    stddev_refData = numpy.std(ref_data_list)
-    csd_refData = (total_instances_counted * mean_refData**2) #This formula is correct. The mean bias of the reference data is 0, so (ref_instances_counted-1)*mean_bias**2 = 0
+    sd_refData = numpy.std(ref_data_list)
+    #csd_refData = (total_instances_counted * mean_refData**2) #This formula is correct. The mean bias of the reference data is 0, so (ref_instances_counted-1)*mean_bias**2 = 0
+    csd_refData = ((total_instances_counted-1)*sd_refData**2)+(total_instances_counted*mean_refData**2)
 
     #Calculated data mean, stddev, mean_bias, csd
     mean_calData = numpy.mean(cal_data_list)
-    stddev_calData = numpy.std(cal_data_list)
+    sd_calData = numpy.std(cal_data_list)
     mean_bias_cal = (mean_calData - mean_refData) / mean_refData
-    csd_calData = ((total_instances_counted-1) * mean_bias_cal**2) + (total_instances_counted * mean_calData**2)
+    #csd_calData = ((total_instances_counted-1) * mean_bias_cal**2) + (total_instances_counted * mean_calData**2)
+    csd_calData = ((total_instances_counted-1)*sd_calData**2)+(total_instances_counted*mean_calData**2)
 
     #Variance, correlation, covariance
     variance_calData = (csd_calData - (total_instances_counted * mean_calData**2)) / (total_instances_counted - 1)
@@ -299,12 +301,16 @@ def CCC(ref_cal_group_list):
     #2. Calculate CCC for all reference values combined
     #Reference data mean and csd
     mean_refData = numpy.mean(ref_data_list)
-    csd_refData = (total_instances_counted * mean_refData**2) #This formula is correct. The mean bias of the reference data is 0, so (ref_instances_counted-1)*mean_bias**2 = 0
+    #csd_refData = (total_instances_counted * mean_refData**2) #This formula is correct. The mean bias of the reference data is 0, so (ref_instances_counted-1)*mean_bias**2 = 0
+    sd_refData = numpy.std(ref_data_list)
+    csd_refData = ((total_instances_counted-1)*sd_refData**2)+(total_instances_counted*mean_refData**2)
 
     #Calculated data mean, mean_bias, csd
     mean_calData = numpy.mean(cal_data_list)
     mean_bias_cal = (mean_calData - mean_refData) / mean_refData
-    csd_calData = ((total_instances_counted-1) * mean_bias_cal**2) + (total_instances_counted * mean_calData**2)
+    #csd_calData = ((total_instances_counted-1) * mean_bias_cal**2) + (total_instances_counted * mean_calData**2)
+    sd_calData = numpy.std(cal_data_list)
+    csd_calData = ((total_instances_counted-1)*sd_calData**2)+(total_instances_counted*mean_calData**2)
 
     #Variance, correlation, covariance, CCC
     variance_calData = (csd_calData - (total_instances_counted * mean_calData**2)) / (total_instances_counted - 1)
@@ -354,15 +360,18 @@ def CCC(ref_cal_group_list):
         covariance = correlation * numpy.sqrt(variance_calData) * numpy.sqrt(variance_refData)
         ccc = (2*covariance) / (variance_calData + variance_refData + (mean_refData-mean_calData)**2)
         ccc_list.append(ccc)
-    sum_csd_calData = numpy.sum(cal_csd_list)
-    avg_mean_calData = numpy.mean(cal_mean_list)
-    variance_calData = (sum_csd_calData - (total_instances_counted * avg_mean_calData**2)) / (total_instances_counted - 1)
-    sum_csd_refData = numpy.sum(ref_csd_list)
-    avg_mean_refData = numpy.mean(ref_mean_list)
-    variance_refData = (sum_csd_refData - (total_instances_counted * avg_mean_refData**2)) / (total_instances_counted - 1)
-    correlation = numpy.corrcoef(ref_mean_list, cal_mean_list, rowvar=1)[1][0]
-    covariance = correlation * numpy.sqrt(variance_calData) * numpy.sqrt(variance_refData)
-    ccc_all_regions = (2*covariance) / (variance_calData + variance_refData + (avg_mean_refData-avg_mean_calData)**2)
+
+    # 4. Calculate CCC for all reference values combined (new)
+    # These formulas are taken from Mean_and_St_Dev_Table...xlsx spreadsheet
+    #sum_csd_calData = numpy.sum(cal_csd_list)
+    #avg_mean_calData = numpy.mean(cal_mean_list)
+    #variance_calData = (sum_csd_calData - (total_instances_counted * avg_mean_calData**2)) / (total_instances_counted - 1) # total variance
+    #sum_csd_refData = numpy.sum(ref_csd_list)
+    #avg_mean_refData = numpy.mean(ref_mean_list)
+    #variance_refData = (sum_csd_refData - (total_instances_counted * avg_mean_refData**2)) / (total_instances_counted - 1) # total variance
+    #correlation = numpy.corrcoef(ref_mean_list, cal_mean_list, rowvar=1)[1][0]
+    #covariance = correlation * numpy.sqrt(variance_calData) * numpy.sqrt(variance_refData)
+    #ccc_all_regions = (2*covariance) / (variance_calData + variance_refData + (avg_mean_refData-avg_mean_calData)**2)
     #print("ccc_all_regions="+str(ccc_all_regions))
 
     #Temporary: Calculate CCC using Lin's and numpy's formulas
@@ -375,22 +384,91 @@ def CCC(ref_cal_group_list):
 
     return ccc_list, ccc_all_regions
 
-def TDI(rmsd_list, aggregate_rmsd):
-    """Calculates Total Deviation Index
-    Arguments:
-        rmsd_list: A list of RMSDs for each reference value
-        aggregate rmsd: The RMSD for all reference values combined
-    """
-    tdi_list = []
-    for value in rmsd_list:
-        if isinstance(value, float):
-            tdi_region = 1.96 * numpy.absolute(value)
-            tdi_list.append(tdi_region)
-        else:
-            tdi_list.append(numpy.nan)
-    tdi_all_regions = 1.96 * numpy.absolute(aggregate_rmsd)
+def TDI(ref_cal_group_list):
+    """Calculates Total Deviation Index (Non-parametric method"""
 
-    return tdi_list, tdi_all_regions
+    # 1. Extract data from group lists
+    ref_data_list = []  # The list of reference values (raw data), extracted from ref_cal_group_list
+    cal_data_list = []  # The list of calculated values (raw data), extracted from ref_cal_group_list
+    instances_counted_list = []
+
+    for unique_ref_group in ref_cal_group_list:
+        for tpl in unique_ref_group:
+            ref_data_list.append(tpl[0])
+            cal_data_list.append(tpl[1])
+            instances_counted_list.append(tpl[3])
+    total_instances_counted = numpy.sum(instances_counted_list)
+
+    ref_cal_pairs = zip(ref_data_list, cal_data_list)
+    #ref_cal_pairs_sorted = sorted(ref_cal_pairs, key=getKey, reverse=True) #Sort by calculated value in descending order
+
+    # 2. Calculate TDI for all reference values combined
+    differences_list = []
+    for pair in ref_cal_pairs:
+        #differences_list.append(abs(pair[1]) - abs(pair[0])) #original
+        differences_list.append(abs(pair[1]-pair[0]))
+
+    # 3. 2nd new method to estimate TDI.
+    number_of_items = len(differences_list)
+    differences_list_sorted = sorted(differences_list)
+    index = int(numpy.ceil(number_of_items * 0.95))
+    tdi_all_regions_method_2 = differences_list_sorted[index]
+    # End new method
+
+    # 4. Calculate TDI. This method is used by the R package MethComp.
+    # It calculates an approximate TDI by assuming a normal distribution.
+    mean_difference = numpy.mean(differences_list)
+    sd_difference = numpy.std(differences_list, dtype=numpy.float64, ddof=1)
+    tdi_all_regions = 1.959964 * numpy.sqrt(mean_difference**2 + sd_difference**2)
+
+    # Calculate TDI for each reference value
+    tdi_list = []
+    for unique_ref_group in ref_cal_group_list:
+        tuple_ref_list = []  # The reference values for each reference value group
+        tuple_cal_list = []  # The calculated values for each reference value group
+        tuple_instances_list = []  # The number of usable instances for each reference value group
+        for tpl in unique_ref_group:
+            ref_value = tpl[0]
+            cal_value = tpl[1]
+            instances_counted = tpl[3]
+            tuple_ref_list.append(ref_value)
+            tuple_cal_list.append(cal_value)
+            tuple_instances_list.append(instances_counted)
+
+        total_instances_counted = numpy.sum(tuple_instances_list)
+
+        ref_cal_pairs = zip(tuple_ref_list, tuple_cal_list)
+        differences_list = []
+        for pair in ref_cal_pairs:
+            differences_list.append(abs(pair[1]) - abs(pair[0]))
+
+        # Calculate TDI. This method is used by the R package MethComp.
+        # It calculates an approximate TDI by assuming a normal distribution.
+        mean_difference = numpy.mean(differences_list)
+        sd_difference = numpy.std(differences_list, dtype=numpy.float64, ddof=1)
+        tdi = 1.959964 * numpy.sqrt(mean_difference**2 + sd_difference**2)
+        tdi_list.append(tdi)
+
+
+
+    return tdi_list, tdi_all_regions, tdi_all_regions_method_2
+
+#def TDI(rmsd_list, aggregate_rmsd):
+#    """Calculates Total Deviation Index (Parametric Method)
+#    Arguments:
+#        rmsd_list: A list of RMSDs for each reference value
+#        aggregate rmsd: The RMSD for all reference values combined
+#    """
+#    tdi_list = []
+#    for value in rmsd_list:
+#        if isinstance(value, float):
+#            tdi_region = 1.96 * numpy.absolute(value)
+#            tdi_list.append(tdi_region)
+#        else:
+#            tdi_list.append(numpy.nan)
+#    tdi_all_regions = 1.96 * numpy.absolute(aggregate_rmsd)
+#
+#    return tdi_list, tdi_all_regions
 
 def SigmaMetric(ref_cal_group_list, allowable_total_error):
     """Sigma metric
@@ -472,10 +550,10 @@ def SigmaMetric(ref_cal_group_list, allowable_total_error):
     #sum_csd_calData = numpy.sum(cal_csd_list)
     #sum_csd_calData = numpy.sum(csd_calData_list)
     avg_mean_calData = numpy.mean(cal_mean_list)
-    avg_mean_bias = numpy.mean(mean_bias_list)
-    avg_cv_calData = numpy.mean(cal_cv_list)
-    avg_ate_calData = numpy.mean(allowable_total_error_list)
-    sigma_metric_all_regions = (avg_ate_calData - avg_mean_bias) / avg_cv_calData
+    #avg_mean_bias = numpy.mean(mean_bias_list)
+    #avg_cv_calData = numpy.mean(cal_cv_list)
+    #avg_ate_calData = numpy.mean(allowable_total_error_list)
+    #s0igma_metric_all_regions = (avg_ate_calData - avg_mean_bias) / avg_cv_calData
 
     return sigma_metric_list, sigma_metric_all_regions
 
@@ -566,6 +644,23 @@ def tTestOneSample(ref_cal_group_list):
         t_list.append(t_test_results[0])
         p_list.append(t_test_results[1])
     return t_list, p_list
+
+def T_Test_Aggregate_Data(ref_cal_group_list):
+    tuple_ref_list = []
+    tuple_cal_list = []
+    for unique_ref_group in ref_cal_group_list:
+        #tuple_ref_list = []
+        #tuple_cal_list = []
+
+        for tpl in unique_ref_group:
+            ref_value = tpl[0]
+            cal_value = tpl[1]
+            tuple_ref_list.append(ref_value)
+            tuple_cal_list.append(cal_value)
+
+    expected_mean = numpy.mean(tuple_ref_list)
+    t_statistic = stats.ttest_1samp(tuple_cal_list, expected_mean)[0]
+    return t_statistic
 
 def uTest(ref_cal_group_list):
     """Do Mann-Whitney U-test"""

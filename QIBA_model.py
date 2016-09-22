@@ -648,7 +648,10 @@ class Model_KV():
         KtransTDITable = \
                         '<h2>The total deviation indexes of each patch in calculated and reference Ktrans:</h2>'
         KtransTDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['tdi'], [self.Ktrans_tdi])
-        
+
+        KtransTDITable += \
+                        '<h4>The estimated total deviation index of all patches combined in calculated and reference Ktrans='+str(self.Ktrans_tdi_all_regions_method_2)+'</h4>'
+
         KtransTDITable += \
                         '<h4>The total deviation index of all patches combined in calculated and reference Ktrans='+str(self.Ktrans_tdi_all_regions)+'</h4>'
                         
@@ -656,7 +659,10 @@ class Model_KV():
         VeTDITable = \
                         '<h2>The total deviation indexes of each patch in calculated and reference Ve:</h2>'
         VeTDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['tdi'], [self.Ve_tdi])
-        
+
+        VeTDITable += \
+                        '<h4>The estimated total deviation index of all patches combined in calculated and reference Ve='+str(self.Ve_tdi_all_regions_method_2)+'</h4>'
+
         VeTDITable += \
                         '<h4>The total deviation index of all patches combined in calculated and reference Ve='+str(self.Ve_tdi_all_regions)+'</h4>'
                         
@@ -930,11 +936,11 @@ class Model_KV():
     def CalculateTDIForModel(self):
         # calculate the total deviation index between the calculated parameters and the reference parameters
         # *** The arguments for QIBA_functions.TDI may be the inverse normal distribution and RMSD ***
-        #self.Ktrans_tdi, self.Ktrans_tdi_all_regions = QIBA_functions.TDI(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns)
-        #self.Ve_tdi, self.Ve_tdi_all_regions = QIBA_functions.TDI(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns)
-        self.Ktrans_tdi, self.Ktrans_tdi_all_regions = QIBA_functions.TDI(self.Ktrans_rmsd, self.Ktrans_rmsd_all_regions, self.nrOfRows, self.nrOfColumns)
-        self.Ve_tdi, self.Ve_tdi_all_regions = QIBA_functions.TDI(self.Ve_rmsd, self.Ve_rmsd_all_regions, self.nrOfRows, self.nrOfColumns)
-        
+        #self.Ktrans_tdi, self.Ktrans_tdi_all_regions = QIBA_functions.TDI(self.Ktrans_rmsd, self.Ktrans_rmsd_all_regions, self.nrOfRows, self.nrOfColumns)
+        #self.Ve_tdi, self.Ve_tdi_all_regions = QIBA_functions.TDI(self.Ve_rmsd, self.Ve_rmsd_all_regions, self.nrOfRows, self.nrOfColumns)
+        self.Ktrans_tdi, self.Ktrans_tdi_all_regions, self.Ktrans_tdi_all_regions_method_2 = QIBA_functions.TDI(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows,self.nrOfColumns, self.Ktrans_cal_no_bad_pixels,self.Ktrans_ref_no_bad_pixels, self.mask, self.Ktrans_mask_no_bad_pixels)
+        self.Ve_tdi, self.Ve_tdi_all_regions, self.Ve_tdi_all_regions_method_2 = QIBA_functions.TDI(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns, self.Ve_cal_no_bad_pixels, self.Ve_ref_no_bad_pixels, self.mask, self.Ve_mask_no_bad_pixels)
+
     #def CalculateLOAForModel(self):
         # Draw the Bland-Altman Limits of Agreement plot
         # 1/22/16: The function to draw the BA LOA Plot may belong in QIBA_evaluate_tool.
@@ -1117,12 +1123,12 @@ class Model_T1():
         # pre-process for the imported files
         self.CalculateErrorForModel()
         self.EstimatePatchForModel('MEAN')
-        self.CalculateR1() #This is used by PrepareHeaders()
+        self.CalculateR1() #This is used by PrepareHeaders(). Assigns calculated R1 data to self.R1_cal and calculated T1 data to self.T1_cal
         self.PrepareHeaders()
         
         #Convert calculated R1 map to T1 map
-        if self.T1_R1_flag == "R1":
-            self.T1_cal = self.convertR1ToT1(self.T1_cal, self.nrOfRows, self.nrOfColumns)
+        #if self.T1_R1_flag == "R1":
+        #    self.T1_cal = self.convertR1ToT1(self.T1_cal, self.nrOfRows, self.nrOfColumns)
 
         #Create a list of NaN pixels per 10x10 patch
         self.T1_NaNs_per_patch = self.countNaNsForEachPatch(self.T1_cal)
@@ -1457,7 +1463,10 @@ class Model_T1():
                     '<h2>The total deviation indexes of each patch in calculated and reference T1:</h2>'
                     
         T1TDITable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['tdi'], [self.T1_tdi])
-        
+
+        T1TDITable += \
+                        '<h4>The estimated total deviation index of each patch combined in calculated and reference T1='+str(self.T1_tdi_all_regions_method_2)+'</h4>'
+
         T1TDITable += \
                         '<h4>The total deviation index of each patch combined in calculated and reference T1='+str(self.T1_tdi_all_regions)+'</h4>'
                         
@@ -1636,9 +1645,9 @@ class Model_T1():
 
     def CalculateTDIForModel(self):
         # calculate the total deviation index between the calculated parameters and the reference parameters
-        #self.T1_tdi, self.T1_tdi_all_regions = QIBA_functions.TDI(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns)
-        self.T1_tdi, self.T1_tdi_all_regions = QIBA_functions.TDI(self.T1_rmsd, self.T1_rmsd_all_regions, self.nrOfRows, self.nrOfColumns)
-        
+        #self.T1_tdi, self.T1_tdi_all_regions = QIBA_functions.TDI(self.T1_rmsd, self.T1_rmsd_all_regions, self.nrOfRows, self.nrOfColumns)
+        self.T1_tdi, self.T1_tdi_all_regions, self.T1_tdi_all_regions_method_2 = QIBA_functions.TDI(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns, self.T1_cal_no_bad_pixels, self.T1_ref_no_bad_pixels, self.mask, self.T1_mask_no_bad_pixels)
+
     #def CalculateLOAForModel(self):
         # draw a Bland-Altman Limits of Agreement plot
         # 1/22/16: This may belong in QIBA_evaluate_tool.
@@ -1745,6 +1754,10 @@ class Model_T1():
         
     def CalculateR1(self):
         # calculate the R1 from T1, as R1 = 1 / T1
+        # If the user loads T1 data, then calculate R1 and store it in self.R1_cal
+        # If the user loads R1 data, then store it in self.R1_cal. Calculate T1 and store it in self.T1_cal
+        # If a value is 0, then the reciprocal will be undefined.  In this case, use 0 (i.e. don't use the reciprocal)
+
         tempPatch_cal = []
         tempPatch_ref = []
         tempRow_cal = []
@@ -1754,7 +1767,11 @@ class Model_T1():
         for i in range(self.nrOfRows):
             for j in range(self.nrOfColumns):
                 for k in range(self.patchLen*self.patchLen):
-                    tempPatch_cal.append(1 / self.T1_cal[i][j][k])
+                    if self.T1_cal[i][j][k] != 0:
+                        tempPatch_cal.append(1 / self.T1_cal[i][j][k])
+                    else:
+                        tempPatch_cal.append(0.0)
+
                     tempPatch_ref.append(1 / self.T1_ref[i][j][k])
                 tempRow_cal.append(tempPatch_cal)
                 tempRow_ref.append(tempPatch_ref)
@@ -1764,5 +1781,11 @@ class Model_T1():
             temp_ref.append(tempRow_ref)
             tempRow_cal = []
             tempRow_ref = []
-        self.R1_cal = temp_cal
+
+        if self.T1_R1_flag == "T1":
+            self.R1_cal = temp_cal
+        else:
+            self.R1_cal = self.T1_cal
+            self.T1_cal = temp_cal
+
         self.R1_ref = temp_ref

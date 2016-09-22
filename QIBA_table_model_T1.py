@@ -81,13 +81,14 @@ class QIBA_table_model_T1(object):
             full_list.append(unique_list)
         return full_list
     
-    def getNaNsPerPatch(self, reference_values_list, number_usable_instances_list, number_instances_total_list):
+    def getNaNsPerPatch(self, original_reference_values_list, number_usable_instances_list, number_instances_total_list):
         """Calculate the proportion of NaNs per reference group.
         The function QIBA_functions_for_table.editTablePercent converts
         these values to percents.
         The number of NaN values, percent NaN, etc. must be aggregated for
         each reference value.
         """
+        reference_values_list = list(original_reference_values_list)
         reference_values_list.sort()
         usable_instances_dict = dict() #Used to aggregate NaNs per ref value
         total_instances_dict = dict() #Used to aggregate NaNs per ref value
@@ -198,7 +199,7 @@ class QIBA_table_model_T1(object):
         
 
         #Put the text into HTML structure
-        self.statisticsInHTML = self.packInHTML(T1StatisticsTable)
+        self.StatisticsInHTML = self.packInHtml(T1StatisticsTable)
 
     def htmlNaN(self):
         """Displays the NaN statistics in HTML form"""
@@ -213,7 +214,7 @@ class QIBA_table_model_T1(object):
         else:
             T1NaNTable += "<h4>"+str(total_T1_NaNs)+" NaN value was found in the T1 data.</h4>"
 
-        self.NaNPercentageInHTML = self.packInHTML(T1NaNTable)
+        self.NaNPercentageInHTML = self.packInHtml(T1NaNTable)
 
     def htmlModelFitting(self):
         """Displays the model fitting results in an HTML table
@@ -253,7 +254,7 @@ class QIBA_table_model_T1(object):
             T1LogarithmicFitting += "</tr>"
         T1LogarithmicFitting += "</table>"
         
-        self.modelFittingInHTML = self.packInHTML(T1LinearFitting + "<br>" + T1LogarithmicFitting)
+        self.ModelFittingInHtml = self.packInHtml(T1LinearFitting + "<br>" + T1LogarithmicFitting)
                 
     def htmlCovCorrResults(self):
         """Displays the correlation and covariance results in HTML form
@@ -321,8 +322,8 @@ class QIBA_table_model_T1(object):
         #vk_table += "</tr>"
         #vk_table += "</table>"
         
-        #self.covCorrResultsInHTML = self.packInHTML(kk_table + "<br>" + kv_table + "<br>" + vk_table + "<br>" + vv_table)
-        self.covCorrResultsInHTML = self.packInHTML(tt_table)
+        #self.covCorrResultsInHtml = self.packInHtml(kk_table + "<br>" + kv_table + "<br>" + vk_table + "<br>" + vv_table)
+        self.covCorrResultsInHtml = self.packInHtml(tt_table)
                 
     def htmlT_TestResults(self):
         """Displays the t-test results in HTML form"""
@@ -335,7 +336,7 @@ class QIBA_table_model_T1(object):
             ["t-statistic", "p-value"], [self.T1_cal_patch_ttest_t, self.T1_cal_patch_ttest_p])
         
         #Put the text into HTML structure
-        self.T_testResultInHTML = self.packInHTML(T1_T_TestTable)
+        self.T_testResultInHTML = self.packInHtml(T1_T_TestTable)
         
     def htmlU_TestResults(self):
         """Displays the U-test results in HTML form"""
@@ -346,7 +347,7 @@ class QIBA_table_model_T1(object):
             ["U-value", "p-value"], [self.T1_cal_patch_utest_u, self.T1_cal_patch_utest_p])
         
         #Put the text into HTML structure
-        self.U_testResultInHTML = self.packInHTML(T1_U_TestTable)
+        self.U_testResultInHTML = self.packInHtml(T1_U_TestTable)
         
     def htmlRMSDResults(self):
         """Displays the calculated RMSD results in HTML form"""
@@ -359,7 +360,7 @@ class QIBA_table_model_T1(object):
             "<h4>The root mean square deviation of all patches combined in calculated and reference T1="+str(self.T1_rmsd_all_regions)+"</h4>"
             
         #Put the test into HTML structure
-        self.RMSDResultInHTML = self.packInHTML(T1RMSDTable)
+        self.RMSDResultInHTML = self.packInHtml(T1RMSDTable)
 
     def htmlCCCResults(self):
         """Displays the calculated CCC results in HTML form"""
@@ -372,7 +373,7 @@ class QIBA_table_model_T1(object):
             "<h4>The concordance correlation coefficient of all patches combined in calculated and reference T1="+str(self.T1_ccc_all_regions)+"</h4>"
 
         #Put the text into HTML structure
-        self.CCCResultInHTML = self.packInHTML(T1CCCTable)
+        self.CCCResultInHTML = self.packInHtml(T1CCCTable)
         
     def htmlTDIResults(self):
         """Displays the calculated TDI results in HTML form"""
@@ -382,10 +383,12 @@ class QIBA_table_model_T1(object):
             "<h2>The total deviation indexes of each patch in calculated and reference T1:</h2>"
         T1_TDITable += QIBA_functions_for_table.editTable("", self.headers_T1, ["tdi"], [self.T1_tdi])
         T1_TDITable += \
+            "<h4>The estimated total deviation index of all patches combined in calculated and reference T1="+str(self.T1_tdi_all_regions_method_2)+"</h4>"
+        T1_TDITable += \
             "<h4>The total deviation index of all patches combined in calculated and reference T1="+str(self.T1_tdi_all_regions)+"</h4>"
         
         #Put the text into HTML structure
-        self.TDIResultInHTML = self.packInHTML(T1_TDITable)
+        self.TDIResultInHTML = self.packInHtml(T1_TDITable)
         
     def htmlSigmaMetricResults(self):
         """Displays the calculated sigma metric in HTML form"""
@@ -398,7 +401,7 @@ class QIBA_table_model_T1(object):
             "<h4>The sigma metric of all patches combined in calculated and reference T1="+str(self.T1_sigma_metric_all_regions)+"</h4>"
         
         #Put the text into HTML structure
-        self.sigmaMetricResultInHTML = self.packInHTML(T1_SigmaMetricTable)
+        self.sigmaMetricResultInHTML = self.packInHtml(T1_SigmaMetricTable)
 
         
     def htmlChiq_TestResults(self):
@@ -409,14 +412,14 @@ class QIBA_table_model_T1(object):
         T1Chiq_TestTable += QIBA_functions_for_table.editTable("", self.headersHorizontal, self.headersVertical, ["chiq", "p-value"], [self.T1_cal_patch_Chisquare_c, self.T1_cal_patch_Chisquare_p])
         
         #Put the text into HTML structure
-        self.ChiSquareTestResultInHTML = self.packInHTML(T1Chiq_TestTable) #Should U_test be Chiq test? If so, then this is also a bug in QIBA_model.py!
+        self.ChiSquareTestResultInHTML = self.packInHtml(T1Chiq_TestTable) #Should U_test be Chiq test? If so, then this is also a bug in QIBA_model.py!
 
     def htmlChiqResults(self):
         T1_Chiq_TestTable = "<h2>The Chi-square test result of each patch in calculated T1 map:</h2>"
         T1_Chiq_TestTable += QIBA_functions_for_table.editTable("", self.headers_T1, ["Chiq", "p-value"], [self.T1_cal_patch_chisquare_c, self.T1_cal_patch_chisquare_p])
 
         # put the text into html structure
-        self.ChiSquareTestResultInHTML = self.packInHTML(T1_Chiq_TestTable)
+        self.ChiSquareTestResultInHTML = self.packInHtml(T1_Chiq_TestTable)
         
     def htmlANOVAResults(self):
         """Displays the ANOVA results in HTML form"""
@@ -443,9 +446,9 @@ class QIBA_table_model_T1(object):
         T1ANOVATable += "</table>"
         
         #Put the text into HTML structure
-        self.ANOVAResultInHTML = self.packInHTML(T1ANOVATable)
+        self.ANOVAResultInHTML = self.packInHtml(T1ANOVATable)
         
-    def packInHTML(self, content):
+    def packInHtml(self, content):
         """Pack the content into HTML, so that the exported pdf can start a new page.
         """
         htmlText = ""
@@ -463,23 +466,23 @@ class QIBA_table_model_T1(object):
     
     def GetStatisticsInHTML(self):
         """getter for the result in HTML."""
-        return self.statisticsInHTML
+        return self.StatisticsInHTML
         
     def GetCovarianceCorrelationInHTML(self):
         """getter for the result in HTML."""
-        return self.covCorrResultsInHTML
+        return self.covCorrResultsInHtml
 
     def GetModelFittingInHTML(self):
         """getter for the result in HTML"""
-        return self.modelFittingInHTML
+        return self.ModelFittingInHtml
     ##def getStatisticsInHTML(self):
     ##    return self.statisticsInHTML
         
     ###def getCovarianceCorrelationInHTML(self):
-    ###    return self.covCorrResultsInHTML
+    ###    return self.covCorrResultsInHtml
         
-    ###def getModelFittingInHTML(self):
-    ###    return self.modelFittingInHTML
+    ###def getModelFittingInHtml(self):
+    ###    return self.modelFittingInHtml
     
     def GetT_TestResultsInHTML(self):
         return self.T_testResultInHTML
@@ -555,7 +558,8 @@ class QIBA_table_model_T1(object):
         
     def calculateTDIForModel(self):
         """Calculates the total deviation index between the calculated parameters and the reference parameters"""
-        self.T1_tdi, self.T1_tdi_all_regions = QIBA_functions_for_table.TDI(self.T1_rmsd, self.T1_rmsd_all_regions)
+        #self.T1_tdi, self.T1_tdi_all_regions = QIBA_functions_for_table.TDI(self.T1_rmsd, self.T1_rmsd_all_regions)
+        self.T1_tdi, self.T1_tdi_all_regions, self.T1_tdi_all_regions_method_2 = QIBA_functions_for_table.TDI(self.ref_cal_T1_groups)
         
     def calculateSigmaMetricForModel(self):
         """Calculates the sigma metric"""

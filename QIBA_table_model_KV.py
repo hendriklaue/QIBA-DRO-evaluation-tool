@@ -89,13 +89,14 @@ class QIBA_table_model_KV(object):
             full_list.append(unique_list)
         return full_list
     
-    def getNaNsPerPatch(self, reference_values_list, number_usable_instances_list, number_instances_total_list):
+    def getNaNsPerPatch(self, original_reference_values_list, number_usable_instances_list, number_instances_total_list):
         """Calculate the proportion of NaNs per reference group.
         The function QIBA_functions_for_table.editTablePercent converts
         these values to percents.
         The number of NaN values, percent NaN, etc. must be aggregated for
         each reference value.
         """
+        reference_values_list = list(original_reference_values_list)
         reference_values_list.sort()
         usable_instances_dict = dict() #Used to aggregate NaNs per ref value
         total_instances_dict = dict() #Used to aggregate NaNs per ref value
@@ -224,7 +225,7 @@ class QIBA_table_model_KV(object):
             ["min.", "1st quartile", "median", "3rd quartile", "max."], [self.Ve_cal_patch_min, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_median, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_max])
 
         #Put the text into HTML structure
-        self.statisticsInHTML = self.packInHTML(KtransStatisticsTable + "<br>" + VeStatisticsTable)
+        self.StatisticsInHTML = self.packInHtml(KtransStatisticsTable + "<br>" + VeStatisticsTable)
 
     def htmlNaN(self):
         """Displays the NaN statistics in HTML form"""
@@ -249,7 +250,7 @@ class QIBA_table_model_KV(object):
         else:
             VeNaNTable += "<h4>"+str(total_Ve_NaNs)+" NaN value was found in the Ve data.</h4>"
             
-        self.NaNPercentageInHTML = self.packInHTML(KtransNaNTable + "<br>" + VeNaNTable)
+        self.NaNPercentageInHTML = self.packInHtml(KtransNaNTable + "<br>" + VeNaNTable)
 
     def htmlModelFitting(self):
         """Displays the model fitting results in an HTML table
@@ -325,7 +326,7 @@ class QIBA_table_model_KV(object):
             
         VeLogarithmicFitting += "</table>"
         
-        self.modelFittingInHTML = self.packInHTML(KtransLinearFitting + "<br>" + KtransLogarithmicFitting + "<br>" + VeLinearFitting + "<br>" + VeLogarithmicFitting)
+        self.ModelFittingInHtml = self.packInHtml(KtransLinearFitting + "<br>" + KtransLogarithmicFitting + "<br>" + VeLinearFitting + "<br>" + VeLogarithmicFitting)
                 
     def htmlCovCorrResults(self):
         """Displays the correlation and covariance results in HTML form
@@ -412,8 +413,8 @@ class QIBA_table_model_KV(object):
         vv_table += "</tr>"
         vv_table += "</table>"
         
-        #self.covCorrResultsInHTML = self.packInHTML(kk_table + "<br>" + kv_table + "<br>" + vk_table + "<br>" + vv_table)
-        self.covCorrResultsInHTML = self.packInHTML(kk_table + "<br>" + vv_table)
+        #self.covCorrResultsInHtml = self.packInHtml(kk_table + "<br>" + kv_table + "<br>" + vk_table + "<br>" + vv_table)
+        self.covCorrResultsInHtml = self.packInHtml(kk_table + "<br>" + vv_table)
                 
     def htmlT_TestResults(self):
         """Displays the t-test results in HTML form
@@ -433,7 +434,7 @@ class QIBA_table_model_KV(object):
             ["t-statistic", "p-value"], [self.Ve_cal_patch_ttest_t, self.Ve_cal_patch_ttest_p])
         
         #Put the text into HTML structure
-        self.T_testResultInHTML = self.packInHTML(KtransT_TestTable + "<br>" + VeT_TestTable)
+        self.T_testResultInHTML = self.packInHtml(KtransT_TestTable + "<br>" + VeT_TestTable)
         
     def htmlU_TestResults(self):
         """Displays the U-test results in HTML form
@@ -450,7 +451,7 @@ class QIBA_table_model_KV(object):
             ["U-value", "p-value"], [self.Ve_cal_patch_utest_u, self.Ve_cal_patch_utest_p])
             
         #Put the text into HTML structure
-        self.U_testResultInHTML = self.packInHTML(KtransU_TestTable + "<br>" + VeU_TestTable)
+        self.U_testResultInHTML = self.packInHtml(KtransU_TestTable + "<br>" + VeU_TestTable)
         
     def htmlRMSDResults(self):
         """Displays the calculated RMSD results in HTML form"""
@@ -470,7 +471,7 @@ class QIBA_table_model_KV(object):
             "<h4>The root mean square deviation of all patches combined in calculated and reference Ve="+str(self.Ve_rmsd_all_regions)+"</h4>"
             
         #Put the test into HTML structure
-        self.RMSDResultInHTML = self.packInHTML(KtransRMSDTable + "<br>" + VeRMSDTable)
+        self.RMSDResultInHTML = self.packInHtml(KtransRMSDTable + "<br>" + VeRMSDTable)
 
     def htmlCCCResults(self):
         """Displays the calculated CCC results in HTML form
@@ -491,7 +492,7 @@ class QIBA_table_model_KV(object):
             "<h4>The concordance correlation coefficient of all patches combined in calculated and reference Ve="+str(self.Ve_ccc_all_regions)+"</h4>"
 
         #Put the text into HTML structure
-        self.CCCResultInHTML = self.packInHTML(KtransCCCTable + "<br>" + VeCCCTable)
+        self.CCCResultInHTML = self.packInHtml(KtransCCCTable + "<br>" + VeCCCTable)
         
     def htmlTDIResults(self):
         """Displays the calculated TDI results in HTML form
@@ -502,17 +503,22 @@ class QIBA_table_model_KV(object):
             "<h2>The total deviation indexes of each patch in calculated and reference Ktrans:</h2>"
         KtransTDITable += QIBA_functions_for_table.editTable("", self.headers_Ktrans, ["tdi"], [self.Ktrans_tdi])
         KtransTDITable += \
+            "<h4>The estimated total deviation index of all patches combined in calculated and reference Ktrans="+str(self.Ktrans_tdi_all_regions_method_2)+"</h4>"
+        KtransTDITable += \
             "<h4>The total deviation index of all patches combined in calculated and reference Ktrans="+str(self.Ktrans_tdi_all_regions)+"</h4>"
+
         
         #Ve
         VeTDITable = \
             "<h2>The total deviation indexes of each patch in calculated and reference Ve:</h2>"
         VeTDITable += QIBA_functions_for_table.editTable("", self.headers_Ve, ["tdi"], [self.Ve_tdi])
         VeTDITable += \
+            "<h4>The estimated total deviation index of all patches combined in calculated and reference Ve="+str(self.Ve_tdi_all_regions_method_2)+"</h4>"
+        VeTDITable += \
             "<h4>The total deviation index of all patches combined in calculated and reference Ve="+str(self.Ve_tdi_all_regions)+"</h4>"
             
         #Put the text into HTML structure
-        self.TDIResultInHTML = self.packInHTML(KtransTDITable + "<br>" + VeTDITable)
+        self.TDIResultInHTML = self.packInHtml(KtransTDITable + "<br>" + VeTDITable)
         
     def htmlSigmaMetricResults(self):
         """Displays the calculated sigma metric results in HTML form"""
@@ -532,7 +538,7 @@ class QIBA_table_model_KV(object):
             "<h4>The sigma metric of all patches combined in calculated and reference Ve="+str(self.Ve_sigma_metric_all_regions)+"</h4>"
         
         #Put the text into HTML structure
-        self.sigmaMetricResultInHTML = self.packInHTML(KtransSigmaMetricTable + "<br>" + VeSigmaMetricTable)
+        self.sigmaMetricResultInHTML = self.packInHtml(KtransSigmaMetricTable + "<br>" + VeSigmaMetricTable)
         
         
     def htmlChiq_TestResults(self):
@@ -548,7 +554,7 @@ class QIBA_table_model_KV(object):
         VeChiq_TestTable += QIBA_functions_for_table.editTable("", self.headersHorizontal, self.headersVertical, ["chiq", "p-value"], [self.Ve_cal_patch_Chisquare_c, self.Ve_cal_patch_Chisquare_p])
         
         #Put the text into HTML structure
-        self.U_testResultInHTML = self.packInHTML(KtransChiq_TestTable + "<br>" + VeChiq_TestTable) #Should U_test be Chiq test? If so, then this is also a bug in QIBA_model.py!
+        self.U_testResultInHTML = self.packInHtml(KtransChiq_TestTable + "<br>" + VeChiq_TestTable) #Should U_test be Chiq test? If so, then this is also a bug in QIBA_model.py!
 
     def htmlChiqResults(self):
         Ktrans_Chiq_TestTable = "<h2>The Chi-square test result of each patch in calculated Ktrans map:</h2>"
@@ -558,7 +564,7 @@ class QIBA_table_model_KV(object):
         Ve_Chiq_TestTable += QIBA_functions_for_table.editTable("", self.headers_Ve, ["Chiq", "p-value"], [self.Ve_cal_patch_chisquare_c, self.Ve_cal_patch_chisquare_p])
         
         # put the text into html structure
-        self.Chiq_testResultInHTML = self.packInHTML(Ktrans_Chiq_TestTable + '<br>' + Ve_Chiq_TestTable)
+        self.Chiq_testResultInHTML = self.packInHtml(Ktrans_Chiq_TestTable + '<br>' + Ve_Chiq_TestTable)
         
     def htmlANOVAResults(self):
         """Displays the ANOVA results in HTML form
@@ -606,9 +612,9 @@ class QIBA_table_model_KV(object):
         VeANOVATable += "</table>"
         
         #Put the text into HTML structure
-        self.ANOVAResultInHTML = self.packInHTML(KtransANOVATable + "<br>" + VeANOVATable)
+        self.ANOVAResultInHTML = self.packInHtml(KtransANOVATable + "<br>" + VeANOVATable)
         
-    def packInHTML(self, content):
+    def packInHtml(self, content):
         """Pack the content into HTML, so that the exported pdf can start a new page.
         """
         htmlText = ""
@@ -626,23 +632,23 @@ class QIBA_table_model_KV(object):
     
     def GetStatisticsInHTML(self):
         """getter for the result in HTML."""
-        return self.statisticsInHTML
+        return self.StatisticsInHTML
         
     def GetCovarianceCorrelationInHTML(self):
         """getter for the result in HTML."""
-        return self.covCorrResultsInHTML
+        return self.covCorrResultsInHtml
 
     def GetModelFittingInHTML(self):
         """getter for the result in HTML"""
-        return self.modelFittingInHTML
+        return self.ModelFittingInHtml
     ##def getStatisticsInHTML(self):
     ##    return self.statisticsInHTML
         
     ###def getCovarianceCorrelationInHTML(self):
-    ###    return self.covCorrResultsInHTML
+    ###    return self.covCorrResultsInHtml
         
-    ###def getModelFittingInHTML(self):
-    ###    return self.modelFittingInHTML
+    ###def getModelFittingInHtml(self):
+    ###    return self.modelFittingInHtml
     
     def GetT_TestResultsInHTML(self):
         return self.T_testResultInHTML
@@ -724,9 +730,11 @@ class QIBA_table_model_KV(object):
         
     def calculateTDIForModel(self):
         """Calculates the total deviation index between the calculated parameters and the reference parameters"""
-        self.Ktrans_tdi, self.Ktrans_tdi_all_regions = QIBA_functions_for_table.TDI(self.Ktrans_rmsd, self.Ktrans_rmsd_all_regions)
-        self.Ve_tdi, self.Ve_tdi_all_regions = QIBA_functions_for_table.TDI(self.Ve_rmsd, self.Ve_rmsd_all_regions)
-        
+        #self.Ktrans_tdi, self.Ktrans_tdi_all_regions = QIBA_functions_for_table.TDI(self.Ktrans_rmsd, self.Ktrans_rmsd_all_regions)
+        #self.Ve_tdi, self.Ve_tdi_all_regions = QIBA_functions_for_table.TDI(self.Ve_rmsd, self.Ve_rmsd_all_regions)
+        self.Ktrans_tdi, self.Ktrans_tdi_all_regions, self.Ktrans_tdi_all_regions_method_2 = QIBA_functions_for_table.TDI(self.ref_cal_Ktrans_groups)
+        self.Ve_tdi, self.Ve_tdi_all_regions, self.Ve_tdi_all_regions_method_2 = QIBA_functions_for_table.TDI(self.ref_cal_Ve_groups)
+
     def calculateSigmaMetricForModel(self):
         """Calculates the sigma metric"""
         self.Ktrans_sigma_metric, self.Ktrans_sigma_metric_all_regions = QIBA_functions_for_table.SigmaMetric(self.ref_cal_Ktrans_groups, self.allowable_total_error)

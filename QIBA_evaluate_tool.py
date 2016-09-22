@@ -59,6 +59,7 @@ from xlwt import Workbook
 import sys
 import traceback #For debugging. Delete.
 from PIL import Image
+import scipy.stats
 
 import QIBA_functions
 import QIBA_model
@@ -278,6 +279,9 @@ class MainWindow(wx.Frame):
         The mask is stored in the variable self.mask and should be a list of
         numeric values.
         """
+
+        temp_original_mask = list(self.mask) # Store the current mask until the new, loaded mask is validated
+
         if mask_path.endswith(".cdata") or mask_path.endswith(".csv") or mask_path.endswith(".txt"):
             file_contents = []
             with open(mask_path, "rb") as mask_file:
@@ -293,10 +297,10 @@ class MainWindow(wx.Frame):
                     #ex_type, ex, tb = sys.exc_info() #For debugging
                     #traceback.print_tb(tb) #For debugging
                     return
-            mask, valid_mask = self.parseMaskFile(file_contents, "table", self.nrOfRow, self.nrOfColumn, self.patchLen, delimiter)
+            parsed_mask, valid_mask = self.parseMaskFile(file_contents, "table", self.nrOfRow, self.nrOfColumn, self.patchLen, delimiter)
             
             if valid_mask:
-                return mask
+                return parsed_mask
             else:
                 return self.mask # Keep the existing mask
             
@@ -307,10 +311,10 @@ class MainWindow(wx.Frame):
             try:
                 raw_mask_image = Image.open(mask_path)
                 raw_mask_array = numpy.array(raw_mask_image)
-                mask, valid_mask = self.parseMaskFile(raw_mask_array, "image", self.nrOfRow, self.nrOfColumn, self.patchLen, "\t")
+                parsed_mask, valid_mask = self.parseMaskFile(raw_mask_array, "image", self.nrOfRow, self.nrOfColumn, self.patchLen, "\t")
 
                 if valid_mask:
-                    return mask
+                    return parsed_mask
                 else:
                     return self.mask # Keep the existing mask
             except IOError:
@@ -353,12 +357,18 @@ class MainWindow(wx.Frame):
                 #mask_contents.append(line_list)
                 
         elif data_type == "image":
-            mask_contents = file_contents
-            mask_x_dim_len = len(mask_contents)
-            mask_y_dim_len = len(mask_contents[0])
+            mask_contents = []
+            mask_x_dim_len = len(file_contents)
+            mask_y_dim_len = len(file_contents[0])
             if mask_x_dim_len != correct_x_dim_len or mask_y_dim_len != correct_y_dim_len:
                 print("Error: The mask dimensions must be "+str(correct_x_dim_len)+ "x"+str(correct_y_dim_len)+". The supplied mask is "+str(mask_x_dim_len)+"x"+str(mask_y_dim_len)+".")
                 valid_mask = False
+
+            if valid_mask:
+                for i in range(mask_x_dim_len):
+                    #mask_contents[i] = list(file_contents[i])
+                    mask_contents.append(list(file_contents[i]))
+
 
         return mask_contents, valid_mask
     
@@ -939,17 +949,31 @@ class MainWindow(wx.Frame):
         '''
         export selection
         '''
-        if self.type_of_data_loaded == "image":
-            exportDialog = MySelectionDialog(None, 'Export as:', 'Export as...', choices=['PDF', 'Excel file'])
-            if exportDialog.ShowModal() == wx.ID_OK:
-                if exportDialog.GetSelections() == 'PDF':
-                    self.OnExportToPDF('')
-                elif exportDialog.GetSelections() == 'Excel file':
-                    self.OnExportToFolder('')
-            else:
-                pass
-        elif self.type_of_data_loaded == "table":
-            self.saveResultsTable()
+        save_folder = ""
+
+        exportDialog = MySelectionDialog(None, "Export as:", "Export as...", choices=["PDF", "Excel file"])
+        if self.type_of_data_loaded == "table":
+            save_folder = self.saveResultsTable()
+
+        if exportDialog.ShowModal() == wx.ID_OK:
+            if exportDialog.GetSelections() == "PDF":
+                self.OnExportToPDF(save_folder)
+            elif exportDialog.GetSelections() == "Excel file":
+                self.OnExportToFolder(save_folder)
+
+
+
+        #if self.type_of_data_loaded == "image":
+        #    exportDialog = MySelectionDialog(None, 'Export as:', 'Export as...', choices=['PDF', 'Excel file'])
+        #    if exportDialog.ShowModal() == wx.ID_OK:
+        #        if exportDialog.GetSelections() == 'PDF':
+        #            self.OnExportToPDF('')
+        #        elif exportDialog.GetSelections() == 'Excel file':
+        #            self.OnExportToFolder('')
+        #    else:
+        #        pass
+        #elif self.type_of_data_loaded == "table":
+        #    save_folder = self.saveResultsTable()
 
     def OnExportToFolder(self, desDir):
         pass
@@ -1155,8 +1179,8 @@ class MainWindow_KV(MainWindow):
         if refFiles:
             self.path_ref_K, self.path_ref_V = refFiles.split(',')
         else:
-            self.path_ref_K = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
-            self.path_ref_V = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
+            self.path_ref_K = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.tif')
+            self.path_ref_V = os.path.join(os.getcwd(), 'reference_data', 'Ve.tif')
 
         if calFiles:
             self.path_cal_K, self.path_cal_V = calFiles.split(',')
@@ -1284,6 +1308,11 @@ class MainWindow_KV(MainWindow):
         results_table += "CCC = \t"+str(self.newModel.Ktrans_ccc_all_regions)+"\n"
         results_table += "TDI = \t"+str(self.newModel.Ktrans_tdi_all_regions)+"\n"
         results_table += "Sigma metric = \t"+str(self.newModel.Ktrans_sigma_metric_all_regions)+"\n"
+        results_table += "Mean bias = \t"+str(self.ktrans_mean_difference)+"\n"
+        results_table += "Std Dev of bias = \t"+str(self.ktrans_sd_difference)+"\n"
+        results_table += "Bland-Altman Lower Limit = \t" + str(self.ktrans_lower_sd_line_value) + "\n"
+        results_table += "Bland-Altman Upper Limit = \t" + str(self.ktrans_upper_sd_line_value) + "\n"
+        results_table += "Bland-Altman Repeatability Coefficient = \t" + str(self.ktrans_repeatability_coefficient) + "\n"
         results_table += "\n"
 
         if self.type_of_data_loaded == "image":
@@ -1312,7 +1341,12 @@ class MainWindow_KV(MainWindow):
         results_table += "All Regions Combined\nRMSD = \t"+str(self.newModel.Ve_rmsd_all_regions)+"\n"
         results_table += "CCC = \t"+str(self.newModel.Ve_ccc_all_regions)+"\n"
         results_table += "TDI = \t"+str(self.newModel.Ve_tdi_all_regions)+"\n"
-        results_table += "Sigma metric = \t"+str(self.newModel.Ve_sigma_metric_all_regions)
+        results_table += "Sigma metric = \t"+str(self.newModel.Ve_sigma_metric_all_regions) + "\n"
+        results_table += "Mean bias = \t"+str(self.ve_mean_difference) + "\n"
+        results_table += "Std Dev of bias = \t"+str(self.ve_sd_difference) + "\n"
+        results_table += "Bland-Altman Lower Limit = \t" + str(self.ve_lower_sd_line_value) + "\n"
+        results_table += "Bland-Altman Upper Limit = \t" + str(self.ve_upper_sd_line_value) + "\n"
+        results_table += "Bland-Altman Repeatability Coefficient = \t" + str(self.ve_repeatability_coefficient) + "\n"
         results_table += "\n"
         
         # If user entered .csv as the file extension, replace tabs in the
@@ -1325,6 +1359,7 @@ class MainWindow_KV(MainWindow):
             try:
                 output_file.write(results_table)
                 self.SetStatusText(save_path + " saved successfully")
+                return os.path.dirname(save_path)
             except IOError:
                 self.SetStatusText("Error saving results table")
                 wx.MessageBox("There was an error saving the results table", "Error Saving Results Table", wx.OK | wx.ICON_ERROR)
@@ -1497,13 +1532,17 @@ class MainWindow_KV(MainWindow):
         self.popupMenu = wx.Menu()
         self.ID_POPUP_LOAD_CAL_K = wx.NewId()
         self.ID_POPUP_LOAD_CAL_V = wx.NewId()
+        self.ID_POPUP_LOAD_MASK_KV = wx.NewId()
 
         OnLoadCal_K = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, 'Load as calculated Ktrans')
         OnLoadCal_V = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, 'Load as calculated Ve')
+        OnLoadMask_KV = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_MASK_KV, 'Load as Mask')
         self.popupMenu.AppendItem(OnLoadCal_K)
         self.popupMenu.AppendItem(OnLoadCal_V)
+        self.popupMenu.AppendItem(OnLoadMask_KV)
         wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, self.OnLoadCal_K)
         wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, self.OnLoadCal_V)
+        wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_MASK_KV, self.OnLoadMask_KV)
 
     def SetupRightClickMenuForTextFiles(self):
         # setup the popup menu for right clicking on text files (.csv, .cdata, .txt)
@@ -1512,13 +1551,17 @@ class MainWindow_KV(MainWindow):
         self.popupMenuTextFiles = wx.Menu()
         self.ID_POPUP_LOAD_TEXT_FILE_K = wx.NewId()
         self.ID_POPUP_LOAD_TEXT_FILE_V = wx.NewId()
+        self.ID_POPUP_LOAD_MASK_KV_TEXT = wx.NewId()
         
         OnLoadTextFile_K = wx.MenuItem(self.popupMenuTextFiles, self.ID_POPUP_LOAD_TEXT_FILE_K, "Load as Ktrans parameter text file")
         OnLoadTextFile_V = wx.MenuItem(self.popupMenuTextFiles, self.ID_POPUP_LOAD_TEXT_FILE_V, "Load as Ve parameter text file")
+        OnLoadMask_KV = wx.MenuItem(self.popupMenuTextFiles, self.ID_POPUP_LOAD_MASK_KV_TEXT, "Load as Mask")
         self.popupMenuTextFiles.AppendItem(OnLoadTextFile_K)
         self.popupMenuTextFiles.AppendItem(OnLoadTextFile_V)
+        self.popupMenuTextFiles.AppendItem(OnLoadMask_KV)
         wx.EVT_MENU(self.popupMenuTextFiles, self.ID_POPUP_LOAD_TEXT_FILE_K, self.OnLoadTextFile_K)
         wx.EVT_MENU(self.popupMenuTextFiles, self.ID_POPUP_LOAD_TEXT_FILE_V, self.OnLoadTextFile_V)
+        wx.EVT_MENU(self.popupMenuTextFiles, self.ID_POPUP_LOAD_MASK_KV_TEXT, self.OnLoadMask_KV)
         
     def SetupPage_Histogram(self):
         # setup the histogram page
@@ -1610,7 +1653,12 @@ class MainWindow_KV(MainWindow):
         self.path_qiba_table_K = None
         self.data_table_V = None
         self.path_qiba_table_V = None
-            
+
+    def OnLoadMask_KV(self, event):
+        # pass the mask file path for loading
+        path = self.fileBrowser.GetPath()
+        self.mask = self.loadMaskFile(path)
+        self.SetStatusText('Mask Loaded.')
 
     def OnLoadRef_K(self, event):
         # pass the file path for loading
@@ -1849,6 +1897,8 @@ class MainWindow_KV(MainWindow):
                     minPatch_K = QIBA_functions.formatFloatTo2DigitsString(minPatch_K)
                     maxPatch_K = QIBA_functions.formatFloatTo2DigitsString(maxPatch_K)
                     meanPatch_K = QIBA_functions.formatFloatTo2DigitsString(meanPatch_K)
+                    minPatch_K = minPatch_K.replace(":", "")
+                    maxPatch_K = maxPatch_K.replace(":", "")
 
                     subPlot_K.set_xticks([float(minPatch_K), float(maxPatch_K)])
 
@@ -1878,6 +1928,8 @@ class MainWindow_KV(MainWindow):
                     minPatch_V = QIBA_functions.formatFloatTo2DigitsString(minPatch_V)
                     maxPatch_V = QIBA_functions.formatFloatTo2DigitsString(maxPatch_V)
                     meanPatch_V = QIBA_functions.formatFloatTo2DigitsString(meanPatch_V)
+                    minPatch_V = minPatch_V.replace(":", "")
+                    maxPatch_V = maxPatch_V.replace(":", "")
 
                     subPlot_V.set_xticks([float(minPatch_V), float(maxPatch_V)])
                     subPlot_V.set_xticklabels([minPatch_V, maxPatch_V])
@@ -2143,8 +2195,10 @@ class MainWindow_KV(MainWindow):
         #pyplt refers to matplotlib.pyplot
         ktrans_refData_nbp = numpy.asarray(self.newModel.Ktrans_ref_no_bad_pixels)
         ktrans_calData_nbp = numpy.asarray(self.newModel.Ktrans_cal_no_bad_pixels)
+        ktrans_mask_nbp = self.newModel.Ktrans_mask_no_bad_pixels
         ve_refData_nbp = numpy.asarray(self.newModel.Ve_ref_no_bad_pixels)
         ve_calData_nbp = numpy.asarray(self.newModel.Ve_cal_no_bad_pixels)
+        ve_mask_nbp = self.newModel.Ve_mask_no_bad_pixels
         
         ktrans_ref_total_pixels_counted = 0
         ktrans_cal_total_pixels_counted = 0
@@ -2162,9 +2216,16 @@ class MainWindow_KV(MainWindow):
             for j in range(j_dimension):
                 ktrans_refData_nbp_10x10 = ktrans_refData_nbp[i][j] #The 10x10 pixel patch of raw pixel data (no bad pixels)
                 ktrans_calData_nbp_10x10 = ktrans_calData_nbp[i][j] #The 10x10 pixel patch or raw pixel data
+                ktrans_mask_nbp_10x10 = ktrans_mask_nbp[i][j]
                 ve_refData_nbp_10x10 = ve_refData_nbp[i][j] #The 10x10 pixel patch of raw pixel data (no bad pixels)
                 ve_calData_nbp_10x10 = ve_calData_nbp[i][j] #The 10x10 pixel patch or raw pixel data
-                
+                ve_mask_nbp_10x10 = ve_mask_nbp[i][j]
+
+                ktrans_refData_nbp_10x10 = QIBA_functions.applyMask(ktrans_refData_nbp_10x10, ktrans_mask_nbp_10x10)
+                ktrans_calData_nbp_10x10 = QIBA_functions.applyMask(ktrans_calData_nbp_10x10, ktrans_mask_nbp_10x10)
+                ve_refData_nbp_10x10 = QIBA_functions.applyMask(ve_refData_nbp_10x10, ve_mask_nbp_10x10)
+                ve_calData_nbp_10x10 = QIBA_functions.applyMask(ve_calData_nbp_10x10, ve_mask_nbp_10x10)
+
                 ktrans_ref_pixels_counted_10x10 = len(ktrans_refData_nbp_10x10)
                 ktrans_cal_pixels_counted_10x10 = len(ktrans_calData_nbp_10x10)
                 ktrans_ref_total_pixels_counted += ktrans_ref_pixels_counted_10x10
@@ -2181,8 +2242,8 @@ class MainWindow_KV(MainWindow):
                     difference = cal_mean - ref_mean
                     ktrans_means_list.append(mean)
                     ktrans_diffs_list.append(difference)
-                    ktrans_mean_difference = numpy.mean(ktrans_diffs_list) #The mean of the differences
-                    ktrans_sd_difference = numpy.std(ktrans_diffs_list) #The standard deviation of the differences
+                    self.ktrans_mean_difference = numpy.mean(ktrans_diffs_list) #The mean of the differences
+                    self.ktrans_sd_difference = numpy.std(ktrans_diffs_list) #The standard deviation of the differences
                     
                 if ve_cal_pixels_counted_10x10 > 0:
                     ref_mean = numpy.mean(ve_refData_nbp_10x10)
@@ -2191,8 +2252,8 @@ class MainWindow_KV(MainWindow):
                     difference = cal_mean - ref_mean
                     ve_means_list.append(mean)
                     ve_diffs_list.append(difference)
-                    ve_mean_difference = numpy.mean(ve_diffs_list)
-                    ve_sd_difference = numpy.std(ve_diffs_list)
+                    self.ve_mean_difference = numpy.mean(ve_diffs_list)
+                    self.ve_sd_difference = numpy.std(ve_diffs_list)
         
         
         # Setup the toolbars
@@ -2243,15 +2304,20 @@ class MainWindow_KV(MainWindow):
         ktrans_subplot = self.figureLOA_Ktrans.add_subplot(111)
         ktrans_subplot.scatter(ktrans_means_list, ktrans_diffs_list, s=50, marker=".") #s= size, c= color
         #  Should outliers be excluded when calculating mean_line and sd_lines?
-        ktrans_mean_line = ktrans_subplot.axhline(ktrans_mean_difference, color="red", linestyle="--")
-        ktrans_upper_sd_line_value = ktrans_mean_difference + (1.96*ktrans_sd_difference)
-        ktrans_lower_sd_line_value = ktrans_mean_difference - (1.96*ktrans_sd_difference)
-        ktrans_upper_sd_line = ktrans_subplot.axhline(ktrans_upper_sd_line_value, color="gray", linestyle="--")
-        ktrans_lower_sd_line = ktrans_subplot.axhline(ktrans_lower_sd_line_value, color="gray", linestyle="--")
+        ktrans_mean_line = ktrans_subplot.axhline(self.ktrans_mean_difference, color="red", linestyle="--")
+        #self.ktrans_upper_sd_line_value = ktrans_mean_difference + (1.96*ktrans_sd_difference)
+        #self.ktrans_lower_sd_line_value = ktrans_mean_difference - (1.96*ktrans_sd_difference)
+        #self.ktrans_repeatability_coefficient = 1.96 * ktrans_sd_difference
+        t_statistic = scipy.stats.t.ppf(0.95, len(ktrans_diffs_list) - 1)
+        self.ktrans_upper_sd_line_value = self.ktrans_mean_difference + (t_statistic*self.ktrans_sd_difference)
+        self.ktrans_lower_sd_line_value = self.ktrans_mean_difference - (t_statistic*self.ktrans_sd_difference)
+        self.ktrans_repeatability_coefficient = t_statistic * self.ktrans_sd_difference
+        ktrans_upper_sd_line = ktrans_subplot.axhline(self.ktrans_upper_sd_line_value, color="gray", linestyle="--")
+        ktrans_lower_sd_line = ktrans_subplot.axhline(self.ktrans_lower_sd_line_value, color="gray", linestyle="--")
         ktrans_subplot.set_xlabel("Mean of Reference and Calculated Ktrans", fontdict=font)
         ktrans_subplot.set_ylabel("Difference of Reference and Calculated Ktrans", fontdict=font)
-        ktrans_subplot.legend( (ktrans_mean_line, ktrans_upper_sd_line), ("Mean Difference ("+str(ktrans_mean_difference)+")", \
-        "95% Confidence Interval ("+str(ktrans_lower_sd_line_value)+", "+str(ktrans_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
+        ktrans_subplot.legend( (ktrans_mean_line, ktrans_upper_sd_line), ("Mean Difference ("+str(self.ktrans_mean_difference)+")", \
+        "95% Confidence Interval ("+str(self.ktrans_lower_sd_line_value)+", "+str(self.ktrans_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         
         """
         #     Adjust scales of x- and y-axes. Avoid including outliers in determining the scale.
@@ -2298,16 +2364,21 @@ class MainWindow_KV(MainWindow):
         # Draw the Bland-Altman plot for Ve
         ve_subplot = self.figureLOA_Ve.add_subplot(111)
         ve_subplot.scatter(ve_means_list, ve_diffs_list, s=50, marker=".")
-        ve_mean_line = ve_subplot.axhline(ve_mean_difference, color="red", linestyle="--")
-        ve_upper_sd_line_value = ve_mean_difference + (1.96*ve_sd_difference)
-        ve_lower_sd_line_value = ve_mean_difference - (1.96*ve_sd_difference)
-        ve_upper_sd_line = ve_subplot.axhline(ve_upper_sd_line_value, color="gray", linestyle="--")
-        ve_lower_sd_line = ve_subplot.axhline(ve_lower_sd_line_value, color="gray", linestyle="--")
+        ve_mean_line = ve_subplot.axhline(self.ve_mean_difference, color="red", linestyle="--")
+        t_statistic = scipy.stats.t.ppf(0.95, len(ve_diffs_list) - 1)
+        #self.ve_upper_sd_line_value = ve_mean_difference + (1.96*ve_sd_difference)
+        #self.ve_lower_sd_line_value = ve_mean_difference - (1.96*ve_sd_difference)
+        #self.ve_repeatability_coefficient = 1.96 * ve_sd_difference
+        self.ve_upper_sd_line_value = self.ve_mean_difference + (t_statistic*self.ve_sd_difference)
+        self.ve_lower_sd_line_value = self.ve_mean_difference - (t_statistic*self.ve_sd_difference)
+        self.ve_repeatability_coefficient = t_statistic * self.ve_sd_difference
+        ve_upper_sd_line = ve_subplot.axhline(self.ve_upper_sd_line_value, color="gray", linestyle="--")
+        ve_lower_sd_line = ve_subplot.axhline(self.ve_lower_sd_line_value, color="gray", linestyle="--")
         ve_subplot.set_xlabel("Mean of Reference and Calculated Ve", fontdict=font)
         ve_subplot.set_ylabel("Difference of Reference and Calculated Ve", fontdict=font)
         #ve_subplot.legend( (ve_mean_line, ve_upper_sd_line), ("Mean Difference", "95% Confidence Interval"), loc="lower center", bbox_to_anchor=(0.5,-0.1), ncol=2, prop={'size':10})
-        ve_subplot.legend( (ve_mean_line, ve_upper_sd_line), ("Mean Difference ("+str(ve_mean_difference)+")", \
-        "95% Confidence Interval ("+str(ve_lower_sd_line_value)+", "+str(ve_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
+        ve_subplot.legend( (ve_mean_line, ve_upper_sd_line), ("Mean Difference ("+str(self.ve_mean_difference)+")", \
+        "95% Confidence Interval ("+str(self.ve_lower_sd_line_value)+", "+str(self.ve_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_Ve.tight_layout()
         self.canvasLOA_Ve.draw()
         
@@ -2349,8 +2420,8 @@ class MainWindow_KV(MainWindow):
             ktrans_means_list.append(mean_of_ktrans_ref_and_cal)
             ktrans_diffs_list.append(all_cal_Ktrans_values_list[i] - all_ref_Ktrans_values_list[i])
         
-        ktrans_mean_difference = numpy.mean(ktrans_diffs_list) #The mean of the differences
-        ktrans_sd_difference = numpy.std(ktrans_diffs_list) #The standard deviation of the differences
+        self.ktrans_mean_difference = numpy.mean(ktrans_diffs_list) #The mean of the differences
+        self.ktrans_sd_difference = numpy.std(ktrans_diffs_list) #The standard deviation of the differences
         
         #Get calculated Ve values
         unique_ref_Ve_values_list = []
@@ -2379,8 +2450,8 @@ class MainWindow_KV(MainWindow):
             ve_means_list.append(mean_of_ve_ref_and_cal)
             ve_diffs_list.append(all_cal_Ve_values_list[i] - all_ref_Ve_values_list[i])
         
-        ve_mean_difference = numpy.mean(ve_diffs_list) #The mean of the differences
-        ve_sd_difference = numpy.std(ve_diffs_list) #The standard deviation of the differences
+        self.ve_mean_difference = numpy.mean(ve_diffs_list) #The mean of the differences
+        self.ve_sd_difference = numpy.std(ve_diffs_list) #The standard deviation of the differences
         
         # Setup the toolbars
         self.toolbar_LOA_K = NavigationToolbar(self.canvasLOA_Ktrans)
@@ -2430,15 +2501,20 @@ class MainWindow_KV(MainWindow):
         ktrans_subplot = self.figureLOA_Ktrans.add_subplot(111)
         ktrans_subplot.scatter(ktrans_means_list, ktrans_diffs_list, s=50, marker=".") #s= size, c= color
         #  Should outliers be excluded when calculating mean_line and sd_lines?
-        ktrans_mean_line = ktrans_subplot.axhline(ktrans_mean_difference, color="red", linestyle="--")
-        ktrans_upper_sd_line_value = ktrans_mean_difference + (1.96*ktrans_sd_difference)
-        ktrans_lower_sd_line_value = ktrans_mean_difference - (1.96*ktrans_sd_difference)
-        ktrans_upper_sd_line = ktrans_subplot.axhline(ktrans_upper_sd_line_value, color="gray", linestyle="--")
-        ktrans_lower_sd_line = ktrans_subplot.axhline(ktrans_lower_sd_line_value, color="gray", linestyle="--")
+        ktrans_mean_line = ktrans_subplot.axhline(self.ktrans_mean_difference, color="red", linestyle="--")
+        #self.ktrans_upper_sd_line_value = ktrans_mean_difference + (1.96*ktrans_sd_difference)
+        #self.ktrans_lower_sd_line_value = ktrans_mean_difference - (1.96*ktrans_sd_difference)
+        #self.ktrans_repeatability_coefficient = 1.96 * ktrans_sd_difference
+        t_statistic = scipy.stats.t.ppf(0.95, len(ktrans_diffs_list) - 1)
+        self.ktrans_upper_sd_line_value = self.ktrans_mean_difference + (t_statistic*self.ktrans_sd_difference)
+        self.ktrans_lower_sd_line_value = self.ktrans_mean_difference - (t_statistic*self.ktrans_sd_difference)
+        self.ktrans_repeatability_coefficient = t_statistic * self.ktrans_sd_difference
+        ktrans_upper_sd_line = ktrans_subplot.axhline(self.ktrans_upper_sd_line_value, color="gray", linestyle="--")
+        ktrans_lower_sd_line = ktrans_subplot.axhline(self.ktrans_lower_sd_line_value, color="gray", linestyle="--")
         ktrans_subplot.set_xlabel("Mean of Reference and Calculated Ktrans", fontdict=font)
         ktrans_subplot.set_ylabel("Difference of Reference and Calculated Ktrans", fontdict=font)
-        ktrans_subplot.legend( (ktrans_mean_line, ktrans_upper_sd_line), ("Mean Difference ("+str(ktrans_mean_difference)+")", \
-        "95% Confidence Interval ("+str(ktrans_lower_sd_line_value)+", "+str(ktrans_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
+        ktrans_subplot.legend( (ktrans_mean_line, ktrans_upper_sd_line), ("Mean Difference ("+str(self.ktrans_mean_difference)+")", \
+        "95% Confidence Interval ("+str(self.ktrans_lower_sd_line_value)+", "+str(self.ktrans_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_Ktrans.tight_layout()
         #self.figureLOA_Ktrans.subplots_adjust(top=0.94, right=0.95)
         self.canvasLOA_Ktrans.draw()
@@ -2446,16 +2522,21 @@ class MainWindow_KV(MainWindow):
         # Draw the Bland-Altman plot for Ve
         ve_subplot = self.figureLOA_Ve.add_subplot(111)
         ve_subplot.scatter(ve_means_list, ve_diffs_list, s=50, marker=".")
-        ve_mean_line = ve_subplot.axhline(ve_mean_difference, color="red", linestyle="--")
-        ve_upper_sd_line_value = ve_mean_difference + (1.96*ve_sd_difference)
-        ve_lower_sd_line_value = ve_mean_difference - (1.96*ve_sd_difference)
-        ve_upper_sd_line = ve_subplot.axhline(ve_upper_sd_line_value, color="gray", linestyle="--")
-        ve_lower_sd_line = ve_subplot.axhline(ve_lower_sd_line_value, color="gray", linestyle="--")
+        ve_mean_line = ve_subplot.axhline(self.ve_mean_difference, color="red", linestyle="--")
+        #self.ve_upper_sd_line_value = ve_mean_difference + (1.96*ve_sd_difference)
+        #self.ve_lower_sd_line_value = ve_mean_difference - (1.96*ve_sd_difference)
+        #self.ve_repeatability_coefficient = 1.96 * ve_sd_difference
+        t_statistic = scipy.stats.t.ppf(0.95, len(ve_diffs_list) - 1)
+        self.ve_upper_sd_line_value = self.ve_mean_difference + (t_statistic * self.ve_sd_difference)
+        self.ve_lower_sd_line_value = self.ve_mean_difference - (t_statistic * self.ve_sd_difference)
+        self.ve_repeatability_coefficient = t_statistic * self.ve_sd_difference
+        ve_upper_sd_line = ve_subplot.axhline(self.ve_upper_sd_line_value, color="gray", linestyle="--")
+        ve_lower_sd_line = ve_subplot.axhline(self.ve_lower_sd_line_value, color="gray", linestyle="--")
         ve_subplot.set_xlabel("Mean of Reference and Calculated Ve", fontdict=font)
         ve_subplot.set_ylabel("Difference of Reference and Calculated Ve", fontdict=font)
         #ve_subplot.legend( (ve_mean_line, ve_upper_sd_line), ("Mean Difference", "95% Confidence Interval"), loc="lower center", bbox_to_anchor=(0.5,-0.1), ncol=2, prop={'size':10})
-        ve_subplot.legend( (ve_mean_line, ve_upper_sd_line), ("Mean Difference ("+str(ve_mean_difference)+")", \
-        "95% Confidence Interval ("+str(ve_lower_sd_line_value)+", "+str(ve_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
+        ve_subplot.legend( (ve_mean_line, ve_upper_sd_line), ("Mean Difference ("+str(self.ve_mean_difference)+")", \
+        "95% Confidence Interval ("+str(self.ve_lower_sd_line_value)+", "+str(self.ve_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_Ve.tight_layout()
         self.canvasLOA_Ve.draw()
         
@@ -2707,10 +2788,11 @@ class MainWindow_KV(MainWindow):
         ##sizer = wx.BoxSizer(wx.HORIZONTAL)
         ##sizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
         ##self.pageImagePreview.SetSizer(sizer, deleteOld=True)
-        
+
         #New 8/29/16
         self.imagePreviewSizer.Show(self.canvasImagePreview, show=True)
         self.imagePreviewSizer.Show(self.tableViewer, show=False)
+        self.tableViewer.SetPage("")
         self.pageImagePreview.Layout() #Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
         #End new 8/29/16
 
@@ -2741,7 +2823,7 @@ class MainWindow_KV(MainWindow):
 
         self.imagePreviewSizer.Show(self.canvasImagePreview, show=False)
         self.imagePreviewSizer.Show(self.tableViewer, show=True)
-
+        self.figureImagePreview.clf() # Clears the Image Preview window
         self.pageImagePreview.Layout() #Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
         #self.pageImagePreview.SetupScrolling()
         htmlText = """
@@ -2965,6 +3047,8 @@ class MainWindow_KV(MainWindow):
         self.figureHist_Ktrans.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_K.png'))
         self.figureHist_Ve.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_V.png'))
         self.figureBoxPlot.savefig(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
+        self.figureLOA_Ktrans.savefig(os.path.join(os.getcwd(), 'temp', 'figureLOA_K.png'))
+        self.figureLOA_Ve.savefig(os.path.join(os.getcwd(), 'temp', 'figureLOA_V.png'))
 
         htmlContent += self.newModel.packInHtml('<h1 align="center">QIBA DRO Evaluation Tool Results Report<br>(Ktrans-Ve)</h1>')
 
@@ -3007,8 +3091,14 @@ class MainWindow_KV(MainWindow):
         htmlContent += self.newModel.CCCResultInHTML
         
         htmlContent += self.newModel.TDIResultInHTML
-        
-        #htmlContent += self.newModel.LOAResultInHTML
+
+        htmlContent += self.newModel.packInHtml('''
+        <h2 align="center">The Bland-Altman Limits of Agreement plots of calculated Ktrans and Ve</h2>
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureLOA_K.png') + '''" style="width:100%" align="left">''' + '''
+        <p><h4>The repeatability coefficient is '''+str(self.ktrans_repeatability_coefficient)+'''</h4></p>
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureLOA_V.png') + '''" style="width:100%" align="right">''' + '''
+        <p><h4>The repeatability coefficient is '''+str(self.ve_repeatability_coefficient)+'''</h4></p>
+        </p></p>''')
         
         htmlContent += self.newModel.sigmaMetricResultInHTML
 
@@ -3038,7 +3128,7 @@ class MainWindow_T1(MainWindow):
         if refFiles:
             self.path_ref_T1 = refFiles
         else:
-            self.path_ref_T1 = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
+            self.path_ref_T1 = os.path.join(os.getcwd(), 'reference_data', 'T1.tif')
 
         if calFiles:
             self.path_cal_T1 = calFiles
@@ -3172,10 +3262,16 @@ class MainWindow_T1(MainWindow):
 
         if self.type_of_data_loaded == "table":
             results_table = addToTable(results_table, label_list, T1_data_list)
+
         results_table += "All Regions Combined\nRMSD = \t"+str(self.newModel.T1_rmsd_all_regions)+"\n"
         results_table += "CCC = \t"+str(self.newModel.T1_ccc_all_regions)+"\n"
         results_table += "TDI = \t"+str(self.newModel.T1_tdi_all_regions)+"\n"
         results_table += "Sigma metric = \t"+str(self.newModel.T1_sigma_metric_all_regions)+"\n"
+        results_table += "Mean bias = \t"+str(self.t1_mean_difference)+"\n"
+        results_table += "Std Dev of bias = \t"+str(self.t1_sd_difference)+"\n"
+        results_table += "Bland-Altman Lower Limit = \t"+str(self.t1_lower_sd_line_value)+"\n"
+        results_table += "Bland-Altman Upper Limit = \t"+str(self.t1_upper_sd_line_value)+"\n"
+        results_table += "Bland-Altman Repeatability Coefficient = \t"+str(self.t1_repeatability_coefficient)+"\n"
         
         # If user entered .csv as the file extension, replace tabs in the
         # results_table with commas
@@ -3187,6 +3283,7 @@ class MainWindow_T1(MainWindow):
             try:
                 output_file.write(results_table)
                 self.SetStatusText(save_path + " saved successfully")
+                return os.path.dirname(save_path)
             except IOError:
                 self.SetStatusText("Error saving results table")
                 wx.MessageBox("There was an error saving the results table", "Error Saving Results Table", wx.OK | wx.ICON_ERROR)
@@ -3346,11 +3443,14 @@ class MainWindow_T1(MainWindow):
         self.popupMenu = wx.Menu()
         self.ID_POPUP_LOAD_CAL_T1 = wx.NewId()
         self.ID_POPUP_LOAD_CAL_R1 = wx.NewId()
+        self.ID_POPUP_LOAD_MASK_T1R1 = wx.NewId()
 
         OnLoadCal_T1 = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_T1, 'Load as calculated T1')
         OnLoadCal_R1 = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_R1, 'Load as calculated R1')
+        OnLoadMask_T1R1 = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_MASK_T1R1, 'Load as Mask')
         self.popupMenu.AppendItem(OnLoadCal_T1)
         self.popupMenu.AppendItem(OnLoadCal_R1)
+        self.popupMenu.AppendItem(OnLoadMask_T1R1)
 
     def SetupRightClickMenuForTextFiles(self):
         # setup the popup menu for right clicking on text files (.csv, .cdata, .txt)
@@ -3359,10 +3459,14 @@ class MainWindow_T1(MainWindow):
         wx.EVT_RIGHT_DOWN(self.fileBrowser.GetTreeCtrl(), self.OnRightClick)
         self.popupMenuTextFiles = wx.Menu()
         self.ID_POPUP_LOAD_TEXT_FILE_T1 = wx.NewId()
+        self.ID_POPUP_LOAD_MASK_T1R1_TEXT = wx.NewId()
         
         OnLoadTextFile_T1 = wx.MenuItem(self.popupMenuTextFiles, self.ID_POPUP_LOAD_TEXT_FILE_T1, "Load as T1/R1 parameter text file")
+        OnLoadMask_T1R1 = wx.MenuItem(self.popupMenuTextFiles, self.ID_POPUP_LOAD_MASK_T1R1, "Load as Mask")
         self.popupMenuTextFiles.AppendItem(OnLoadTextFile_T1)
+        self.popupMenuTextFiles.AppendItem(OnLoadMask_T1R1)
         wx.EVT_MENU(self.popupMenuTextFiles, self.ID_POPUP_LOAD_TEXT_FILE_T1, self.OnLoadTextFile_T1)
+        wx.EVT_MENU(self.popupMenuTextFiles, self.ID_POPUP_LOAD_MASK_T1R1_TEXT, self.OnLoadMask_T1R1)
         
     def SetupPage_Histogram(self):
         # setup the histogram page
@@ -3414,6 +3518,7 @@ class MainWindow_T1(MainWindow):
         if (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in self.supportedFileTypeList):
             wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_T1, self.OnLoadCal_T1)
             wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_R1, self.OnLoadCal_R1)
+            wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_MASK_T1R1, self.OnLoadMask_T1R1)
             self.PopupMenu(self.popupMenu, event.GetPosition())
         elif (str(os.path.splitext(self.fileBrowser.GetPath())[1]) in self.supportedTextFileTypeList):
             self.PopupMenu(self.popupMenuTextFiles, event.GetPosition())
@@ -3437,6 +3542,12 @@ class MainWindow_T1(MainWindow):
         self.buttonEvaluate.Enable()
         self.T1_R1_flag = "R1"
         self.path_qiba_table_T1 = None
+
+    def OnLoadMask_T1R1(self, event):
+        # pass the mask file path for loading
+        path = self.fileBrowser.GetPath()
+        self.mask = self.loadMaskFile(path)
+        self.SetStatusText('Mask Loaded.')
         
     def OnLoadRef_T1(self, event):
         # pass the file path for loading
@@ -3446,7 +3557,8 @@ class MainWindow_T1(MainWindow):
             imageData, nrOfRow, nrOfColumn, fileType = QIBA_functions.ImportRawFile(self.path_ref_T1, self.patchLen)
             if fileType == 'BINARY':
                 self.OnImportBinaryDialog_T1()
-            elif imageData == False:
+            #elif imageData == False:
+            elif fileType == "":
                 self.SetStatusText('Please import a valid image!')
             else:
                 self.ref_T1 = imageData
@@ -3567,12 +3679,10 @@ class MainWindow_T1(MainWindow):
 
                 #processedData_T1 = [n for n in self.newModel.T1_cal[i][j] if n is not numpy.nan] #Remove NaNs. Matplotlib's histogram seems to fail if there are NaNs
                 processedData_T1 = QIBA_functions.DealNaN(self.newModel.T1_cal[i][j])[0] # Original
-
                 subPlot_T1.hist(processedData_T1, nrOfBins) # normed=True if want the bars to be normalized
                 minPatch_T1 = numpy.min(processedData_T1)
                 maxPatch_T1 = numpy.max(processedData_T1)
                 meanPatch_T1 = numpy.mean(processedData_T1)
-
                 minPatch_T1 = QIBA_functions.formatFloatTo2DigitsString(minPatch_T1)
                 maxPatch_T1 = QIBA_functions.formatFloatTo2DigitsString(maxPatch_T1)
                 meanPatch_T1 = QIBA_functions.formatFloatTo2DigitsString(meanPatch_T1)
@@ -3726,7 +3836,8 @@ class MainWindow_T1(MainWindow):
         #pyplt refers to matplotlib.pyplot
         t1_refData_nbp = numpy.asarray(self.newModel.T1_ref_no_bad_pixels)
         t1_calData_nbp = numpy.asarray(self.newModel.T1_cal_no_bad_pixels)
-        
+        t1_mask_nbp = self.newModel.T1_mask_no_bad_pixels
+
         t1_ref_total_pixels_counted = 0
         t1_cal_total_pixels_counted = 0
         i_dimension = len(t1_calData_nbp)
@@ -3734,12 +3845,19 @@ class MainWindow_T1(MainWindow):
         
         t1_means_list = list()
         t1_diffs_list = list()
+
+        #t_statistic = QIBA_functions.T_Test_Aggregate_Data(t1_calData_nbp, t1_refData_nbp, i_dimension, j_dimension, t1_mask_nbp)
+
         #print("i_dimension="+str(i_dimension)+", j_dimension="+str(j_dimension)) #for testing
         for i in range(i_dimension):
             for j in range(j_dimension):
                 t1_refData_nbp_10x10 = t1_refData_nbp[i][j] #The 10x10 pixel patch of raw pixel data (no bad pixels)
                 t1_calData_nbp_10x10 = t1_calData_nbp[i][j] #The 10x10 pixel patch or raw pixel data
-                
+                mask_nbp_10x10 = t1_mask_nbp[i][j]
+
+                t1_refData_nbp_10x10 = QIBA_functions.applyMask(t1_refData_nbp_10x10, mask_nbp_10x10)
+                t1_calData_nbp_10x10 = QIBA_functions.applyMask(t1_calData_nbp_10x10, mask_nbp_10x10)
+
                 t1_ref_pixels_counted_10x10 = len(t1_refData_nbp_10x10)
                 t1_cal_pixels_counted_10x10 = len(t1_calData_nbp_10x10)
                 t1_ref_total_pixels_counted += t1_ref_pixels_counted_10x10
@@ -3753,9 +3871,9 @@ class MainWindow_T1(MainWindow):
                     #print("i="+str(i)+", j="+str(j)+": mean="+str(mean)+", difference="+str(difference)) #for testing
                     t1_means_list.append(mean)
                     t1_diffs_list.append(difference)
-                    t1_mean_difference = numpy.mean(t1_diffs_list) #The mean of the differences
-                    t1_sd_difference = numpy.std(t1_diffs_list) #The standard deviation of the differences
-        
+                    self.t1_mean_difference = numpy.mean(t1_diffs_list) #The mean of the differences
+                    self.t1_sd_difference = numpy.std(t1_diffs_list) #The standard deviation of the differences
+
         # Setup the toolbars
         self.toolbar_LOA_T1 = NavigationToolbar(self.canvasLOA_T1)
         self.toolbar_LOA_T1.Hide()
@@ -3784,15 +3902,20 @@ class MainWindow_T1(MainWindow):
         font = {'fontname':'Arial', 'fontsize':12, 'weight':'bold'}
         t1_subplot = self.figureLOA_T1.add_subplot(111)
         t1_subplot.scatter(t1_means_list, t1_diffs_list, s=50, marker=".") #s= size, c= color
-        t1_mean_line = t1_subplot.axhline(t1_mean_difference, color="red", linestyle="--")
-        t1_upper_sd_line_value = t1_mean_difference + (1.96*t1_sd_difference)
-        t1_lower_sd_line_value = t1_mean_difference - (1.96*t1_sd_difference)
-        t1_upper_sd_line = t1_subplot.axhline(t1_upper_sd_line_value, color="gray", linestyle="--")
-        t1_lower_sd_line = t1_subplot.axhline(t1_lower_sd_line_value, color="gray", linestyle="--")
-        t1_subplot.set_xlabel("Mean of Reference and Calculated Ktrans", fontdict=font)
-        t1_subplot.set_ylabel("Difference of Reference and Calculated Ktrans", fontdict=font)
-        t1_subplot.legend( (t1_mean_line, t1_upper_sd_line), ("Mean Difference ("+str(t1_mean_difference)+")", \
-        "95% Confidence Interval ("+str(t1_lower_sd_line_value)+", "+str(t1_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
+        t1_mean_line = t1_subplot.axhline(self.t1_mean_difference, color="red", linestyle="--")
+        #self.t1_upper_sd_line_value = t1_mean_difference + (1.96*t1_sd_difference)
+        #self.t1_lower_sd_line_value = t1_mean_difference - (1.96*t1_sd_difference)
+        #self.t1_repeatability_coefficient = 1.96 * t1_sd_difference
+        t_statistic = scipy.stats.t.ppf(0.95, len(t1_diffs_list) - 1)
+        self.t1_upper_sd_line_value = self.t1_mean_difference + (t_statistic*self.t1_sd_difference)
+        self.t1_lower_sd_line_value = self.t1_mean_difference - (t_statistic*self.t1_sd_difference)
+        self.t1_repeatability_coefficient = t_statistic * self.t1_sd_difference
+        t1_upper_sd_line = t1_subplot.axhline(self.t1_upper_sd_line_value, color="gray", linestyle="--")
+        t1_lower_sd_line = t1_subplot.axhline(self.t1_lower_sd_line_value, color="gray", linestyle="--")
+        t1_subplot.set_xlabel("Mean of Reference and Calculated T1", fontdict=font)
+        t1_subplot.set_ylabel("Difference of Reference and Calculated T1", fontdict=font)
+        t1_subplot.legend( (t1_mean_line, t1_upper_sd_line), ("Mean Difference ("+str(self.t1_mean_difference)+")", \
+        "95% Confidence Interval ("+str(self.t1_lower_sd_line_value)+", "+str(self.t1_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_T1.tight_layout()
         #self.figureLOA_T1.subplots_adjust(top=0.94, right=0.95)
         self.canvasLOA_T1.draw()
@@ -3806,7 +3929,9 @@ class MainWindow_T1(MainWindow):
         unique_ref_T1_values_list = list() #A list of each reference T1 value (i.e. [0.01, 0.02, 0.05, 0.1, 0.2, 0.35])
         all_ref_T1_values_list = list()
         all_cal_T1_values_list = list()
-        
+
+        #t_statistic = QIBA_functions_for_table.T_Test_Aggregate_Data(ref_cal_T1_groups)
+
         for i in range(len(ref_cal_T1_groups)):
             unique_T1_ref_group = ref_cal_T1_groups[i]
             #temp_temp = list()
@@ -3836,8 +3961,8 @@ class MainWindow_T1(MainWindow):
             t1_means_list.append(mean_of_t1_ref_and_cal)
             t1_diffs_list.append(all_cal_T1_values_list[i] - all_ref_T1_values_list[i])
         
-        t1_mean_difference = numpy.mean(t1_diffs_list) #The mean of the differences
-        t1_sd_difference = numpy.std(t1_diffs_list) #The standard deviation of the differences
+        self.t1_mean_difference = numpy.mean(t1_diffs_list) #The mean of the differences
+        self.t1_sd_difference = numpy.std(t1_diffs_list) #The standard deviation of the differences
         
         # Setup the toolbars
         self.toolbar_LOA_T1 = NavigationToolbar(self.canvasLOA_T1)
@@ -3868,11 +3993,20 @@ class MainWindow_T1(MainWindow):
         t1_subplot = self.figureLOA_T1.add_subplot(111)
         t1_subplot.scatter(t1_means_list, t1_diffs_list, s=50, marker=".") #s= size, c= color
         #  Should outliers be excluded when calculating mean_line and sd_lines?
-        t1_mean_line = t1_subplot.axhline(t1_mean_difference, color="red", linestyle="--")
-        t1_upper_sd_line_value = t1_mean_difference + (1.96*t1_sd_difference)
-        t1_lower_sd_line_value = t1_mean_difference - (1.96*t1_sd_difference)
-        t1_upper_sd_line = t1_subplot.axhline(t1_upper_sd_line_value, color="gray", linestyle="--")
-        t1_lower_sd_line = t1_subplot.axhline(t1_lower_sd_line_value, color="gray", linestyle="--")
+        t1_mean_line = t1_subplot.axhline(self.t1_mean_difference, color="red", linestyle="--")
+
+        t_statistic = scipy.stats.t.ppf(0.95, len(t1_diffs_list)-1)
+        #t_statistic = self.newModel.T1_cal_patch_ttest_t
+        #t_statistic = QIBA_functions.T_Test_Aggregate_Data(all_ref_T1_values_list, all_cal_T1_values_list)
+        #self.t1_upper_sd_line_value = t1_mean_difference + (1.96*t1_sd_difference)
+        #self.t1_lower_sd_line_value = t1_mean_difference - (1.96*t1_sd_difference)
+        #self.t1_repeatability_coefficient = 1.96 * t1_sd_difference
+        self.t1_upper_sd_line_value = self.t1_mean_difference + (t_statistic*self.t1_sd_difference) #Need to calculate an aggregate t_statistic. "t_statistic" currently is a list of 1 t_stat for each row.
+        self.t1_lower_sd_line_value = self.t1_mean_difference - (t_statistic*self.t1_sd_difference)
+        self.t1_repeatability_coefficient = t_statistic * self.t1_sd_difference
+
+        t1_upper_sd_line = t1_subplot.axhline(self.t1_upper_sd_line_value, color="gray", linestyle="--")
+        t1_lower_sd_line = t1_subplot.axhline(self.t1_lower_sd_line_value, color="gray", linestyle="--")
         
         if self.T1_R1_flag == "T1":
             t1_subplot.set_xlabel("Mean of Reference and Calculated T1", fontdict=font)
@@ -3884,8 +4018,8 @@ class MainWindow_T1(MainWindow):
             t1_subplot.set_xlabel("Mean of Reference and Calculated Values", fontdict=font)
             t1_subplot.set_ylabel("Difference of Reference and Calculated Values", fontdict=font)
             
-        t1_subplot.legend( (t1_mean_line, t1_upper_sd_line), ("Mean Difference ("+str(t1_mean_difference)+")", \
-        "95% Confidence Interval ("+str(t1_lower_sd_line_value)+", "+str(t1_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
+        t1_subplot.legend( (t1_mean_line, t1_upper_sd_line), ("Mean Difference ("+str(self.t1_mean_difference)+")", \
+        "95% Confidence Interval ("+str(self.t1_lower_sd_line_value)+", "+str(self.t1_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_T1.tight_layout()
         #self.figureLOA_T1.subplots_adjust(top=0.94, right=0.95)
         self.canvasLOA_T1.draw()
@@ -4071,6 +4205,7 @@ class MainWindow_T1(MainWindow):
 
         self.imagePreviewSizer.Show(self.canvasImagePreview, show=True)
         self.imagePreviewSizer.Show(self.tableViewer, show=False)
+        self.tableViewer.SetPage("")
         self.pageImagePreview.Layout()  # Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
 
         self.PlotPreview([[self.newModel.T1_cal_inRow], [self.newModel.T1_error], [self.newModel.T1_error_normalized],],
@@ -4098,6 +4233,7 @@ class MainWindow_T1(MainWindow):
 
         self.imagePreviewSizer.Show(self.canvasImagePreview, show=False)
         self.imagePreviewSizer.Show(self.tableViewer, show=True)
+        self.figureImagePreview.clf()  # Clears the Image Preview window
         self.pageImagePreview.Layout()  # Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
 
         htmlText = """
@@ -4276,6 +4412,7 @@ class MainWindow_T1(MainWindow):
         self.figureScatter.savefig(os.path.join(os.getcwd(), 'temp', 'figureScatters.png'))
         self.figureHist_T1.savefig(os.path.join(os.getcwd(), 'temp', 'figureHist_T1.png'))
         self.figureBoxPlot.savefig(os.path.join(os.getcwd(), 'temp', 'figureBoxPlots.png'))
+        self.figureLOA_T1.savefig(os.path.join(os.getcwd(), 'temp', 'figureLOA_T1.png'))
 
         htmlContent += self.newModel.packInHtml('<h1 align="center">QIBA DRO Evaluation Tool Results Report<br>(T1)</h1>')
 
@@ -4317,8 +4454,12 @@ class MainWindow_T1(MainWindow):
         htmlContent += self.newModel.CCCResultInHTML
         
         htmlContent += self.newModel.TDIResultInHTML
-        
-        #htmlContent += self.newModel.LOAResultInHTML
+
+        htmlContent += self.newModel.packInHtml('''
+        <h2 align="center">The Bland-Altman Limits of Agreement plot of calculated T1</h2>
+        <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureLOA_T1.png') + '''" style="width:100%" align="left">''' + '''
+        <p><h4>The repeatability coefficient is '''+str(self.t1_repeatability_coefficient)+'''</h4></p>
+        </p></p>''')
         
         htmlContent += self.newModel.sigmaMetricResultInHTML
 
@@ -4420,10 +4561,26 @@ def ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_pa
         window.allowable_total_error = allowable_total_error
 
         file_name = os.path.basename(calFiles)
-        if "R1" in file_name:
+        file_name_lc = file_name.lower()
+        if "r1" in file_name_lc and "t1" in file_name_lc:
+            print("\nAction Required: Cannot determine if the image file \"" + file_name + "\" contains R1 or T1 data.")
+            print("Please enter 1 if the file contains R1 data, 2 if the file contains T1 data,")
+            print("or 3 to exit.")
+            r1_t1_user_input = getR1T1FromUser()
+            print(file_name + " will be loaded as " + r1_t1_user_input +" data.")
+            window.T1_R1_flag = r1_t1_user_input
+
+        elif "r1" in file_name_lc:
             window.T1_R1_flag = "R1"
-        else:
+        elif "t1" in file_name_lc:
             window.T1_R1_flag = "T1"
+        else:
+            print("\nAction Required: Cannot determine if the image file \"" + file_name + "\" contains R1 or T1 data.")
+            print("Please enter 1 if the file contains R1 data, 2 if the file contains T1 data,")
+            print("or 3 to exit.")
+            r1_t1_user_input = getR1T1FromUser()
+            print(file_name + " will be loaded as " + r1_t1_user_input + " data.")
+            window.T1_R1_flag = r1_t1_user_input
 
 
         if mask_path is not None:
@@ -4442,6 +4599,29 @@ def ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_pa
 
     # Save the results table for both GKM and T1 modes
     window.saveResultsTable(save_path=desDir+os.path.sep+desFile)
+
+def getR1T1FromUser():
+    """In command line mode (T1 branch), QDET uses the file name to determine if the loaded calculated image
+    contains R1 or T1 data. If "R1" and "T1" are both in the file name or if the file name doesn't contain "R1" or "T1",
+    then get this from the user."""
+    valid_entry = False
+    number_of_times = 0
+    accepted_exit_list = ["3", "quit", "exit", "bye", "goodbye", "end", "leave"]
+    while not valid_entry:
+        if number_of_times >=1 :
+            r1_t1_user_input = raw_input("Please enter 1 for R1, 2 for T1, or 3 to exit.\n>")
+        else:
+            r1_t1_user_input = raw_input("\n>")
+        r1_t1_user_input_lc = r1_t1_user_input.lower()
+        r1_t1_user_input_lc.strip() #Remove trailing spaces and other blank characters
+
+        if r1_t1_user_input == "1" or r1_t1_user_input_lc == "r1":
+            return "R1"
+        elif r1_t1_user_input == "2" or r1_t1_user_input_lc == "t1":
+            return "T1"
+        elif r1_t1_user_input_lc in accepted_exit_list:
+            sys.exit("QDET exited by user")
+        number_of_times = number_of_times + 1
 
 def processGKMTablesWithoutGUI(ktransTableFile, veTableFile, desFile, allowable_total_error_params):
     # allowable_total_error_params : [allowable_total_error_set, allowable_total_error_eqn, allowable_total_error]
@@ -4543,7 +4723,11 @@ def checkIfFilesExist(list_of_files):
 
 def main(argv):
     # generate the application object
-    Application = wx.App()
+    if len(argv) == 0:
+        Application = wx.App() #For GUI mode, direct all output to a wxpython window
+    else:
+        Application = wx.App(redirect=False) #For command-line mode, direct all output to the terminal/console window
+
     ISCOMMAND = False
 
     # show the splash window
@@ -4576,8 +4760,8 @@ def main(argv):
         parser = argparse.ArgumentParser("QIBA Evaluation Tool Command Line Mode")
         #parser.add_argument("-b", "--batch", action="store_true")
         parser.add_argument("-m", "--mode", choices=["GKM", "T1"], required=True)
-        parser.add_argument("-c", "--cfile", nargs="+") # Ktrans and Ve images with calculated data
-        parser.add_argument("-r", "--rfile", nargs="+") # Ktrans and Ve image with reference data
+        parser.add_argument("-c", "--cfile", nargs="+") # Ktrans and Ve images with calculated data, or T1 image with calculated data
+        parser.add_argument("-r", "--rfile", nargs="+") # Ktrans and Ve image with reference data, or T1 image with calculated data
         parser.add_argument("-k", "--ktransfile", nargs="+")
         parser.add_argument("-v", "--vefile", nargs="+")
         parser.add_argument("-t", "--t1file", nargs="+")
