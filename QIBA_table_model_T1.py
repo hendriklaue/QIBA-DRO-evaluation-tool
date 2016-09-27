@@ -2,13 +2,14 @@ from collections import OrderedDict
 import math
 import numpy
 import QIBA_functions_for_table
+import VerboseModeStatDescriptions as StatDescriptions
 
 class QIBA_table_model_T1(object):
     """The class for the T1 model when table data is loaded.
     This class processes the data stored in a QIBA_table object.
     """
     
-    def __init__(self, data_table_T1, allowable_total_error):
+    def __init__(self, data_table_T1, allowable_total_error, verbose_mode):
         self.data_table_T1 = data_table_T1
         
         # Lists of weights to use when calculating statistics
@@ -45,6 +46,11 @@ class QIBA_table_model_T1(object):
     
         # The allowable total error - used to calculate Sigma metric
         self.allowable_total_error = allowable_total_error
+
+        # Sets verbose mode. If enabled,
+        # then explanations of the CCC, RMSD, TDI, BA-LOA, and sigma metric
+        # statistics will be included in the output reports.
+        self.verbose_mode = verbose_mode
         
     def getValuesFromTable(self, table, index_number, datatype="string"):
         value_list = list()
@@ -142,6 +148,7 @@ class QIBA_table_model_T1(object):
         self.calculateTDIForModel()
         self.calculateSigmaMetricForModel()
         self.calculateMeanForModel()
+        self.CalculateAggregateMeanStdDevForModel()
         self.calculateMedianForModel()
         self.calculateSTDDeviationForModel()
         self.calculate1stAnd3rdQuartileForModel()
@@ -193,6 +200,8 @@ class QIBA_table_model_T1(object):
         
         T1StatisticsTable += "<h3>The mean and standard deviation value</h3>"
         T1StatisticsTable += QIBA_functions_for_table.editTable("T1", self.headers_T1, ["mean", "SR"], [self.T1_cal_patch_mean, self.T1_cal_patch_deviation])
+        T1StatisticsTable += "<h4>The mean T1 for all patches combined="+str(self.T1_cal_aggregate_mean)+"</h4>"
+        T1StatisticsTable += "<h4>The standard deviation for all patches combined="+str(self.T1_cal_aggregate_deviation)+"</h4>"
         T1StatisticsTable += "<h3>The median, 1st and 3rd quartile, min. and max. values</h3>"
         T1StatisticsTable += QIBA_functions_for_table.editTable("T1", self.headers_T1, \
             ["min.", "1st quartile", "median", "3rd quartile", "max."], [self.T1_cal_patch_min, self.T1_cal_patch_1stQuartile, self.T1_cal_patch_median, self.T1_cal_patch_3rdQuartile, self.T1_cal_patch_max])
@@ -358,9 +367,14 @@ class QIBA_table_model_T1(object):
         T1RMSDTable += QIBA_functions_for_table.editTable("", self.headers_T1, ["rmsd"], [self.T1_rmsd])
         T1RMSDTable += \
             "<h4>The root mean square deviation of all patches combined in calculated and reference T1="+str(self.T1_rmsd_all_regions)+"</h4>"
-            
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.rmsd_text
+        else:
+            description_text = ""
+
         #Put the test into HTML structure
-        self.RMSDResultInHTML = self.packInHtml(T1RMSDTable)
+        self.RMSDResultInHTML = self.packInHtml(T1RMSDTable + "<br>" + description_text)
 
     def htmlCCCResults(self):
         """Displays the calculated CCC results in HTML form"""
@@ -372,8 +386,13 @@ class QIBA_table_model_T1(object):
         T1CCCTable += \
             "<h4>The concordance correlation coefficient of all patches combined in calculated and reference T1="+str(self.T1_ccc_all_regions)+"</h4>"
 
+        if self.verbose_mode:
+            description_text = StatDescriptions.ccc_text
+        else:
+            description_text = ""
+
         #Put the text into HTML structure
-        self.CCCResultInHTML = self.packInHtml(T1CCCTable)
+        self.CCCResultInHTML = self.packInHtml(T1CCCTable + "<br>" + description_text)
         
     def htmlTDIResults(self):
         """Displays the calculated TDI results in HTML form"""
@@ -386,9 +405,14 @@ class QIBA_table_model_T1(object):
             "<h4>The estimated total deviation index of all patches combined in calculated and reference T1="+str(self.T1_tdi_all_regions_method_2)+"</h4>"
         T1_TDITable += \
             "<h4>The total deviation index of all patches combined in calculated and reference T1="+str(self.T1_tdi_all_regions)+"</h4>"
-        
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.tdi_text
+        else:
+            description_text = ""
+
         #Put the text into HTML structure
-        self.TDIResultInHTML = self.packInHtml(T1_TDITable)
+        self.TDIResultInHTML = self.packInHtml(T1_TDITable + "<br>" + description_text)
         
     def htmlSigmaMetricResults(self):
         """Displays the calculated sigma metric in HTML form"""
@@ -399,9 +423,14 @@ class QIBA_table_model_T1(object):
         T1_SigmaMetricTable += QIBA_functions_for_table.editTable("", self.headers_T1, ["sigma metric"], [self.T1_sigma_metric])
         T1_SigmaMetricTable += \
             "<h4>The sigma metric of all patches combined in calculated and reference T1="+str(self.T1_sigma_metric_all_regions)+"</h4>"
-        
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.sigma_metric_text
+        else:
+            description_text = ""
+
         #Put the text into HTML structure
-        self.sigmaMetricResultInHTML = self.packInHtml(T1_SigmaMetricTable)
+        self.sigmaMetricResultInHTML = self.packInHtml(T1_SigmaMetricTable + "<br>" + description_text)
 
         
     def htmlChiq_TestResults(self):
@@ -567,7 +596,10 @@ class QIBA_table_model_T1(object):
         
     def calculateMeanForModel(self):
         self.T1_cal_patch_mean = QIBA_functions_for_table.calculateMean(self.ref_cal_T1_groups)
-        
+
+    def CalculateAggregateMeanStdDevForModel(self):
+        self.T1_cal_aggregate_mean, self.T1_cal_aggregate_deviation = QIBA_functions_for_table.CalculateAggregateMeanStdDev(self.ref_cal_T1_groups)
+
     def calculateMedianForModel(self):
         self.T1_cal_patch_median = QIBA_functions_for_table.calculateMedian(self.ref_cal_T1_groups)
         

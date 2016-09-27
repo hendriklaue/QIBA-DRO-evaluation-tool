@@ -68,13 +68,14 @@ from ATEDialogBox import ATEDialogBox
 from QIBA_table import QIBA_table
 from QIBA_table_model_KV import QIBA_table_model_KV
 from QIBA_table_model_T1 import QIBA_table_model_T1
+import VerboseModeStatDescriptions as StatDescriptions
 
 class MainWindow(wx.Frame):
     '''
     this is the parent class of the main window of the application.
     '''
 
-    def __init__(self, parent, applicationName, calFiles, refFiles, desDir):
+    def __init__(self, parent, applicationName, calFiles, refFiles, desDir, verbose_mode=False):
         wx.Frame.__init__(self, parent, title = applicationName, size = (wx.SYS_SCREEN_X, wx.SYS_SCREEN_Y))
         self.Bind(wx.EVT_CLOSE, self.OnQuit)
         self.path_cal_T1 = ''
@@ -89,6 +90,8 @@ class MainWindow(wx.Frame):
         self.WARNINGTEXT = False
         self.supportedFileTypeList = ['.dcm', '.bin', '.raw', '.tif', '.img']
         self.supportedTextFileTypeList = ['.csv', '.cdata', '.txt'] #Valid filetypes for reading text file tables
+
+        self.verbose_mode = verbose_mode
 
         self.CenterOnScreen()
 
@@ -897,8 +900,15 @@ class MainWindow(wx.Frame):
                 ate_dialog_box.destroy()
                 return
             
-        ate_dialog_box.destroy()        
-                
+        ate_dialog_box.destroy()
+
+    def setVerboseMode(self, event):
+        """Enable/disable Verbose Mode.
+        If Verbose Mode is enabled, then explanations of the
+        CCC, RMSD, TDI, BA-LOA, and sigma metric will be included in the output reports."""
+        self.verbose_mode = not self.verbose_mode
+
+
     def evaluateCmdLine(self):
         """Do evaluation. Use this function when running from command line."""
         # make sure there's calculated data loaded
@@ -1168,9 +1178,9 @@ class MainWindow_KV(MainWindow):
     '''
     this is the Ktrans-Ve branch's interface.
     '''
-    def __init__(self, appName, calFiles, refFiles, desDir):
+    def __init__(self, appName, calFiles, refFiles, desDir, verbose_mode):
         # instance of the main window
-        MainWindow.__init__(self, None, appName, calFiles, refFiles, desDir)
+        MainWindow.__init__(self, None, appName, calFiles, refFiles, desDir, verbose_mode)
 
         self.patchLen = 10
         self.WARNINGTEXT = False
@@ -1305,11 +1315,13 @@ class MainWindow_KV(MainWindow):
         if self.type_of_data_loaded == "table":
             results_table = addToTable(results_table, label_list, Ktrans_data_list)
         results_table += "All Regions Combined\nRMSD = \t"+str(self.newModel.Ktrans_rmsd_all_regions)+"\n"
+        results_table += "Mean = \t"+str(self.newModel.Ktrans_cal_aggregate_mean)+"\n"
         results_table += "CCC = \t"+str(self.newModel.Ktrans_ccc_all_regions)+"\n"
-        results_table += "TDI = \t"+str(self.newModel.Ktrans_tdi_all_regions)+"\n"
+        results_table += "TDI (Nonparametric) = \t"+str(self.newModel.Ktrans_tdi_all_regions)+"\n"
+        results_table += "TDI (Parametric) = \t" + str(self.newModel.Ktrans_tdi_all_regions_method_2) + "\n"
         results_table += "Sigma metric = \t"+str(self.newModel.Ktrans_sigma_metric_all_regions)+"\n"
-        results_table += "Mean bias = \t"+str(self.ktrans_mean_difference)+"\n"
-        results_table += "Std Dev of bias = \t"+str(self.ktrans_sd_difference)+"\n"
+        results_table += "Mean bias = \t"+str(self.ktrans_mean_percent_bias)+"\n"
+        results_table += "Variability (wSD) = \t" + str(self.newModel.Ktrans_cal_aggregate_deviation) + "\n"
         results_table += "Bland-Altman Lower Limit = \t" + str(self.ktrans_lower_sd_line_value) + "\n"
         results_table += "Bland-Altman Upper Limit = \t" + str(self.ktrans_upper_sd_line_value) + "\n"
         results_table += "Bland-Altman Repeatability Coefficient = \t" + str(self.ktrans_repeatability_coefficient) + "\n"
@@ -1339,11 +1351,13 @@ class MainWindow_KV(MainWindow):
         if self.type_of_data_loaded == "table":
             results_table = addToTable(results_table, label_list, Ve_data_list)
         results_table += "All Regions Combined\nRMSD = \t"+str(self.newModel.Ve_rmsd_all_regions)+"\n"
+        results_table += "Mean = \t" + str(self.newModel.Ve_cal_aggregate_mean) + "\n"
         results_table += "CCC = \t"+str(self.newModel.Ve_ccc_all_regions)+"\n"
-        results_table += "TDI = \t"+str(self.newModel.Ve_tdi_all_regions)+"\n"
+        results_table += "TDI (Nonparametric) = \t"+str(self.newModel.Ve_tdi_all_regions)+"\n"
+        results_table += "TDI (Parametric) = \t" + str(self.newModel.Ve_tdi_all_regions_method_2) + "\n"
         results_table += "Sigma metric = \t"+str(self.newModel.Ve_sigma_metric_all_regions) + "\n"
-        results_table += "Mean bias = \t"+str(self.ve_mean_difference) + "\n"
-        results_table += "Std Dev of bias = \t"+str(self.ve_sd_difference) + "\n"
+        results_table += "Mean bias = \t"+str(self.ve_mean_percent_bias) + "\n"
+        results_table += "Variability (wSD) = \t" + str(self.newModel.Ve_cal_aggregate_deviation) + "\n"
         results_table += "Bland-Altman Lower Limit = \t" + str(self.ve_lower_sd_line_value) + "\n"
         results_table += "Bland-Altman Upper Limit = \t" + str(self.ve_upper_sd_line_value) + "\n"
         results_table += "Bland-Altman Repeatability Coefficient = \t" + str(self.ve_repeatability_coefficient) + "\n"
@@ -1518,10 +1532,14 @@ class MainWindow_KV(MainWindow):
         OnLoadRef_V = editMenu.Append(wx.ID_ANY, 'Load reference Ve...')
         editMenu.AppendSeparator()
         set_allowable_total_error = editMenu.Append(wx.ID_ANY, "Set Allowable Total Error...")
+        editMenu.AppendSeparator()
+        onVerboseMode = editMenu.AppendCheckItem(wx.ID_ANY, "Include Stat. Descriptions in Reports")
+
         # self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension) #This function doesn't exist anymore
         self.Bind(wx.EVT_MENU, self.OnLoadRef_K, OnLoadRef_K)
         self.Bind(wx.EVT_MENU, self.OnLoadRef_V, OnLoadRef_V)
         self.Bind(wx.EVT_MENU, self.setAllowableTotalErrorMenu, set_allowable_total_error)
+        self.Bind(wx.EVT_MENU, self.setVerboseMode, onVerboseMode)
         
         self.menubar.Insert(1, editMenu, "&Edit")
         self.SetMenuBar(self.menubar)
@@ -1586,13 +1604,32 @@ class MainWindow_KV(MainWindow):
         
         self.figureLOA_Ve = Figure()
         self.canvasLOA_Ve = FigureCanvas(self.pageLOA, -1, self.figureLOA_Ve)
-        
+
+        self.figureLOA_description = Figure()
+        self.canvasLOA_description = FigureCanvas(self.pageLOA, -1, self.figureLOA_description)
+
         self.horizontalLineLOA = wx.StaticLine(self.pageLOA, -1, style=wx.LI_HORIZONTAL) # horizontal line to separate the two subplots
         
         sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(self.canvasLOA_Ktrans, 35, wx.EXPAND)
-        sizer.Add(self.horizontalLineLOA, 1, wx.EXPAND)
-        sizer.Add(self.canvasLOA_Ve, 35, wx.EXPAND)
+        if self.verbose_mode:
+            proportions = [35,1,35,1]
+        else:
+            proportions = [46,2,46,6]
+
+        sizer.Add(self.canvasLOA_Ktrans, proportions[0], wx.EXPAND)
+        sizer.Add(self.horizontalLineLOA, proportions[1], wx.EXPAND)
+        sizer.Add(self.canvasLOA_Ve, proportions[2], wx.EXPAND)
+        sizer.Add(self.canvasLOA_description, proportions[3], wx.EXPAND)
+
+        #sizer.Add(self.canvasLOA_Ktrans, 35, wx.EXPAND)
+        #sizer.Add(self.horizontalLineLOA, 1, wx.EXPAND)
+        #sizer.Add(self.canvasLOA_Ve, 35, wx.EXPAND)
+        #if self.verbose_mode:
+        #    proportion = 15
+        #else:
+        #    proportion = 1
+        #sizer.Add(self.canvasLOA_description, proportion, wx.EXPAND)
+
         self.pageLOA.SetSizer(sizer)
         
     def ClearPage_Histogram(self):
@@ -1608,14 +1645,16 @@ class MainWindow_KV(MainWindow):
         self.canvasLOA_Ktrans.draw()
         self.figureLOA_Ve.clear()
         self.canvasLOA_Ve.draw()
+        self.figureLOA_description.clear()
+        self.canvasLOA_description.draw()
 
     def GenerateModel(self):
         # generate the model for evaluation
-        self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V, [self.nrOfRow, self.nrOfColumn], self.allowable_total_error, self.mask)
+        self.newModel = QIBA_model.Model_KV(self.path_ref_K, self.path_ref_V, self.path_cal_K, self.path_cal_V, [self.nrOfRow, self.nrOfColumn], self.allowable_total_error, self.mask, self.verbose_mode)
 
     def GenerateTableModel(self):
         """Generates the QIBA model if table-based data is supplied."""
-        self.newModel = QIBA_table_model_KV(self.data_table_K_contents, self.data_table_V_contents, self.allowable_total_error)
+        self.newModel = QIBA_table_model_KV(self.data_table_K_contents, self.data_table_V_contents, self.allowable_total_error, self.verbose_mode)
         
     def OnRightClick(self, event):
         # the right click action on the file list
@@ -2207,10 +2246,12 @@ class MainWindow_KV(MainWindow):
         i_dimension = len(ktrans_calData_nbp)
         j_dimension = len(ktrans_calData_nbp[0])
         
-        ktrans_means_list = list()
-        ve_means_list = list()
-        ktrans_diffs_list = list()
-        ve_diffs_list = list()
+        ktrans_means_list = []
+        ve_means_list = []
+        ktrans_diffs_list = []
+        ve_diffs_list = []
+        ktrans_percent_bias_list = []
+        ve_percent_bias_list = []
         
         for i in range(i_dimension):
             for j in range(j_dimension):
@@ -2240,22 +2281,29 @@ class MainWindow_KV(MainWindow):
                     cal_mean = numpy.mean(ktrans_calData_nbp_10x10)
                     mean = numpy.mean([ref_mean, cal_mean])
                     difference = cal_mean - ref_mean
+                    bias = ((cal_mean-ref_mean)/ref_mean) * 100.0
                     ktrans_means_list.append(mean)
                     ktrans_diffs_list.append(difference)
-                    self.ktrans_mean_difference = numpy.mean(ktrans_diffs_list) #The mean of the differences
-                    self.ktrans_sd_difference = numpy.std(ktrans_diffs_list) #The standard deviation of the differences
+                    ktrans_percent_bias_list.append(bias)
+
                     
                 if ve_cal_pixels_counted_10x10 > 0:
                     ref_mean = numpy.mean(ve_refData_nbp_10x10)
                     cal_mean = numpy.mean(ve_calData_nbp_10x10)
                     mean = numpy.mean([ref_mean, cal_mean])
                     difference = cal_mean - ref_mean
+                    bias = ((cal_mean - ref_mean) / ref_mean) * 100.0
                     ve_means_list.append(mean)
                     ve_diffs_list.append(difference)
-                    self.ve_mean_difference = numpy.mean(ve_diffs_list)
-                    self.ve_sd_difference = numpy.std(ve_diffs_list)
-        
-        
+                    ve_percent_bias_list.append(bias)
+
+        self.ktrans_mean_difference = numpy.mean(ktrans_diffs_list)  # The mean of the differences
+        self.ktrans_sd_difference = numpy.std(ktrans_diffs_list)  # The standard deviation of the differences
+        self.ktrans_mean_percent_bias = numpy.mean(ktrans_percent_bias_list)
+        self.ve_mean_difference = numpy.mean(ve_diffs_list)
+        self.ve_sd_difference = numpy.std(ve_diffs_list)
+        self.ve_mean_percent_bias = numpy.mean(ve_percent_bias_list)
+
         # Setup the toolbars
         self.toolbar_LOA_K = NavigationToolbar(self.canvasLOA_Ktrans)
         self.toolbar_LOA_K.Hide()
@@ -2381,6 +2429,13 @@ class MainWindow_KV(MainWindow):
         "95% Confidence Interval ("+str(self.ve_lower_sd_line_value)+", "+str(self.ve_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_Ve.tight_layout()
         self.canvasLOA_Ve.draw()
+
+        if self.verbose_mode:
+            #description_subplot = self.figureLOA_description.add_subplot(111)
+            self.figureLOA_description.text(0.2, 0.5, StatDescriptions.loa_text)
+            #self.figureLOA_description.tight_layout()
+            self.canvasLOA_description.draw()
+
         
     def DrawBlandAltmanPlotFromTable(self):
         ref_cal_Ktrans_groups = self.newModel.ref_cal_Ktrans_groups
@@ -2413,15 +2468,19 @@ class MainWindow_KV(MainWindow):
         #Calculate Ktrans mean and Ktrans diff
         ktrans_means_list = []
         ktrans_diffs_list = []
+        ktrans_percent_bias_list = []
         
         for i in range(len(all_cal_Ktrans_values_list)):
             #ktrans_means_list.append(numpy.mean(all_cal_Ktrans_values_list[i]))
             mean_of_ktrans_ref_and_cal = numpy.mean([all_cal_Ktrans_values_list[i], all_ref_Ktrans_values_list[i]])
             ktrans_means_list.append(mean_of_ktrans_ref_and_cal)
             ktrans_diffs_list.append(all_cal_Ktrans_values_list[i] - all_ref_Ktrans_values_list[i])
+            bias = ((all_cal_Ktrans_values_list[i]-all_ref_Ktrans_values_list[i])/all_ref_Ktrans_values_list[i])*100.0
+            ktrans_percent_bias_list.append(bias)
         
         self.ktrans_mean_difference = numpy.mean(ktrans_diffs_list) #The mean of the differences
         self.ktrans_sd_difference = numpy.std(ktrans_diffs_list) #The standard deviation of the differences
+        self.ktrans_mean_percent_bias = numpy.mean(ktrans_percent_bias_list)
         
         #Get calculated Ve values
         unique_ref_Ve_values_list = []
@@ -2443,15 +2502,19 @@ class MainWindow_KV(MainWindow):
         #Calculate Ve mean and Ve diff
         ve_means_list = []
         ve_diffs_list = []
+        ve_percent_bias_list = []
         
         for i in range(len(all_cal_Ve_values_list)):
             #ve_means_list.append(numpy.mean(all_cal_Ve_values_list[i]))
             mean_of_ve_ref_and_cal = numpy.mean([all_cal_Ve_values_list[i], all_ref_Ve_values_list[i]])
             ve_means_list.append(mean_of_ve_ref_and_cal)
             ve_diffs_list.append(all_cal_Ve_values_list[i] - all_ref_Ve_values_list[i])
+            bias = ((all_cal_Ve_values_list[i] - all_ref_Ve_values_list[i])/all_ref_Ve_values_list[i])*100.0
+            ve_percent_bias_list.append(bias)
         
         self.ve_mean_difference = numpy.mean(ve_diffs_list) #The mean of the differences
         self.ve_sd_difference = numpy.std(ve_diffs_list) #The standard deviation of the differences
+        self.ve_mean_percent_bias = numpy.mean(ve_percent_bias_list)
         
         # Setup the toolbars
         self.toolbar_LOA_K = NavigationToolbar(self.canvasLOA_Ktrans)
@@ -2539,6 +2602,12 @@ class MainWindow_KV(MainWindow):
         "95% Confidence Interval ("+str(self.ve_lower_sd_line_value)+", "+str(self.ve_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_Ve.tight_layout()
         self.canvasLOA_Ve.draw()
+
+        if self.verbose_mode:
+            #description_subplot = self.figureLOA_description.add_subplot(111)
+            self.figureLOA_description.text(0.2, 0.5, StatDescriptions.loa_text)
+            #self.figureLOA_description.tight_layout()
+            self.canvasLOA_description.draw()
         
     def removeOutliers(self, original_list_outliers):
         """Remove outliers from the original_outliers list.
@@ -3099,7 +3168,10 @@ class MainWindow_KV(MainWindow):
         <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureLOA_V.png') + '''" style="width:100%" align="right">''' + '''
         <p><h4>The repeatability coefficient is '''+str(self.ve_repeatability_coefficient)+'''</h4></p>
         </p></p>''')
-        
+
+        if self.verbose_mode:
+            htmlContent += "<p><h5>" + StatDescriptions.loa_text + "</h5></p>"
+
         htmlContent += self.newModel.sigmaMetricResultInHTML
 
         htmlContent += self.newModel.ModelFittingInHtml
@@ -3118,8 +3190,8 @@ class MainWindow_T1(MainWindow):
     '''
     this is the Ktrans-Ve branch's interface.
     '''
-    def __init__(self, appName, calFiles, refFiles, desDir):
-        MainWindow.__init__(self, None, appName, calFiles, refFiles, desDir)
+    def __init__(self, appName, calFiles, refFiles, desDir, verbose_mode):
+        MainWindow.__init__(self, None, appName, calFiles, refFiles, desDir, verbose_mode)
 
         self.patchLen = 10
         self.WARNINGTEXT = False
@@ -3264,11 +3336,13 @@ class MainWindow_T1(MainWindow):
             results_table = addToTable(results_table, label_list, T1_data_list)
 
         results_table += "All Regions Combined\nRMSD = \t"+str(self.newModel.T1_rmsd_all_regions)+"\n"
+        results_table += "Mean = \t"+str(self.newModel.T1_cal_aggregate_mean)+"\n"
         results_table += "CCC = \t"+str(self.newModel.T1_ccc_all_regions)+"\n"
-        results_table += "TDI = \t"+str(self.newModel.T1_tdi_all_regions)+"\n"
+        results_table += "TDI (Nonparametric) = \t"+str(self.newModel.T1_tdi_all_regions)+"\n"
+        results_table += "TDI (Parametric) = \t"+str(self.newModel.T1_tdi_all_regions_method_2)+"\n"
         results_table += "Sigma metric = \t"+str(self.newModel.T1_sigma_metric_all_regions)+"\n"
-        results_table += "Mean bias = \t"+str(self.t1_mean_difference)+"\n"
-        results_table += "Std Dev of bias = \t"+str(self.t1_sd_difference)+"\n"
+        results_table += "Mean bias = \t"+str(self.t1_mean_percent_bias)+"\n"
+        results_table += "Variability (wSD) = \t"+str(self.newModel.T1_cal_aggregate_deviation)+"\n"
         results_table += "Bland-Altman Lower Limit = \t"+str(self.t1_lower_sd_line_value)+"\n"
         results_table += "Bland-Altman Upper Limit = \t"+str(self.t1_upper_sd_line_value)+"\n"
         results_table += "Bland-Altman Repeatability Coefficient = \t"+str(self.t1_repeatability_coefficient)+"\n"
@@ -3429,11 +3503,14 @@ class MainWindow_T1(MainWindow):
         OnLoadRef_T1 = editMenu.Append(wx.ID_ANY, 'Load reference T1...')
         editMenu.AppendSeparator()
         set_allowable_total_error = editMenu.Append(wx.ID_ANY, "Set Allowable Total Error...")
+        editMenu.AppendSeparator()
+        onVerboseMode = editMenu.AppendCheckItem(wx.ID_ANY, "Include Stat. Descriptions in Reports")
         
         # self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
         self.Bind(wx.EVT_MENU, self.OnLoadRef_T1, OnLoadRef_T1)
         self.Bind(wx.EVT_MENU, self.setAllowableTotalErrorMenu, set_allowable_total_error)
-        
+        self.Bind(wx.EVT_MENU, self.setVerboseMode, onVerboseMode)
+
         self.menubar.Insert(1,editMenu, "&Edit")
         self.SetMenuBar(self.menubar)
 
@@ -3488,9 +3565,19 @@ class MainWindow_T1(MainWindow):
         w,h = self.figureLOA_T1.get_size_inches()
         self.figureLOA_T1.set_size_inches([w*3, h])
         self.canvasLOA_T1 = FigureCanvas(self.pageLOA, -1, self.figureLOA_T1)
-        
+
+        self.figureLOA_description = Figure()
+        #self.figureLOA_description.set_size_inches([w*3, h*0.05])
+        self.canvasLOA_description = FigureCanvas(self.pageLOA, -1, self.figureLOA_description)
+
+        if self.verbose_mode:
+            proportions = [90,10]
+        else:
+            proportions = [99,1]
+
         sizer = wx.BoxSizer(wx.HORIZONTAL)
-        sizer.Add(self.canvasLOA_T1, 1, wx.EXPAND)
+        sizer.Add(self.canvasLOA_T1, proportions[0], wx.EXPAND)
+        sizer.Add(self.canvasLOA_description, proportions[1], wx.EXPAND)
         self.pageLOA.SetSizer(sizer)
         self.pageLOA.SetAutoLayout(1)
         #self.pageLOA.SetupScrolling()
@@ -3504,14 +3591,16 @@ class MainWindow_T1(MainWindow):
         # clear the Bland-Altman plot page
         self.figureLOA_T1.clear()
         self.canvasLOA_T1.draw()
+        self.figureLOA_description.clear()
+        self.canvasLOA_description.draw()
         
     def GenerateModel(self):
         # generate the model for evaluation
-        self.newModel = QIBA_model.Model_T1(self.path_ref_T1, self.path_cal_T1, [self.nrOfRow, self.nrOfColumn], self.T1_R1_flag, self.allowable_total_error, self.mask)
+        self.newModel = QIBA_model.Model_T1(self.path_ref_T1, self.path_cal_T1, [self.nrOfRow, self.nrOfColumn], self.T1_R1_flag, self.allowable_total_error, self.mask, self.verbose_mode)
 
     def GenerateTableModel(self):
         """Generates the QIBA model if table-based data is supplied."""
-        self.newModel = QIBA_table_model_T1(self.data_table_T1_contents, self.allowable_total_error)
+        self.newModel = QIBA_table_model_T1(self.data_table_T1_contents, self.allowable_total_error, self.verbose_mode)
         
     def OnRightClick(self, event):
         # the right click action on the file list
@@ -3843,8 +3932,9 @@ class MainWindow_T1(MainWindow):
         i_dimension = len(t1_calData_nbp)
         j_dimension = len(t1_calData_nbp[0])
         
-        t1_means_list = list()
-        t1_diffs_list = list()
+        t1_means_list = []
+        t1_diffs_list = []
+        t1_percent_bias_list = []
 
         #t_statistic = QIBA_functions.T_Test_Aggregate_Data(t1_calData_nbp, t1_refData_nbp, i_dimension, j_dimension, t1_mask_nbp)
 
@@ -3868,11 +3958,14 @@ class MainWindow_T1(MainWindow):
                     cal_mean = numpy.mean(t1_calData_nbp_10x10)
                     mean = numpy.mean([ref_mean, cal_mean])
                     difference = cal_mean - ref_mean
+                    bias = ((cal_mean - ref_mean) / ref_mean) * 100.0
                     #print("i="+str(i)+", j="+str(j)+": mean="+str(mean)+", difference="+str(difference)) #for testing
                     t1_means_list.append(mean)
                     t1_diffs_list.append(difference)
-                    self.t1_mean_difference = numpy.mean(t1_diffs_list) #The mean of the differences
-                    self.t1_sd_difference = numpy.std(t1_diffs_list) #The standard deviation of the differences
+                    t1_percent_bias_list.append(bias)
+        self.t1_mean_difference = numpy.mean(t1_diffs_list) #The mean of the differences
+        self.t1_sd_difference = numpy.std(t1_diffs_list) #The standard deviation of the differences
+        self.t1_mean_percent_bias = numpy.mean(t1_percent_bias_list)
 
         # Setup the toolbars
         self.toolbar_LOA_T1 = NavigationToolbar(self.canvasLOA_T1)
@@ -3918,17 +4011,22 @@ class MainWindow_T1(MainWindow):
         "95% Confidence Interval ("+str(self.t1_lower_sd_line_value)+", "+str(self.t1_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_T1.tight_layout()
         #self.figureLOA_T1.subplots_adjust(top=0.94, right=0.95)
-        self.canvasLOA_T1.draw()
-        
+        #####self.canvasLOA_T1.draw()
+
+        if self.verbose_mode:
+            #description_subplot = self.figureLOA_description.add_subplot(111)
+            self.figureLOA_description.text(0.2, 0.5, StatDescriptions.loa_text) #original: 0.2, 0.5
+            #self.figureLOA_description.tight_layout()
+            self.canvasLOA_description.draw()
         #print(t1_means_list)
     
     def DrawBlandAltmanPlotFromTable(self):
         ref_cal_T1_groups = self.newModel.ref_cal_T1_groups
         
         #Get calculated T1 values
-        unique_ref_T1_values_list = list() #A list of each reference T1 value (i.e. [0.01, 0.02, 0.05, 0.1, 0.2, 0.35])
-        all_ref_T1_values_list = list()
-        all_cal_T1_values_list = list()
+        unique_ref_T1_values_list = [] #A list of each reference T1 value (i.e. [0.01, 0.02, 0.05, 0.1, 0.2, 0.35])
+        all_ref_T1_values_list = []
+        all_cal_T1_values_list = []
 
         #t_statistic = QIBA_functions_for_table.T_Test_Aggregate_Data(ref_cal_T1_groups)
 
@@ -3952,17 +4050,21 @@ class MainWindow_T1(MainWindow):
             #all_cal_T1_values_list.append(cal_T1_per_group_list)
         
         #Calculate T1 mean and Ktrans diff
-        t1_means_list = list()
-        t1_diffs_list = list()
+        t1_means_list = []
+        t1_diffs_list = []
+        t1_percent_bias_list = []
         
         for i in range(len(all_cal_T1_values_list)):
             #t1_means_list.append(numpy.mean(all_cal_T1_values_list[i]))
             mean_of_t1_ref_and_cal = numpy.mean([all_cal_T1_values_list[i], all_ref_T1_values_list[i]])
             t1_means_list.append(mean_of_t1_ref_and_cal)
             t1_diffs_list.append(all_cal_T1_values_list[i] - all_ref_T1_values_list[i])
+            bias = ((all_cal_T1_values_list[i]-all_ref_T1_values_list[i])/all_ref_T1_values_list[i]) * 100.0
+            t1_percent_bias_list.append(bias)
         
         self.t1_mean_difference = numpy.mean(t1_diffs_list) #The mean of the differences
         self.t1_sd_difference = numpy.std(t1_diffs_list) #The standard deviation of the differences
+        self.t1_mean_percent_bias = numpy.mean(t1_percent_bias_list)
         
         # Setup the toolbars
         self.toolbar_LOA_T1 = NavigationToolbar(self.canvasLOA_T1)
@@ -4460,7 +4562,10 @@ class MainWindow_T1(MainWindow):
         <img src="''' + os.path.join(os.getcwd(), 'temp', 'figureLOA_T1.png') + '''" style="width:100%" align="left">''' + '''
         <p><h4>The repeatability coefficient is '''+str(self.t1_repeatability_coefficient)+'''</h4></p>
         </p></p>''')
-        
+
+        if self.verbose_mode:
+            htmlContent += "<p><h5>" + StatDescriptions.loa_text + "</h5></p>"
+
         htmlContent += self.newModel.sigmaMetricResultInHTML
 
         htmlContent += self.newModel.ModelFittingInHtml
@@ -4512,7 +4617,7 @@ class MySplashScreen(wx.SplashScreen):
         # following order.
         wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
 
-def ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_params, mask_path):
+def ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_params, mask_path, verbose_mode):
     '''
     evaluate without GUI, for purpose of batch processing
     
@@ -4531,7 +4636,7 @@ def ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_pa
     allowable_total_error = allowable_total_error_params[1] # float or numpy.nan
     
     if mode == 'GKM':
-        window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
+        window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir, verbose_mode=False)
         window.allowable_total_error_set = allowable_total_error_set
         window.allowable_total_error = allowable_total_error
         
@@ -4556,7 +4661,7 @@ def ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_pa
 
 
     elif mode == "T1":
-        window = MainWindow_T1("QIBA evaluate tool (T1)", calFiles, refFiles, desDir)
+        window = MainWindow_T1("QIBA evaluate tool (T1)", calFiles, refFiles, desDir, verbose_mode)
         window.allowable_total_error_set = allowable_total_error_set
         window.allowable_total_error = allowable_total_error
 
@@ -4623,13 +4728,13 @@ def getR1T1FromUser():
             sys.exit("QDET exited by user")
         number_of_times = number_of_times + 1
 
-def processGKMTablesWithoutGUI(ktransTableFile, veTableFile, desFile, allowable_total_error_params):
+def processGKMTablesWithoutGUI(ktransTableFile, veTableFile, desFile, allowable_total_error_params, verbose_mode):
     # allowable_total_error_params : [allowable_total_error_set, allowable_total_error_eqn, allowable_total_error]
     
     allowable_total_error_set = allowable_total_error_params[0] # True or False
     allowable_total_error = allowable_total_error_params[1] # float or numpy.nan
     
-    window = MainWindow_KV("QIBA Evaluate tool (GKM)", [], [], desFile)
+    window = MainWindow_KV("QIBA Evaluate tool (GKM)", [], [], desFile, verbose_mode=verbose_mode)
     window.allowable_total_error_set = allowable_total_error_set
     window.allowable_total_error = allowable_total_error
             
@@ -4641,13 +4746,13 @@ def processGKMTablesWithoutGUI(ktransTableFile, veTableFile, desFile, allowable_
     window.evaluateCmdLine()
     window.saveResultsTable(save_path=desFile)
     
-def processT1TablesWithoutGUI(t1TableFile, desFile, allowable_total_error_params):
+def processT1TablesWithoutGUI(t1TableFile, desFile, allowable_total_error_params, verbose_mode):
     # allowable_total_error_params : [allowable_total_error_set, allowable_total_error_eqn, allowable_total_error]
     
     allowable_total_error_set = allowable_total_error_params[0] # True or False
     allowable_total_error = allowable_total_error_params[1] # float or numpy.nan
     
-    window = MainWindow_T1("QIBA Evaluate Tool (T1)", [], [], desFile)
+    window = MainWindow_T1("QIBA Evaluate Tool (T1)", [], [], desFile, verbose_mode=verbose_mode)
     window.allowable_total_error_set = allowable_total_error_set
     window.allowable_total_error = allowable_total_error
         
@@ -4749,11 +4854,11 @@ def main(argv):
         QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['GKM', 'Flip Angle T1'])
         if QIBASelectionDialog.ShowModal() == wx.ID_OK:
             if QIBASelectionDialog.GetSelections() == 'GKM':
-                window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
+                window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir, verbose_mode=False)
                 window.Show()
                 window.Maximize(True)
             elif QIBASelectionDialog.GetSelections() == 'Flip Angle T1':
-                window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir)
+                window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir, verbose_mode=False)
                 window.Show()
                 window.Maximize(True)
     else:
@@ -4768,7 +4873,7 @@ def main(argv):
         parser.add_argument("-d", "--destination", nargs="+", required=True)
         parser.add_argument("-a", "-e", "--ate", "--allowable_total_error", "--allowabletotalerror", nargs=1, required=True)
         parser.add_argument("--mask", nargs="?") # The path of the optional mask file. Used for image mode only (Ignore if supplied in table mode). Can be a text file or an image file.
-
+        parser.add_argument("--verbose", action="store_true")
         # Valid parameters:
         # -----------------
         # If images are loaded:
@@ -4826,17 +4931,19 @@ def main(argv):
             allowable_total_error_set = True
         
             allowable_total_error_params = [allowable_total_error_set, allowable_total_error]
-            
+
+            verbose_mode = args.verbose
+
             try:
                 if dataType == "image":
                     mask_path = args.mask
-                    ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_params, mask_path)
+                    ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_params, mask_path, verbose_mode)
                 elif dataType == "table" and mode == "GKM":
                     for i in range(len(ktransFiles)):
-                        processGKMTablesWithoutGUI(ktransFiles[i], veFiles[i], desDir[i], allowable_total_error_params)
+                        processGKMTablesWithoutGUI(ktransFiles[i], veFiles[i], desDir[i], allowable_total_error_params, verbose_mode)
                 elif dataType == "table" and mode == "T1":
                     for i in range(len(t1Files)):
-                        processT1TablesWithoutGUI(t1Files[i], desDir[i], allowable_total_error_params)
+                        processT1TablesWithoutGUI(t1Files[i], desDir[i], allowable_total_error_params, verbose_mode)
                 exit(0)
 
             except Exception as e: #For debugging. Originally just "except".

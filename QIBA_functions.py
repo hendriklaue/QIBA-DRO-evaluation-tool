@@ -496,6 +496,31 @@ def CalculateMean(inPatch, nrOfRows, nrOfColumns, mask):
                 temp[i].append("")
     return temp
 
+def CalculateAggregateMeanStdDev(cal_value_list, nrOfRows, nrOfColumns, mask):
+    #Flatten cal_value and mask -- make them 1-dimensional lists
+    temp = [[] for i in range(nrOfRows)]
+
+    flattened_mean_value_list = []
+
+    for i in range(nrOfRows):
+        for j in range(nrOfColumns):
+            cal_value_list_10x10 = cal_value_list[i][j]
+            mask_10x10 = mask[i][j]
+            cal_value_list_masked = applyMask(cal_value_list_10x10, mask_10x10)
+
+            if len(cal_value_list_masked) > 0:
+                temp[i].append(numpy.mean(DealNaN(cal_value_list_masked)[0]))
+            #else:
+            #    temp[i].append("")
+
+    for sublist in temp:
+        for mean_value in sublist:
+            flattened_mean_value_list.append(mean_value)
+
+    aggregate_mean = numpy.mean(flattened_mean_value_list)
+    aggregate_std_dev = numpy.std(flattened_mean_value_list, ddof=1)
+    return aggregate_mean, aggregate_std_dev
+
 def CalculateMedian(inPatch, nrOfRows, nrOfColumns, mask):
     # calculate the median value of each patch
     temp = [[]for i in range(nrOfRows) ]

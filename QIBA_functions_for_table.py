@@ -569,6 +569,19 @@ def calculateMean(ref_cal_group_list):
         mean_list.append(mean_calData)
     return mean_list
 
+def CalculateAggregateMeanStdDev(ref_cal_group_list):
+    """Calculates the mean and standard deviation of all calculated values combined"""
+    cal_list = []
+    for unique_ref_group in ref_cal_group_list:
+
+        for tpl in unique_ref_group:
+            cal_value = tpl[1]
+            cal_list.append(cal_value)
+
+    aggregate_mean = numpy.mean(cal_list)
+    aggregate_std_dev = numpy.std(cal_list)
+    return aggregate_mean, aggregate_std_dev
+
 def calculateMedian(ref_cal_group_list):
     """Calculates the median calculated value for each reference value"""
     median_list = []

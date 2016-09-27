@@ -2,12 +2,14 @@
 import os
 import QIBA_functions
 import math, numpy
+import VerboseModeStatDescriptions as StatDescriptions
+
 
 class Model_KV():
     '''
     the class for Ktrans-Ve model.
     '''
-    def __init__(self, path_ref_K, path_ref_V, path_cal_K, path_cal_V, dimension, allowable_total_error, mask):
+    def __init__(self, path_ref_K, path_ref_V, path_cal_K, path_cal_V, dimension, allowable_total_error, mask, verbose_mode):
         # initializes the class
         self.path_ref_K = path_ref_K
         self.path_ref_V = path_ref_V
@@ -146,6 +148,11 @@ class Model_KV():
         # In the future, pixel values other than 0 and 255 can be used
         # to create a "weighted" mask.
         self.mask = mask
+
+        # Sets verbose mode. If enabled,
+        # then explanations of the CCC, RMSD, TDI, BA-LOA, and sigma metric
+        # statistics will be included in the output reports.
+        self.verbose_mode = verbose_mode
         
     def evaluate(self):
         # evaluation
@@ -180,6 +187,7 @@ class Model_KV():
         #self.CalculateLOAForModel()
         self.CalculateSigmaMetricForModel()
         self.CalculateMeanForModel()
+        self.CalculateAggregateMeanStdDevForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
         self.Calculate1stAnd3rdQuartileForModel()
@@ -354,6 +362,9 @@ class Model_KV():
 
         KtransStatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'SR'], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_deviation])
 
+        KtransStatisticsTable += '<h4>The mean Ktrans for all patches combined='+str(self.Ktrans_cal_aggregate_mean)+'</h4>'
+        KtransStatisticsTable += '<h4>The standard deviation for all patches combined='+str(self.Ktrans_cal_aggregate_deviation)+'</h4>'
+
         KtransStatisticsTable += QIBA_functions.EditTable('the median, 1st and 3rd quartile, min. and max. values', self.headersHorizontal, self.headersVertical, ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_max])
 
 
@@ -362,6 +373,9 @@ class Model_KV():
                         '<h2>The statistics analysis of each patch in calculated Ve:</h2>'
 
         VeStatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'SR'], [self.Ve_cal_patch_mean, self.Ve_cal_patch_deviation])
+
+        VeStatisticsTable += '<h4>The mean Ktrans for all patches combined='+str(self.Ve_cal_aggregate_mean)+'</h4>'
+        VeStatisticsTable += '<h4>The standard deviation for all patches combined='+str(self.Ve_cal_aggregate_deviation)+'</h4>'
 
         VeStatisticsTable += QIBA_functions.EditTable('the median, 1st and 3rd quartile, min. and max. values', self.headersHorizontal, self.headersVertical, ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.Ve_cal_patch_min, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_median, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_max])
 
@@ -614,9 +628,14 @@ class Model_KV():
         
         VeRMSDTable += \
                         '<h4>The root mean square deviation of all patches combined in calculated and reference Ve='+str(self.Ve_rmsd_all_regions)+'</h4>'
-        
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.rmsd_text
+        else:
+            description_text = ""
+
         # put the text into html structure
-        self.RMSDResultInHTML = self.packInHtml(KtransRMSDTable + '<br>' + VeRMSDTable)
+        self.RMSDResultInHTML = self.packInHtml(KtransRMSDTable + '<br>' + VeRMSDTable + '<br>' + description_text)
 
     def htmlCCCResults(self):
         # write the calculated CCC results into HTML form
@@ -638,8 +657,13 @@ class Model_KV():
         VeCCCtTable += \
                         '<h4>The concordance correlation coefficient of all patches combined in calculated and reference Ve='+str(self.Ve_ccc_all_regions)+'</h4>'
 
+        if self.verbose_mode:
+            description_text = StatDescriptions.ccc_text
+        else:
+            description_text = ""
+
         # put the text into html structure
-        self.CCCResultInHTML = self.packInHtml(KtransCCCTable + '<br>' + VeCCCtTable)
+        self.CCCResultInHTML = self.packInHtml(KtransCCCTable + '<br>' + VeCCCtTable + '<br>' + description_text)
 
     def htmlTDIResults(self):
         # write the calcuated TDI results into HTML form
@@ -665,8 +689,13 @@ class Model_KV():
 
         VeTDITable += \
                         '<h4>The total deviation index of all patches combined in calculated and reference Ve='+str(self.Ve_tdi_all_regions)+'</h4>'
-                        
-        self.TDIResultInHTML = self.packInHtml(KtransTDITable + '<br>' + VeTDITable)
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.tdi_text
+        else:
+            description_text = ""
+
+        self.TDIResultInHTML = self.packInHtml(KtransTDITable + '<br>' + VeTDITable + '<br>' + description_text)
         
     def htmlLOAResults(self):
         # 1/22/16: This might not be required.
@@ -692,8 +721,13 @@ class Model_KV():
         
         VeSigmaMetricTable += \
                                 '<h4>The sigma metric of all patches combined in calculated and reference Ve='+str(self.Ve_sigma_metric_all_regions)+'</h4>'
-        
-        self.sigmaMetricResultInHTML = self.packInHtml(KtransSigmaMetricTable + '<br>' + VeSigmaMetricTable)
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.sigma_metric_text
+        else:
+            description_text = ""
+
+        self.sigmaMetricResultInHTML = self.packInHtml(KtransSigmaMetricTable + '<br>' + VeSigmaMetricTable + '<br>' + description_text)
 
 
     def htmlChiq_TestResults(self):
@@ -956,6 +990,10 @@ class Model_KV():
         self.Ktrans_cal_patch_mean = QIBA_functions.CalculateMean(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
         self.Ve_cal_patch_mean = QIBA_functions.CalculateMean(self.Ve_cal, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
 
+    def CalculateAggregateMeanStdDevForModel(self):
+        self.Ktrans_cal_aggregate_mean, self.Ktrans_cal_aggregate_deviation = QIBA_functions.CalculateAggregateMeanStdDev(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
+        self.Ve_cal_aggregate_mean, self.Ve_cal_aggregate_deviation = QIBA_functions.CalculateAggregateMeanStdDev(self.Ve_cal, self.nrOfRows, self.nrOfColumns, self.Ve_mask_reformatted)
+
     def CalculateMedianForModel(self):
         # call the median calculation function
         self.Ktrans_cal_patch_median = QIBA_functions.CalculateMedian(self.Ktrans_cal, self.nrOfRows, self.nrOfColumns, self.Ktrans_mask_reformatted)
@@ -1007,7 +1045,7 @@ class Model_T1():
     '''
     the class for T1 model.
     '''
-    def __init__(self, path_ref_T1, path_cal_T1, dimension, T1_R1_flag, allowable_total_error, mask):
+    def __init__(self, path_ref_T1, path_cal_T1, dimension, T1_R1_flag, allowable_total_error, mask, verbose_mode):
         # initializes the class
 
         #T1_R1_flag is a string that should be one of two values: T1 or R1.
@@ -1114,6 +1152,11 @@ class Model_T1():
         # to create a "weighted" mask.
         self.mask = mask
 
+        # Sets verbose mode. If enabled,
+        # then explanations of the CCC, RMSD, TDI, BA-LOA, and sigma metric
+        # statistics will be included in the output reports.
+        self.verbose_mode = verbose_mode
+
     def evaluate(self):
         # evaluation
 
@@ -1148,6 +1191,7 @@ class Model_T1():
         #self.CalculateLOAForModel()
         self.CalculateSigmaMetricForModel()
         self.CalculateMeanForModel()
+        self.CalculateAggregateMeanStdDevForModel()
         self.CalculateMedianForModel()
         self.CalculateSTDDeviationForModel()
         self.Calculate1stAnd3rdQuartileForModel()
@@ -1311,6 +1355,9 @@ class Model_T1():
 
         T1StatisticsTable += QIBA_functions.EditTable('the mean and standard deviation value', self.headersHorizontal, self.headersVertical, ['mean', 'SR'], [self.T1_cal_patch_mean, self.T1_cal_patch_deviation])
 
+        T1StatisticsTable += '<h4>The mean T1 for all patches combined='+str(self.T1_cal_aggregate_mean)+'</h4>'
+        T1StatisticsTable += '<h4>The standard deviation for all patches combined='+str(self.T1_cal_aggregate_deviation)+'</h4>'
+
         T1StatisticsTable += QIBA_functions.EditTable('the median, 1st and 3rd quartile, min. and max. values', self.headersHorizontal, self.headersVertical, ['min.', '1st quartile', 'median', '3rd quartile', 'max.'], [self.T1_cal_patch_min, self.T1_cal_patch_1stQuartile, self.T1_cal_patch_median, self.T1_cal_patch_3rdQuartile, self.T1_cal_patch_max])
 
         # put the text into html structure
@@ -1437,9 +1484,14 @@ class Model_T1():
         
         T1RMSDTable += \
                         '<h4>The root mean square deviation of all patches combined in calculated and reference T1='+str(self.T1_rmsd_all_regions)+'</h4>'
-                        
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.rmsd_text
+        else:
+            description_text = ""
+
         # put the text into html structure
-        self.RMSDResultInHTML = self.packInHtml(T1RMSDTable)
+        self.RMSDResultInHTML = self.packInHtml(T1RMSDTable + "<br>" + description_text)
 
     def htmlCCCResults(self):
         # write the calculated CCC results into HTML form
@@ -1452,8 +1504,14 @@ class Model_T1():
 
         T1CCCTable += \
                         '<h4>The concordance correlation coefficient of each patch combined in calculated and reference T1='+str(self.T1_ccc_all_regions)+'</h4>'
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.ccc_text
+        else:
+            description_text = ""
+
         # put the text into html structure
-        self.CCCResultInHTML = self.packInHtml(T1CCCTable)
+        self.CCCResultInHTML = self.packInHtml(T1CCCTable + "<br>" + description_text)
 
     def htmlTDIResults(self):
         # write the calculated TDI results into HTML form
@@ -1469,8 +1527,13 @@ class Model_T1():
 
         T1TDITable += \
                         '<h4>The total deviation index of each patch combined in calculated and reference T1='+str(self.T1_tdi_all_regions)+'</h4>'
-                        
-        self.TDIResultInHTML = self.packInHtml(T1TDITable)
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.tdi_text
+        else:
+            description_text = ""
+
+        self.TDIResultInHTML = self.packInHtml(T1TDITable + "<br>" + description_text)
         
     def htmlLOAResults(self):
         # 1/22/16: This may not be required
@@ -1489,8 +1552,13 @@ class Model_T1():
         
         T1SigmaMetricTable += \
                             '<h4>The sigma metric of each patch combined in calculated and reference T1='+str(self.T1_sigma_metric_all_regions)+'</h4>'
-                            
-        self.sigmaMetricResultInHTML = self.packInHtml(T1SigmaMetricTable)
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.sigma_metric_text
+        else:
+            description_text = ""
+
+        self.sigmaMetricResultInHTML = self.packInHtml(T1SigmaMetricTable + "<br>" + description_text)
         
         
     def htmlChiq_TestResults(self):
@@ -1660,6 +1728,9 @@ class Model_T1():
     def CalculateMeanForModel(self):
         # call the mean calculation function
         self.T1_cal_patch_mean = QIBA_functions.CalculateMean(self.T1_cal, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
+
+    def CalculateAggregateMeanStdDevForModel(self):
+        self.T1_cal_aggregate_mean, self.T1_cal_aggregate_deviation = QIBA_functions.CalculateAggregateMeanStdDev(self.T1_cal, self.nrOfRows, self.nrOfColumns, self.T1_mask_reformatted)
 
     def CalculateMedianForModel(self):
         # call the median calculation function

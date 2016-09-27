@@ -2,13 +2,14 @@ from collections import OrderedDict
 import math
 import numpy
 import QIBA_functions_for_table
+import VerboseModeStatDescriptions as StatDescriptions
 
 class QIBA_table_model_KV(object):
     """The class for the Ktrans-Ve model when table data is loaded.
     This class processes the data stored in a QIBA_table object.
     """
     
-    def __init__(self, data_table_K, data_table_V, allowable_total_error):
+    def __init__(self, data_table_K, data_table_V, allowable_total_error, verbose_mode):
         self.data_table_K = data_table_K
         self.data_table_V = data_table_V
         
@@ -53,6 +54,11 @@ class QIBA_table_model_KV(object):
     
         # The allowable total error - used to calculate Sigma metric
         self.allowable_total_error = allowable_total_error
+
+        # Sets verbose mode. If enabled,
+        # then explanations of the CCC, RMSD, TDI, BA-LOA, and sigma metric
+        # statistics will be included in the output reports.
+        self.verbose_mode = verbose_mode
         
     def getValuesFromTable(self, table, index_number, datatype="string"):
         value_list = list()
@@ -150,6 +156,7 @@ class QIBA_table_model_KV(object):
         self.calculateTDIForModel()
         self.calculateSigmaMetricForModel()
         self.calculateMeanForModel()
+        self.CalculateAggregateMeanStdDevForModel()
         self.calculateMedianForModel()
         self.calculateSTDDeviationForModel()
         self.calculate1stAnd3rdQuartileForModel()
@@ -209,6 +216,8 @@ class QIBA_table_model_KV(object):
         
         KtransStatisticsTable += "<h3>The mean and standard deviation value</h3>"
         KtransStatisticsTable += QIBA_functions_for_table.editTable("Ktrans", self.headers_Ktrans, ["mean", "SR"], [self.Ktrans_cal_patch_mean, self.Ktrans_cal_patch_deviation])
+        KtransStatisticsTable += "<h4>The mean Ktrans for all patches combined="+str(self.Ktrans_cal_aggregate_mean)+"</h4>"
+        KtransStatisticsTable += "<h4>The standard deviation for all patches combined="+str(self.Ktrans_cal_aggregate_deviation)+"</h4>"
         KtransStatisticsTable += "<h3>The median, 1st and 3rd quartile, min. and max. values</h3>"
         KtransStatisticsTable += QIBA_functions_for_table.editTable("Ktrans", self.headers_Ktrans, \
             ["min.", "1st quartile", "median", "3rd quartile", "max."], [self.Ktrans_cal_patch_min, self.Ktrans_cal_patch_1stQuartile, self.Ktrans_cal_patch_median, self.Ktrans_cal_patch_3rdQuartile, self.Ktrans_cal_patch_max])
@@ -220,6 +229,8 @@ class QIBA_table_model_KV(object):
         
         VeStatisticsTable += "<h3>The mean and standard deviation value</h3>"
         VeStatisticsTable += QIBA_functions_for_table.editTable("Ve", self.headers_Ve, ["mean", "SR"], [self.Ve_cal_patch_mean, self.Ve_cal_patch_deviation])
+        VeStatisticsTable += "<h4>The mean Ve for all patches combined="+str(self.Ve_cal_aggregate_mean)+"</h4>"
+        VeStatisticsTable += "<h4>The standard deviation for all patches combined="+str(self.Ve_cal_aggregate_deviation)+"</h4>"
         VeStatisticsTable += "<h3>The median, 1st and 3rd quartile, min. and max. values</h3>"
         VeStatisticsTable += QIBA_functions_for_table.editTable("Ve", self.headers_Ve, \
             ["min.", "1st quartile", "median", "3rd quartile", "max."], [self.Ve_cal_patch_min, self.Ve_cal_patch_1stQuartile, self.Ve_cal_patch_median, self.Ve_cal_patch_3rdQuartile, self.Ve_cal_patch_max])
@@ -469,9 +480,14 @@ class QIBA_table_model_KV(object):
         VeRMSDTable += QIBA_functions_for_table.editTable("", self.headers_Ve, ["rmsd"], [self.Ve_rmsd])
         VeRMSDTable += \
             "<h4>The root mean square deviation of all patches combined in calculated and reference Ve="+str(self.Ve_rmsd_all_regions)+"</h4>"
-            
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.rmsd_text
+        else:
+            description_text = ""
+
         #Put the test into HTML structure
-        self.RMSDResultInHTML = self.packInHtml(KtransRMSDTable + "<br>" + VeRMSDTable)
+        self.RMSDResultInHTML = self.packInHtml(KtransRMSDTable + "<br>" + VeRMSDTable + "<br>" + description_text)
 
     def htmlCCCResults(self):
         """Displays the calculated CCC results in HTML form
@@ -491,8 +507,13 @@ class QIBA_table_model_KV(object):
         VeCCCTable += \
             "<h4>The concordance correlation coefficient of all patches combined in calculated and reference Ve="+str(self.Ve_ccc_all_regions)+"</h4>"
 
+        if self.verbose_mode:
+            description_text = StatDescriptions.ccc_text
+        else:
+            description_text = ""
+
         #Put the text into HTML structure
-        self.CCCResultInHTML = self.packInHtml(KtransCCCTable + "<br>" + VeCCCTable)
+        self.CCCResultInHTML = self.packInHtml(KtransCCCTable + "<br>" + VeCCCTable + "<br>" + description_text)
         
     def htmlTDIResults(self):
         """Displays the calculated TDI results in HTML form
@@ -516,9 +537,15 @@ class QIBA_table_model_KV(object):
             "<h4>The estimated total deviation index of all patches combined in calculated and reference Ve="+str(self.Ve_tdi_all_regions_method_2)+"</h4>"
         VeTDITable += \
             "<h4>The total deviation index of all patches combined in calculated and reference Ve="+str(self.Ve_tdi_all_regions)+"</h4>"
-            
+
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.tdi_text
+        else:
+            description_text = ""
+
         #Put the text into HTML structure
-        self.TDIResultInHTML = self.packInHtml(KtransTDITable + "<br>" + VeTDITable)
+        self.TDIResultInHTML = self.packInHtml(KtransTDITable + "<br>" + VeTDITable + "<br>" + description_text)
         
     def htmlSigmaMetricResults(self):
         """Displays the calculated sigma metric results in HTML form"""
@@ -536,9 +563,14 @@ class QIBA_table_model_KV(object):
         VeSigmaMetricTable += QIBA_functions_for_table.editTable("", self.headers_Ve, ["sigma metric"], [self.Ve_sigma_metric])
         VeSigmaMetricTable += \
             "<h4>The sigma metric of all patches combined in calculated and reference Ve="+str(self.Ve_sigma_metric_all_regions)+"</h4>"
-        
+
+        if self.verbose_mode:
+            description_text = StatDescriptions.sigma_metric_text
+        else:
+            description_text = ""
+
         #Put the text into HTML structure
-        self.sigmaMetricResultInHTML = self.packInHtml(KtransSigmaMetricTable + "<br>" + VeSigmaMetricTable)
+        self.sigmaMetricResultInHTML = self.packInHtml(KtransSigmaMetricTable + "<br>" + VeSigmaMetricTable + "<br>" + description_text)
         
         
     def htmlChiq_TestResults(self):
@@ -743,7 +775,11 @@ class QIBA_table_model_KV(object):
     def calculateMeanForModel(self):
         self.Ktrans_cal_patch_mean = QIBA_functions_for_table.calculateMean(self.ref_cal_Ktrans_groups)
         self.Ve_cal_patch_mean = QIBA_functions_for_table.calculateMean(self.ref_cal_Ve_groups)
-        
+
+    def CalculateAggregateMeanStdDevForModel(self):
+        self.Ktrans_cal_aggregate_mean, self.Ktrans_cal_aggregate_deviation = QIBA_functions_for_table.CalculateAggregateMeanStdDev(self.ref_cal_Ktrans_groups)
+        self.Ve_cal_aggregate_mean, self.Ve_cal_aggregate_deviation = QIBA_functions_for_table.CalculateAggregateMeanStdDev(self.ref_cal_Ve_groups)
+
     def calculateMedianForModel(self):
         self.Ktrans_cal_patch_median = QIBA_functions_for_table.calculateMedian(self.ref_cal_Ktrans_groups)
         self.Ve_cal_patch_median = QIBA_functions_for_table.calculateMedian(self.ref_cal_Ve_groups)
