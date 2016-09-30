@@ -4011,7 +4011,7 @@ class MainWindow_T1(MainWindow):
         "95% Confidence Interval ("+str(self.t1_lower_sd_line_value)+", "+str(self.t1_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_T1.tight_layout()
         #self.figureLOA_T1.subplots_adjust(top=0.94, right=0.95)
-        #####self.canvasLOA_T1.draw()
+        self.canvasLOA_T1.draw()
 
         if self.verbose_mode:
             #description_subplot = self.figureLOA_description.add_subplot(111)
@@ -4590,7 +4590,6 @@ class MySelectionDialog(wx.Dialog):
         self.branchChoices = wx.RadioBox(self, -1, label = message, choices = choices, style=wx.RA_SPECIFY_ROWS)
         # self.showUpCheckBox = wx.CheckBox(self, -1, 'Do not show this dialog any more when start.')
         self.buttons = self.CreateSeparatedButtonSizer(wx.OK | wx.CANCEL)
-
         sizer.Add(self.branchChoices, 1, wx.ALL | wx.EXPAND, 5)
         # sizer.Add(self.showUpCheckBox, 1, wx.ALL | wx.EXPAND, 5)
         sizer.Add(self.buttons, 1, wx.ALL | wx.EXPAND, 5)
@@ -4601,21 +4600,65 @@ class MySelectionDialog(wx.Dialog):
     def GetSelections(self):
         return self.branchChoices.GetStringSelection()
 
-class MySplashScreen(wx.SplashScreen):
-    '''
-    show the splash screen when the application is launched.
-    '''
-    def  __init__(self, parent=None):
-        # This is a recipe to a the screen.
-        # Modify the following variables as necessary.
 
-        # aBitmap = wx.Image(name = os.path.join(os.path.dirname(sys.argv[0]), 'splashImage_small.jpg')).ConvertToBitmap()
-        aBitmap = wx.Image(name = os.path.join(os.getcwd(), 'splashImage_small.jpg')).ConvertToBitmap()
-        splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
-        splashDuration = 2000 # milliseconds
-        # Call the constructor with the above arguments in exactly the
-        # following order.
-        wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
+#class MySplashScreen(wx.SplashScreen):
+#    '''
+#    show the splash screen when the application is launched.
+#    '''
+#    def  __init__(self, parent=None):
+#        # This is a recipe to a the screen.
+#        # Modify the following variables as necessary.
+
+#        # aBitmap = wx.Image(name = os.path.join(os.path.dirname(sys.argv[0]), 'splashImage_small.jpg')).ConvertToBitmap()
+#        aBitmap = wx.Image(name = os.path.join(os.getcwd(), 'splashImage_small.jpg')).ConvertToBitmap()
+#        splashStyle = wx.SPLASH_CENTRE_ON_SCREEN | wx.SPLASH_TIMEOUT
+#        splashDuration = 2000 # milliseconds
+#        # Call the constructor with the above arguments in exactly the
+#        # following order.
+#        wx.SplashScreen.__init__(self, aBitmap, splashStyle, splashDuration, parent)
+
+class MySplashScreen(wx.Frame):
+    """Show the splash screen when the application is launched.
+    """
+    def __init__(self):
+        image = wx.Image(name = os.path.join(os.path.dirname(sys.argv[0]), 'splashImage_small.jpg')).ConvertToBitmap()
+        image_width = image.GetWidth()
+        image_height = image.GetHeight()
+        wx.Frame.__init__(self, None, style=wx.NO_BORDER)
+
+        panel = wx.Panel(self)
+
+        static_image = wx.StaticBitmap(panel, -1, image, (0, 0))
+
+        sizer = wx.BoxSizer(wx.HORIZONTAL)
+        sizer.Add(static_image)
+
+        panel.SetSizer(sizer)
+        panel.Layout()
+        self.SetSize((image_width, image_height))
+        self.Center()
+        self.Show()
+        self.timer = wx.Timer(self)
+        self.timer.Start(2000)
+        self.Bind(wx.EVT_TIMER, self.onTimer, self.timer)
+
+    def onTimer(self, evt):
+        self.timer.Stop()
+        self.Hide()
+        calFiles = []
+        refFiles = []
+        desDir = ''
+        QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['GKM', 'Flip Angle T1'])
+        if QIBASelectionDialog.ShowModal() == wx.ID_OK:
+            if QIBASelectionDialog.GetSelections() == 'GKM':
+                window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir, verbose_mode=False)
+                window.Show()
+                window.Maximize(True)
+            elif QIBASelectionDialog.GetSelections() == 'Flip Angle T1':
+                window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir, verbose_mode=False)
+                window.Show()
+                window.Maximize(True)
+
 
 def ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_params, mask_path, verbose_mode):
     '''
@@ -4836,13 +4879,14 @@ def main(argv):
     ISCOMMAND = False
 
     # show the splash window
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
         pass
     else:
         QIBASplashWindow = MySplashScreen()
-        QIBASplashWindow.Show()
-        time.sleep(2)
+        #QIBASplashWindow.Show()
+        #time.sleep(2)
+        #QIBASplashWindow.Hide()
 
     # deal with command line
     calFiles = []
@@ -4851,18 +4895,19 @@ def main(argv):
     
     # New command-line argument handler
     if len(argv) == 0: # No command-line arguments provided. Run from GUI
-        QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['GKM', 'Flip Angle T1'])
-        if QIBASelectionDialog.ShowModal() == wx.ID_OK:
-            if QIBASelectionDialog.GetSelections() == 'GKM':
-                window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir, verbose_mode=False)
-                window.Show()
-                window.Maximize(True)
-            elif QIBASelectionDialog.GetSelections() == 'Flip Angle T1':
-                window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir, verbose_mode=False)
-                window.Show()
-                window.Maximize(True)
+        pass
+        #QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['GKM', 'Flip Angle T1'])
+        #if QIBASelectionDialog.ShowModal() == wx.ID_OK:
+        #    if QIBASelectionDialog.GetSelections() == 'GKM':
+        #        window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir, verbose_mode=False)
+        #        window.Show()
+        #        window.Maximize(True)
+        #    elif QIBASelectionDialog.GetSelections() == 'Flip Angle T1':
+        #        window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir, verbose_mode=False)
+        #        window.Show()
+        #        window.Maximize(True)
     else:
-        parser = argparse.ArgumentParser("QIBA Evaluation Tool Command Line Mode")
+        parser = argparse.ArgumentParser("QIBA_Evaluate_Tool")
         #parser.add_argument("-b", "--batch", action="store_true")
         parser.add_argument("-m", "--mode", choices=["GKM", "T1"], required=True)
         parser.add_argument("-c", "--cfile", nargs="+") # Ktrans and Ve images with calculated data, or T1 image with calculated data

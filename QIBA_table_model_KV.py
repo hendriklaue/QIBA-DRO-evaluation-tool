@@ -28,6 +28,11 @@ class QIBA_table_model_KV(object):
         self.cal_Ktrans_list = self.getValuesFromTable(self.data_table_K, 8, datatype="float")
         self.cal_Ve_list = self.getValuesFromTable(self.data_table_V, 8, datatype="float")
         
+        # Lists of sum of squares values
+        # (parameter10 or index 9 using 0-based indexing)
+        self.sum_sqrs_Ktrans_list = self.getValuesFromTable(self.data_table_K, 9, datatype="float")
+        self.sum_sqrs_Ve_list = self.getValuesFromTable(self.data_table_V, 9, datatype="float")
+        
         # Lists of number of instances under identical conditions
         # (parameter2 or index1 using 0-based indexing)
         self.number_Ktrans_inst_list = self.getValuesFromTable(self.data_table_K, 1, datatype="int")
@@ -49,8 +54,8 @@ class QIBA_table_model_KV(object):
         # For example, reference values of [7,2,1,9,7,2,4,1,1,5] and
         # calculated values of [8,9,8,3,6,1,0,2,3,6] will produce a list that looks like
         # [ [(1,8), (1,2), (1,3)], [(2,9), (2,1)], [(4,0)], [(5,6)], [(7,8), (7,6)], [(9,3)]
-        self.ref_cal_Ktrans_groups = self.groupRefCalByRefValue(self.ref_Ktrans_list, self.cal_Ktrans_list, self.number_Ktrans_inst_list, self.number_usable_Ktrans_list, self.param_weights_Ktrans_list)
-        self.ref_cal_Ve_groups = self.groupRefCalByRefValue(self.ref_Ve_list, self.cal_Ve_list, self.number_Ve_inst_list, self.number_usable_Ve_list, self.param_weights_Ve_list)
+        self.ref_cal_Ktrans_groups = self.groupRefCalByRefValue(self.ref_Ktrans_list, self.cal_Ktrans_list, self.number_Ktrans_inst_list, self.number_usable_Ktrans_list, self.param_weights_Ktrans_list, self.sum_sqrs_Ktrans_list)
+        self.ref_cal_Ve_groups = self.groupRefCalByRefValue(self.ref_Ve_list, self.cal_Ve_list, self.number_Ve_inst_list, self.number_usable_Ve_list, self.param_weights_Ve_list, self.sum_sqrs_Ve_list)
     
         # The allowable total error - used to calculate Sigma metric
         self.allowable_total_error = allowable_total_error
@@ -61,7 +66,7 @@ class QIBA_table_model_KV(object):
         self.verbose_mode = verbose_mode
         
     def getValuesFromTable(self, table, index_number, datatype="string"):
-        value_list = list()
+        value_list = []
         for line in table:
             length = len(line)
             if index_number >= length:
@@ -75,22 +80,21 @@ class QIBA_table_model_KV(object):
                 value_list.append(line[index_number])
         return value_list
     
-    def groupRefCalByRefValue(self, ref_value_list, cal_value_list, number_of_instances_list, usable_instances_list, weights_list):
+    def groupRefCalByRefValue(self, ref_value_list, cal_value_list, number_of_instances_list, usable_instances_list, weights_list, sum_sqrs_list):
         """Create a list that groups each (reference, calculated, number of instances, number of usable instances, weights) pair by reference value
         For example, reference values of [7,2,1,9,7,2,4,1,1,5] and
         calculated values of [8,9,8,3,6,1,0,2,3,6] will produce a list that looks like
         [ [(1,8), (1,2), (1,3)], [(2,9), (2,1)], [(4,0)], [(5,6)], [(7,8), (7,6)], [(9,3)]
         """
-        #all_unique_ref_values = [s for s in set(ref_value_list)]
         all_unique_ref_values = list(set(ref_value_list)) #Remove duplicate elements from ref_value_list
         all_unique_ref_values.sort()
-        full_list = list()
+        full_list = []
         
         for unique_ref_value in all_unique_ref_values:
-            unique_list = list()
+            unique_list = []
             for i in range(0, len(ref_value_list)):
                 if ref_value_list[i] == unique_ref_value:
-                    ref_cal_tuple = (ref_value_list[i], cal_value_list[i], number_of_instances_list[i], usable_instances_list[i], weights_list[i])
+                    ref_cal_tuple = (ref_value_list[i], cal_value_list[i], number_of_instances_list[i], usable_instances_list[i], weights_list[i], sum_sqrs_list[i])
                     unique_list.append(ref_cal_tuple)
             full_list.append(unique_list)
         return full_list
@@ -130,12 +134,6 @@ class QIBA_table_model_KV(object):
             proportion_nan = (float(total_instances_list[i]) - float(usable_instances_list[i])) / float(total_instances_list[i])
             nan_proportion_dict[reference_value] = proportion_nan
         
-            #proportion_nan = (number_instances_total_list[i] - number_usable_instances_list[i]) / number_instances_total_list[i]
-        #nan_proportion_list = list()
-        #for i in range(len(number_usable_instances_list)):
-        #    nan_proportion = float(number_usable_instances_list[i]) / float(number_instances_total_list[i])
-        #    nan_proportion_list.append(nan_proportion)
-        #return nan_proportion_list
         nan_proportion_dict = OrderedDict(sorted(nan_proportion_dict.items()))
         return nan_proportion_dict
     
@@ -143,7 +141,6 @@ class QIBA_table_model_KV(object):
         """Handler for calculating statistics"""
         
         self.calculateErrorForModel()
-        #self.estimatePatchForModel("MEAN") #Is this needed for tables?
         self.prepareHeaders()
         
         #Evaluation functions
@@ -195,16 +192,12 @@ class QIBA_table_model_KV(object):
         all_unique_ref_ktrans_values.sort()
         all_unique_ref_ve_values = list(set(self.ref_Ve_list))
         all_unique_ref_ve_values.sort()
-        #self.headers_Ktrans = ["Ref. Ktrans = "]
-        #self.headers_Ve = ["Ref. Ve = "]
-        self.headers_Ktrans = list()
-        self.headers_Ve = list()
+        self.headers_Ktrans = []
+        self.headers_Ve = []
         for k in all_unique_ref_ktrans_values:
             self.headers_Ktrans.append(QIBA_functions_for_table.formatFloatTo2DigitsString(k))
         for v in all_unique_ref_ve_values:
             self.headers_Ve.append(QIBA_functions_for_table.formatFloatTo2DigitsString(v))
-        #Should this look like the ktrans, ve table of image-based model,
-        #or should it have a different layout?
         
     def htmlStatistics(self):
         """Displays the statistics in HTML form
@@ -342,12 +335,6 @@ class QIBA_table_model_KV(object):
     def htmlCovCorrResults(self):
         """Displays the correlation and covariance results in HTML form
         """
-        #print("self.headers_Ktrans")
-        #print(self.headers_Ktrans)
-        #print("self.cov_kk")
-        #print(self.cov_kk)
-        #print("self.corr_kk")
-        #print(self.corr_kk)
         #Relation between calculated Ktrans and reference Ktrans
         kk_table = "<h2>The correlation and covariance of each column in calculated Ktrans map with reference Ktrans map:</h2>" \
             "<table border=\"1\" cellspacing=\"10\">" \
@@ -366,44 +353,6 @@ class QIBA_table_model_KV(object):
             kk_table += "</td>"
         kk_table += "</tr>"
         kk_table += "</table>"
-        
-        #Relation between calculated Ktrans and reference Ve
-        #kv_table = "<h2>The correlation and covariance of each row in calculated Ktrans map with reference Ve map:</h2>" \
-        #    "<table border=\"1\" cellspacing=\"10\">" \
-        #    "<tr>"
-            
-        #for i in range(len(self.headers_Ve)):
-        #    kv_table += "<th>" + str(self.headersVertical[i]) + "</th>"
-        #kv_table += "</tr>"
-        
-        #kv_table += "<tr>"
-        #for i in range(len(self.headers_Ve)):
-        #    kv_table += "<td align=\"left\">cov.: "
-        #    kv_table += QIBA_functions_for_table.formatFloatTo2DigitsString(self.cov_kv[i])
-        #    kv_table += "<br>corr.: "
-        #    kv_table += QIBA_functions_for_table.formatFloatTo2DigitsString(self.corr_kv[i])
-        #    kv_table += "</td>"
-        #kv_table += "</tr>"
-        #kv_table += "</table>"
-        
-        #Relation between calculated Ve and reference Ktrans
-        #vk_table = "<h2>The correlation and covariance of each column in calculated Ve map with reference Ktrans map:</h2>" \
-        #    "<table border=\"1\" cellspacing=\"10\">" \
-        #    "<tr>"
-        
-        #for j in range(len(self.headers_Ktrans)):
-        #    vk_table += "<th>" + str(self.headersHorizontal[j]) + "</th>"
-        #vk_table += "</tr>"
-        
-        #vk_table += "<tr>"
-        #for j in range(len(self.headers_Ktrans)):
-        #    vk_table += "<td align=\"left\">cov.: "
-        #    vk_table += QIBA_functions_for_table.formatFloatTo2DigitsString(self.cov_vk[j])
-        #    vk_table += "<br>corr.: "
-        #    vk_table += QIBA_functions_for_table.formatFloatTo2DigitsString(self.corr_vk[j])
-        #    vk_table += "</td>"
-        #vk_table += "</tr>"
-        #vk_table += "</table>"
         
         #Relation between calculated Ve and reference Ve
         vv_table = "<h2>The correlation and covariance of each row in calculated Ve map with reference Ve map:</h2>" \
@@ -424,7 +373,6 @@ class QIBA_table_model_KV(object):
         vv_table += "</tr>"
         vv_table += "</table>"
         
-        #self.covCorrResultsInHtml = self.packInHtml(kk_table + "<br>" + kv_table + "<br>" + vk_table + "<br>" + vv_table)
         self.covCorrResultsInHtml = self.packInHtml(kk_table + "<br>" + vv_table)
                 
     def htmlT_TestResults(self):
@@ -673,14 +621,6 @@ class QIBA_table_model_KV(object):
     def GetModelFittingInHTML(self):
         """getter for the result in HTML"""
         return self.ModelFittingInHtml
-    ##def getStatisticsInHTML(self):
-    ##    return self.statisticsInHTML
-        
-    ###def getCovarianceCorrelationInHTML(self):
-    ###    return self.covCorrResultsInHtml
-        
-    ###def getModelFittingInHtml(self):
-    ###    return self.modelFittingInHtml
     
     def GetT_TestResultsInHTML(self):
         return self.T_testResultInHTML
@@ -694,16 +634,11 @@ class QIBA_table_model_KV(object):
     def fittingLinearModelForModel(self):
         """Fit a planar for the calculated Ktrans and Ve maps
         """
-        # Is this model useful since all reference values are probably going to be the same... the fitted line will be vertical!
-        #self.a_lin_Ktrans, self.b_lin_Ktrans, self.r_squared_lin_K = QIBA_functions_for_table.fittingLinearModel(self.cal_Ktrans_list, self.ref_Ktrans_list)
-        #self.a_lin_Ve, self.b_lin_Ve, self.r_squared_lin_V = QIBA_functions_for_table.fittingLinearModel(self.cal_Ve_list, self.ref_Ve_list)
         self.a_lin_Ktrans, self.b_lin_Ktrans, self.r_squared_lin_K = QIBA_functions_for_table.fittingLinearModel(self.ref_cal_Ktrans_groups)
         self.a_lin_Ve, self.b_lin_Ve, self.r_squared_lin_V = QIBA_functions_for_table.fittingLinearModel(self.ref_cal_Ve_groups)
         
     def fittingLogarithmicModelForModel(self):
         """Fitting logarithmic model"""
-        #self.a_log_Ktrans, self.b_log_Ktrans = QIBA_functions_for_table.fittingLogarithmicModel(self.cal_Ktrans_list, self.ref_Ktrans_list) # , self.c_log_Ktrans
-        #self.a_log_Ve, self.b_log_Ve = QIBA_functions_for_table.fittingLogarithmicModel(self.cal_Ve_list, self.ref_Ve_list) # , self.c_log_Ve
         self.a_log_Ktrans, self.b_log_Ktrans = QIBA_functions_for_table.fittingLogarithmicModel(self.ref_cal_Ktrans_groups)
         self.a_log_Ve, self.b_log_Ve = QIBA_functions_for_table.fittingLogarithmicModel(self.ref_cal_Ve_groups)
         
@@ -711,43 +646,12 @@ class QIBA_table_model_KV(object):
         """Calculates the correlation between the calculated parameters and the reference parameters.
         'Corre_KV' stands for 'correlation coefficient between calculated Ktrans and reference Ve', etc.
         """
-        # Need to adapt this to use ref_cal groups
-        # How does this handle ktrans and ve lists being different lengths?
-        
-        #for i in range(self.nrOfColumns):
-            
-            #self.corr_kk.append(QIBA_functions_for_table.calCorrMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-            #self.corr_vk.append(QIBA_functions_for_table.calCorrMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-        #for j in range(self.nrOfRows):
-            #self.corr_vv.append(QIBA_functions_for_table.calCorrMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-            #self.corr_kv.append(QIBA_functions_for_table.calcorrMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-            
-        ###Can these be individual floats, or should they be lists? (The original produces lists.)
-        #self.corr_kk = QIBA_functions_for_table.calCorrMatrix(self.cal_Ktrans_list, self.ref_Ktrans_list)[0][1]
-        #self.corr_vk = QIBA_functions_for_table.calCorrMatrix(self.cal_Ve_list, self.ref_Ktrans_list)[0][1]
-        #self.corr_vv = QIBA_functions_for_table.calCorrMatrix(self.cal_Ve_list, self.ref_Ve_list)[0][1]
-        #self.corr_kv = QIBA_functions_for_table.calCorrMatrix(self.cal_Ktrans_list, self.ref_Ve_list)[0][1]
         self.corr_kk, self.corr_vk, self.corr_vv, self.corr_kv = QIBA_functions_for_table.calCorrMatrix(self.ref_cal_Ktrans_groups, self.ref_cal_Ve_groups)
         
     def calculateCovarianceForModel(self):
         """Calculates the covariance between the calculated parameters and the reference parameters.
         e.g. 'cov_kv' stands for 'correlation coefficient between calculated Ktrans and reference Ve', etc.
         """
-        # Need to adapt this to use ref_cal groups
-        # How does this handle ktrans and ve lists being different lengths?
-        
-        #for i in range(self.nrOfColumns):
-        #    self.cov_KK.append(QIBA_functions_for_table.calCovMatrix(zip(*self.Ktrans_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-        #    self.cov_VK.append(QIBA_functions_for_table.calCovMatrix(zip(*self.Ve_cal_patchValue)[i], zip(*self.Ktrans_ref_patchValue)[i])[0][1])
-        #for j in range(self.nrOfRows):
-        #    self.cov_VV.append(QIBA_functions_for_table.calCovMatrix(self.Ve_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-        #    self.cov_KV.append(QIBA_functions_for_table.calCovMatrix(self.Ktrans_cal_patchValue[j], self.Ve_ref_patchValue[j])[0][1])
-        
-        ###Can these be individual floats, or should they be lists? (The original produces lists.)
-        #self.cov_kk = QIBA_functions_for_table.calCovMatrix(self.cal_Ktrans_list, self.ref_Ktrans_list)[0][1]
-        #self.cov_vk = QIBA_functions_for_table.calCovMatrix(self.cal_Ve_list, self.ref_Ktrans_list)[0][1]
-        #self.cov_vv = QIBA_functions_for_table.calCovMatrix(self.cal_Ve_list, self.ref_Ve_list)[0][1]
-        #self.cov_kv = QIBA_functions_for_table.calCovMatrix(self.cal_Ktrans_list, self.ref_Ve_list)[0][1]
         self.cov_kk, self.cov_vk, self.cov_vv, self.cov_kv = QIBA_functions_for_table.calCovMatrix(self.ref_cal_Ktrans_groups, self.ref_cal_Ve_groups)
         
     def calculateRMSDForModel(self):
@@ -762,8 +666,6 @@ class QIBA_table_model_KV(object):
         
     def calculateTDIForModel(self):
         """Calculates the total deviation index between the calculated parameters and the reference parameters"""
-        #self.Ktrans_tdi, self.Ktrans_tdi_all_regions = QIBA_functions_for_table.TDI(self.Ktrans_rmsd, self.Ktrans_rmsd_all_regions)
-        #self.Ve_tdi, self.Ve_tdi_all_regions = QIBA_functions_for_table.TDI(self.Ve_rmsd, self.Ve_rmsd_all_regions)
         self.Ktrans_tdi, self.Ktrans_tdi_all_regions, self.Ktrans_tdi_all_regions_method_2 = QIBA_functions_for_table.TDI(self.ref_cal_Ktrans_groups)
         self.Ve_tdi, self.Ve_tdi_all_regions, self.Ve_tdi_all_regions_method_2 = QIBA_functions_for_table.TDI(self.ref_cal_Ve_groups)
 

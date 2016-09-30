@@ -62,8 +62,6 @@ class QIBA_table(object):
 				print("There was an error reading "+table_path)
 				return
 		
-		#file_contents = file_contents.splitlines()
-		#print(file_contents)
 		return file_contents
 
 	def validateTable(self):
@@ -104,7 +102,6 @@ class QIBA_table(object):
 		
 		Returns Ktrans, Ve, T1, or Unknown
 		"""
-		#file_name, file_extension = os.path.splitext(self.table_path)
 		file_name = os.path.basename(self.table_path)
 		file_name = file_name.lower()
 		

@@ -121,15 +121,6 @@ CVg is between-subject biological coefficient of variation, and
     def onClose(self, event):
         self.button_clicked_name = event.GetEventObject().GetLabelText()
         #state = self.use_ate_value_radiobutton.GetValue()
-        
-        #if self.button_clicked_name == "OK": #for testing
-        #    print(str(state)) #for testing
-        #    print(button_clicked_name) #for testing
-        #    s = self.getActiveRadioButton() #for testing
-        #    ate_value = self.getATEValue() #for testing
-        #    print(str(s)) #for testing
-        #    print(self.getATEValue()) #for testing
-        
         self.Close()
         #print("self.button_clicked_name:"+self.button_clicked_name)
         #self.Destroy()
@@ -137,7 +128,7 @@ CVg is between-subject biological coefficient of variation, and
     def destroy(self):
         self.Destroy()
         
-#For testing the dialog box. Delete this when done.
+#For testing the dialog box. Delete/disable this section this when done.
 #app = wx.App(redirect=False)
 #dialog = ATEDialogBox(None, "Allowable Total Error", (500,300), "0.0")
 #dialog.ShowModal()
@@ -148,6 +139,5 @@ CVg is between-subject biological coefficient of variation, and
 #print(b)
 #print(str(v))
 #dialog.destroy()
-
 #app.MainLoop()
 
