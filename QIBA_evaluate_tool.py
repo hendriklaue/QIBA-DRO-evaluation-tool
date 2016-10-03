@@ -126,17 +126,11 @@ class MainWindow(wx.Frame):
         fileMenu.AppendSeparator()
         OnExit = fileMenu.Append(wx.ID_EXIT, "&Quit\tCtrl+Q", "Quit")
 
-        # self.SetupEditMenu()
-
         aboutMenu = wx.Menu()
         OnManual = aboutMenu.Append(wx.ID_ANY, 'Open the manual...')
         aboutMenu.AppendSeparator()
         OnAboutApp = aboutMenu.Append(wx.ID_ANY, "About this application")
 
-        #self.menubar.Bind(wx.EVT_MENU, self.OnExport, OnExport)
-        #self.menubar.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
-        #self.menubar.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
-        #self.menubar.Bind(wx.EVT_MENU, self.OnManual, OnManual)
         self.Bind(wx.EVT_MENU, self.OnExport, OnExport)
         self.Bind(wx.EVT_MENU, self.OnQuit, OnExit)
         self.Bind(wx.EVT_MENU, self.OnAbout, OnAboutApp)
@@ -308,9 +302,6 @@ class MainWindow(wx.Frame):
                 return self.mask # Keep the existing mask
             
         else: # Handle mask if it is an image
-            #raw_mask_image = QIBA_functions.ImportFile(mask_path, self.nrOfRow, self.nrOfColumn, self.patchLen, "L") #L mode is 8-bit B/W
-            #print(raw_mask_image)
-            #Use function QIBA_functions.ImportFile(path, nrOfRows, nrOfColumns, patchLen, mode)
             try:
                 raw_mask_image = Image.open(mask_path)
                 raw_mask_array = numpy.array(raw_mask_image)
@@ -324,7 +315,6 @@ class MainWindow(wx.Frame):
                 print("There was a problem reading the mask file at "+mask_path+".")
                 print("No mask will be used.")
                 return self.mask # Keep the existing mask
-        #return self.mask # In case none of the above return statements are reached
             
     def parseMaskFile(self, file_contents, data_type, number_of_rows, number_of_columns, patch_length, delimiter):
         mask_contents = []
@@ -352,12 +342,6 @@ class MainWindow(wx.Frame):
                 if elements_in_row != correct_y_dim_len:
                     print("Error: Mask row "+str(i_plus_1)+" has "+str(elements_in_row)+" element(s). It should have "+str(correct_y_dim_len)+" element(s).")
                     valid_mask = False
-            
-            #file_contents = file_contents.split("\n")
-                
-            #for line in file_contents:
-                #line_list = list(line.split(delimiter))
-                #mask_contents.append(line_list)
                 
         elif data_type == "image":
             mask_contents = []
@@ -369,7 +353,6 @@ class MainWindow(wx.Frame):
 
             if valid_mask:
                 for i in range(mask_x_dim_len):
-                    #mask_contents[i] = list(file_contents[i])
                     mask_contents.append(list(file_contents[i]))
 
 
@@ -389,11 +372,8 @@ class MainWindow(wx.Frame):
         self.noteBookRight = wx.Notebook(self.rightPanel)  #, style=wx.SUNKEN_BORDER)
         self.pageStart = wx.Panel(self.noteBookRight)
         self.pageImagePreview  = wx.Panel(self.noteBookRight)
-        ###self.pageImagePreview = scrolled.ScrolledPanel(self.noteBookRight)
         self.pageScatter = wx.Panel(self.noteBookRight)
-        # self.pageHistogram = wx.Panel(self.noteBookRight)
         self.pageHistogram = scrolled.ScrolledPanel(self.noteBookRight)
-        # self.pageBoxPlot = wx.Panel(self.noteBookRight)
         self.pageBoxPlot = scrolled.ScrolledPanel(self.noteBookRight)
         self.pageStatistics = wx.Panel(self.noteBookRight)
         self.pageNaN = wx.Panel(self.noteBookRight)
@@ -508,14 +488,7 @@ class MainWindow(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(self.tdiViewer, 1, wx.EXPAND)
         self.pageTDI.SetSizer(sizer)
-        
-        # Bland-Altman LOA Page
-        #self.loaViewer = wx.html.HtmlWindow(self.pageLOA, -1)
-        
-        #sizer = wx.BoxSizer()
-        #sizer.Add(self.loaViewer, 1, wx.EXPAND)
-        #self.pageLOA.SetSizer(sizer)
-        
+
         # Sigma Metric Page
         self.sigmaMetricViewer = wx.html.HtmlWindow(self.pageSigmaMetric, -1)
         
@@ -550,8 +523,6 @@ class MainWindow(wx.Frame):
         sizer = wx.BoxSizer()
         sizer.Add(self.ChiqViewer, 1, wx.EXPAND)
         self.pageChiq.SetSizer(sizer)
-
-
 
         # sizer for the right panel
         sizer = wx.BoxSizer()
@@ -609,7 +580,6 @@ class MainWindow(wx.Frame):
         
         self.ClearPage_BlandAltmanPlot()
         
-        #self.loaViewer.SetPage('')
         self.sigmaMetricViewer.SetPage('')
 
         try:
@@ -806,22 +776,25 @@ class MainWindow(wx.Frame):
                 self.newModel.evaluate()
             elif self.type_of_data_loaded == "table":
                 self.newModel.evaluate()
-        #except RuntimeError:
-        #original - restore
-        #    self.SetStatusText('RuntimeError occurs. Evaluation terminated.')
+        except RuntimeError:
+        #original
+            self.SetStatusText('RuntimeError occurs. Evaluation terminated.')
+            return False
+        
+        #Error handling for debugging/development
+        #except RuntimeError as e:
+        #    print(e)
+        #    ex_type, ex, tb = sys.exc_info()  # For debugging
+        #    traceback.print_tb(tb)  # For debugging
+        #    self.SetStatusText('Runtime error occurs. Evaluation terminated.')
         #    return False
-        except RuntimeError as e:
-            print(e)
-            ex_type, ex, tb = sys.exc_info()  # For debugging
-            traceback.print_tb(tb)  # For debugging
-            self.SetStatusText('Runtime error occurs. Evaluation terminated.')
-            return False
-        except Exception as e: #For debugging. Originally just "except".
-            print(e) #For debugging
-            ex_type, ex, tb = sys.exc_info() #For debugging
-            traceback.print_tb(tb) #For debugging
-            self.SetStatusText('Error occurs. Evaluation terminated.')
-            return False
+        #except Exception as e: #For debugging. Originally just "except".
+        #    print(e) #For debugging
+        #    ex_type, ex, tb = sys.exc_info() #For debugging
+        #    traceback.print_tb(tb) #For debugging
+        #    self.SetStatusText('Error occurs. Evaluation terminated.')
+        #    return False
+        
         #EvaluateProgressDialog.Update(20)
 
         # show the results in the main window
@@ -940,9 +913,10 @@ class MainWindow(wx.Frame):
             print("RuntimeError occurred. Evaluation terminated.")
             return False
         except Exception as e: #For debugging. Originally just "except".
-            print(e) #For debugging
-            ex_type, ex, tb = sys.exc_info() #For debugging
-            traceback.print_tb(tb) #For debugging
+            print("An error occurred. Evaluation terminated.")
+            #print(e) #For debugging
+            #ex_type, ex, tb = sys.exc_info() #For debugging
+            #traceback.print_tb(tb) #For debugging
             return False
         
     def GenerateModel(self):
@@ -970,20 +944,6 @@ class MainWindow(wx.Frame):
                 self.OnExportToPDF(save_folder)
             elif exportDialog.GetSelections() == "Excel file":
                 self.OnExportToFolder(save_folder)
-
-
-
-        #if self.type_of_data_loaded == "image":
-        #    exportDialog = MySelectionDialog(None, 'Export as:', 'Export as...', choices=['PDF', 'Excel file'])
-        #    if exportDialog.ShowModal() == wx.ID_OK:
-        #        if exportDialog.GetSelections() == 'PDF':
-        #            self.OnExportToPDF('')
-        #        elif exportDialog.GetSelections() == 'Excel file':
-        #            self.OnExportToFolder('')
-        #    else:
-        #        pass
-        #elif self.type_of_data_loaded == "table":
-        #    save_folder = self.saveResultsTable()
 
     def OnExportToFolder(self, desDir):
         pass
@@ -1066,10 +1026,6 @@ class MainWindow(wx.Frame):
             os.makedirs(os.path.join(desDir_folder_only, "temp"))
             
         temp_html = open(os.path.join(desDir_folder_only, 'temp', 'temp.html'), 'w+')
-        #temp_html_folder = os.path.join(desDir, "temp")
-        #if not os.path.exists(temp_html_folder):
-        #    os.makedirs(temp_html_folder)
-        #temp_html = open(os.path.join(desDir, "temp", "temp.html"), "w+")
         temp_html.write(self.GetResultInHtml())
         temp_html.close()
         
@@ -1089,54 +1045,6 @@ class MainWindow(wx.Frame):
         except:
             pass
 
-    #Original
-    #def OnExportToPDF(self, desDir):
-        # export the evaluation results to PDF
-
-        #self.buttonEvaluate.Disable()
-
-        # show in status bar when export finishes
-    #    try:
-    #        self.SetStatusText('Exporting results...')
-    #    except:
-    #        pass
-
-        # save file path dialog
-    #    savePath = os.getcwd()
-    #    print("working directory:"+desDir) #for debugging
-    #    if desDir == '':
-    #        dlg = wx.FileDialog(self, 'Export the results as PDF file...', '', '', "PDF file(*.pdf)|*.pdf", wx.SAVE | wx.OVERWRITE_PROMPT)
-    #        if dlg.ShowModal() == wx.ID_OK:
-    #            savePath = dlg.GetPath()
-    #        else:
-    #            return
-    #    else:
-    #        savePath = os.path.join(desDir, 'results.pdf')
-
-        # save to temp html file
-    #    temp_html = open(os.path.join(os.getcwd(), 'temp', 'temp.html'), 'w+')
-    #    temp_html.write(self.GetResultInHtml())
-    #    temp_html.close()
-
-        # due to the Python wrapper of wkhtmltopdf "python_wkhtmltopdf" pre-requires xvfb is not available for Windows, here use commandline to call the tool
-    #    cmd=[os.path.join(os.getcwd(), 'tools', 'wkhtmltopdf', 'bin', 'wkhtmltopdf'), os.path.join(os.getcwd(), 'temp', 'temp.html'), savePath]
-    #    process = subprocess.Popen(cmd) #, stdout=subprocess.PIPE)
-    #    process.wait()
-
-        # remove the temp file
-    #    folderPath = os.path.join(os.getcwd(), 'temp')
-    #    for theFile in os.listdir(folderPath):
-    #        os.remove(os.path.join(folderPath, theFile))
-
-        # show in status bar when export finishes
-    #    try:
-    #        self.SetStatusText('Results exported as PDF file.')
-    #    except:
-    #        pass
-
-        #self.buttonEvaluate.Enable()
-
-
     def GetResultInHtml(self):
         # render the figures, tables into html, for exporting to pdf
         pass
@@ -1150,7 +1058,6 @@ class MainWindow(wx.Frame):
         description = """This is the description of this software."""
 
         licence = """This is the Licence of the software."""
-
 
         info = wx.AboutDialogInfo()
 
@@ -1211,9 +1118,6 @@ class MainWindow_KV(MainWindow):
         self.SetupPageANOVA()
         self.mask = self.CreateDefaultMask(self.nrOfRow, self.nrOfColumn, self.patchLen)
 
-        # temporary -- for debugging
-        #self.mask = self.loadMaskFile("V:/QIBA/QIBA Project Round 5/Text File Tables for QDET Non-Image Mode/Test_Mask.cdata") #for debugging
-
     def SetupPage_BoxPlot(self):
         self.figureBoxPlot = Figure()
         self.canvasBoxPlot = FigureCanvas(self.pageBoxPlot,-1, self.figureBoxPlot)
@@ -1226,7 +1130,6 @@ class MainWindow_KV(MainWindow):
         self.rmsdViewer.SetPage(self.newModel.RMSDResultInHTML)
         self.cccViewer.SetPage(self.newModel.CCCResultInHTML)
         self.tdiViewer.SetPage(self.newModel.TDIResultInHTML)
-        #self.loaViewer.SetPage(self.newModel.LOAResultInHTML)
         self.sigmaMetricViewer.SetPage(self.newModel.sigmaMetricResultInHTML)
         self.modelFittingViewer.SetPage(self.newModel.GetModelFittingInHTML())
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
@@ -1441,7 +1344,6 @@ class MainWindow_KV(MainWindow):
         sizerRef_K_image.Add(self.canvasRefViewer_K, 1, wx.EXPAND)
 
         sizerRef_K.Add(sizerRef_K_image, 1, wx.EXPAND)
-        # sizerRef_K.Add(sizerRef_K_path, 0, wx.EXPAND)
         panelRef_K.SetSizer(sizerRef_K)
 
         # sizerRef_V_path.Add(wx.StaticText(panelRef_V, -1, 'Reference Ve: '))
@@ -1455,7 +1357,6 @@ class MainWindow_KV(MainWindow):
         sizerRef_V_image.Add(self.canvasRefViewer_V, 1, wx.EXPAND)
 
         sizerRef_V.Add(sizerRef_V_image, 1, wx.EXPAND)
-        # sizerRef_V.Add(sizerRef_V_path, 0, wx.EXPAND)
         panelRef_V.SetSizer(sizerRef_V)
 
         # the upper part of the page
@@ -1564,7 +1465,6 @@ class MainWindow_KV(MainWindow):
 
     def SetupRightClickMenuForTextFiles(self):
         # setup the popup menu for right clicking on text files (.csv, .cdata, .txt)
-        #print("SetupRightClickMenuForTestFiles (KV)") #for testing
         wx.EVT_RIGHT_DOWN(self.fileBrowser.GetTreeCtrl(), self.OnRightClick)
         self.popupMenuTextFiles = wx.Menu()
         self.ID_POPUP_LOAD_TEXT_FILE_K = wx.NewId()
@@ -1620,15 +1520,6 @@ class MainWindow_KV(MainWindow):
         sizer.Add(self.horizontalLineLOA, proportions[1], wx.EXPAND)
         sizer.Add(self.canvasLOA_Ve, proportions[2], wx.EXPAND)
         sizer.Add(self.canvasLOA_description, proportions[3], wx.EXPAND)
-
-        #sizer.Add(self.canvasLOA_Ktrans, 35, wx.EXPAND)
-        #sizer.Add(self.horizontalLineLOA, 1, wx.EXPAND)
-        #sizer.Add(self.canvasLOA_Ve, 35, wx.EXPAND)
-        #if self.verbose_mode:
-        #    proportion = 15
-        #else:
-        #    proportion = 1
-        #sizer.Add(self.canvasLOA_description, proportion, wx.EXPAND)
 
         self.pageLOA.SetSizer(sizer)
         
@@ -2052,8 +1943,8 @@ class MainWindow_KV(MainWindow):
         #1. Ktrans histogram: Extract data from Ktrans group list
         for i in range(len(ref_cal_Ktrans_groups)):
             unique_Ktrans_ref_group = ref_cal_Ktrans_groups[i]
-            ref_Ktrans_data_list = list() #The list of reference values (raw data), extracted from ref_cal_group_list
-            cal_Ktrans_data_list = list() #The list of calculated values (raw data), extracted from ref_cal_group_list
+            ref_Ktrans_data_list = [] #The list of reference values (raw data), extracted from ref_cal_group_list
+            cal_Ktrans_data_list = [] #The list of calculated values (raw data), extracted from ref_cal_group_list
             ktrans_instances_counted_list = list()
             for t in range(len(unique_Ktrans_ref_group)):
                 tpl = unique_Ktrans_ref_group[t]
@@ -2096,8 +1987,8 @@ class MainWindow_KV(MainWindow):
         #2. Ve histogram: Extract data from Ve group list
         for i in range(len(ref_cal_Ve_groups)):
             unique_Ve_ref_group = ref_cal_Ve_groups[i]
-            ref_Ve_data_list = list() #The list of reference values (raw data), extracted from ref_cal_group_list
-            cal_Ve_data_list = list() #The list of calculated values (raw data), extracted from ref_cal_group_list
+            ref_Ve_data_list = [] #The list of reference values (raw data), extracted from ref_cal_group_list
+            cal_Ve_data_list = [] #The list of calculated values (raw data), extracted from ref_cal_group_list
             ve_instances_counted_list = list()
             for t in range(len(unique_Ve_ref_group)):
                 tpl = unique_Ve_ref_group[t]
@@ -2367,44 +2258,6 @@ class MainWindow_KV(MainWindow):
         ktrans_subplot.legend( (ktrans_mean_line, ktrans_upper_sd_line), ("Mean Difference ("+str(self.ktrans_mean_difference)+")", \
         "95% Confidence Interval ("+str(self.ktrans_lower_sd_line_value)+", "+str(self.ktrans_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         
-        """
-        #     Adjust scales of x- and y-axes. Avoid including outliers in determining the scale.
-        ktrans_means_list_no_outliers, ktrans_means_limits = self.removeOutliers(ktrans_means_list)
-        ktrans_diffs_list_no_outliers, ktrans_diffs_limits = self.removeOutliers(ktrans_diffs_list)
-        print("ktrans_means_limits:") #for testing
-        print(ktrans_means_limits) #for testing
-        print("ktrans_diffs_limits:") #for testing
-        print(ktrans_diffs_limits) #for testing
-        x_min = min(ktrans_means_list_no_outliers) * 0.70
-        x_max = max(ktrans_means_list_no_outliers) * 1.30
-        #y_min = (ktrans_mean_difference - (1.96*ktrans_sd_difference)) * 1.30
-        #y_max = (ktrans_mean_difference + (1.96*ktrans_sd_difference)) * 1.30
-        y_min = min(ktrans_diffs_list_no_outliers) * 0.70
-        y_max = max(ktrans_diffs_list_no_outliers) * 1.30
-        print("x_min="+str(x_min)+", x_max="+str(x_max)+", y_min="+str(y_min)+", y_max="+str(y_max))
-        ktrans_subplot.set_xlim(left=x_min, right=x_max, emit=True)
-        ktrans_subplot.set_ylim(top=y_max, bottom=y_min, emit=True)
-        # left off: plot outlier points - go through means and diffs lists at same time. identify x-y coordinates outside of x_min/x_max, y_min/y_max range 
-        for i in range(0, len(ktrans_means_list)):
-            if ktrans_means_list[i] > ktrans_means_limits[0] and ktrans_diffs_list[i] > ktrans_diffs_limits[0]: #mean is high outlier, diff is high outlier
-                print("Values for drawing arrow in top-right corner: x_max="+str(x_max)+", y_max="+str(y_max))
-                ktrans_subplot.arrow(x_max*0.99, y_max*0.99, x_max, y_max, width=(x_max*y_max*0.1), edgecolor="black", facecolor="black")
-            elif ktrans_means_list[i] < ktrans_means_limits[1] and ktrans_diffs_list[i] < ktrans_diffs_limits[1]: #mean is low outlier, diff is low outlier
-                ktrans_subplot.arrow(x_min*1.01, y_min*1.01, x_min, y_min, width=(x_max*y_max*0.1), edgecolor="black", facecolor="black")
-            elif ktrans_means_list[i] > ktrans_means_limits[0] and ktrans_diffs_list[i] < ktrans_diffs_limits[1]: #mean is high outlier, diff is low outlier
-                ktrans_subplot.arrow(x_max*0.99, y_min*1.01, x_max, y_min, width=(x_max*y_max*0.1), edgecolor="black", facecolor="black")
-            elif ktrans_means_list[i] < ktrans_means_limits[1] and ktrans_diffs_list[i] > ktrans_diffs_limits[0]: #mean is low outlier, diff is high outlier
-                ktrans_subplot.arrow(x_min*1.01, y_max*0.99, x_min, y_max, width=(x_max*y_max*0.1), edgecolor="black", facecolor="black")
-            elif ktrans_means_list[i] > ktrans_means_limits[0]: #mean is high outlier, diff is not outlier
-                ktrans_subplot.arrow(x_max*0.99, ktrans_diffs_list[i], x_max, ktrans_diffs_list[i], width=(x_max*y_max*0.1), edgecolor="black", facecolor="black")
-            elif ktrans_means_list[i] < ktrans_means_limits[1]: #mean is low outlier, diff is not outlier
-                ktrans_subplot.arrow(x_min*1.01, ktrans_diffs_list[i], x_min, ktrans_diffs_list[i], width=(x_max*y_max*0.1), edgecolor="black", facecolor="black")
-            elif ktrans_diffs_list[i] > ktrans_diffs_limits[0]: #mean is not outlier, diff is high outlier
-                ktrans_subplot.arrow(ktrans_means_list[i], y_max*0.99, ktrans_means_list[i], y_max, width=(x_max*y_max*0.1), edgecolor="black", facecolor="black")
-            elif ktrans_diffs_list[i] < ktrans_diffs_limits[0]: #mean is not outlier, diff is low outlier
-                ktrans_subplot.arrow(ktrans_means_list[i], y_min*1.01, ktrans_means_list[i], y_min, width=(x_max*y_max*0.1), edgecolor="black", facecolor="black")
-        """
-        
         self.figureLOA_Ktrans.tight_layout()
         #self.figureLOA_Ktrans.subplots_adjust(top=0.94, right=0.95)
         self.canvasLOA_Ktrans.draw()
@@ -2448,22 +2301,15 @@ class MainWindow_KV(MainWindow):
         
         for i in range(len(ref_cal_Ktrans_groups)):
             unique_Ktrans_ref_group = ref_cal_Ktrans_groups[i]
-            #temp_temp = list()
-            #ref_Ktrans_per_group_list = list() #The list of reference values (raw data), extracted from ref_cal_Ktrans_groups
-            #cal_Ktrans_per_group_list = list() #The list of calculated values (raw data), extracted from ref_cal_Ktrans_groups
             ktrans_instances_counted_list = []
             
             for t in range(len(unique_Ktrans_ref_group)):
                 tpl = unique_Ktrans_ref_group[t]
-                #ref_Ktrans_per_group_list.append(tpl[0])
-                #cal_Ktrans_per_group_list.append(tpl[1])
                 ktrans_instances_counted_list.append(tpl[3])
                 if t == 0:
                     unique_ref_Ktrans_values_list.append(tpl[0])
                 all_ref_Ktrans_values_list.append(tpl[0])
                 all_cal_Ktrans_values_list.append(tpl[1])
-            #all_ref_Ktrans_values_list.append(ref_Ktrans_per_group_list)
-            #all_cal_Ktrans_values_list.append(cal_Ktrans_per_group_list)
         
         #Calculate Ktrans mean and Ktrans diff
         ktrans_means_list = []
@@ -2471,7 +2317,6 @@ class MainWindow_KV(MainWindow):
         ktrans_percent_bias_list = []
         
         for i in range(len(all_cal_Ktrans_values_list)):
-            #ktrans_means_list.append(numpy.mean(all_cal_Ktrans_values_list[i]))
             mean_of_ktrans_ref_and_cal = numpy.mean([all_cal_Ktrans_values_list[i], all_ref_Ktrans_values_list[i]])
             ktrans_means_list.append(mean_of_ktrans_ref_and_cal)
             ktrans_diffs_list.append(all_cal_Ktrans_values_list[i] - all_ref_Ktrans_values_list[i])
@@ -2505,7 +2350,6 @@ class MainWindow_KV(MainWindow):
         ve_percent_bias_list = []
         
         for i in range(len(all_cal_Ve_values_list)):
-            #ve_means_list.append(numpy.mean(all_cal_Ve_values_list[i]))
             mean_of_ve_ref_and_cal = numpy.mean([all_cal_Ve_values_list[i], all_ref_Ve_values_list[i]])
             ve_means_list.append(mean_of_ve_ref_and_cal)
             ve_diffs_list.append(all_cal_Ve_values_list[i] - all_ref_Ve_values_list[i])
@@ -2579,7 +2423,6 @@ class MainWindow_KV(MainWindow):
         ktrans_subplot.legend( (ktrans_mean_line, ktrans_upper_sd_line), ("Mean Difference ("+str(self.ktrans_mean_difference)+")", \
         "95% Confidence Interval ("+str(self.ktrans_lower_sd_line_value)+", "+str(self.ktrans_upper_sd_line_value)+")"), loc="lower center", ncol=2, prop={'size':10})
         self.figureLOA_Ktrans.tight_layout()
-        #self.figureLOA_Ktrans.subplots_adjust(top=0.94, right=0.95)
         self.canvasLOA_Ktrans.draw()
         
         # Draw the Bland-Altman plot for Ve
@@ -2731,15 +2574,15 @@ class MainWindow_KV(MainWindow):
         subPlotK.clear()
     
         #Get calculated Ktrans values
-        unique_ref_Ktrans_values_list = list() #A list of each reference Ktrans value (i.e. [0.01, 0.02, 0.05, 0.1, 0.2, 0.35])
-        all_cal_Ktrans_values_list = list()
+        unique_ref_Ktrans_values_list = [] #A list of each reference Ktrans value (i.e. [0.01, 0.02, 0.05, 0.1, 0.2, 0.35])
+        all_cal_Ktrans_values_list = []
         
         for i in range(len(ref_cal_Ktrans_groups)):
             unique_Ktrans_ref_group = ref_cal_Ktrans_groups[i]
             #temp_temp = list()
-            ref_Ktrans_per_group_list = list() #The list of reference values (raw data), extracted from ref_cal_Ktrans_groups
-            cal_Ktrans_per_group_list = list() #The list of calculated values (raw data), extracted from ref_cal_Ktrans_groups
-            ktrans_instances_counted_list = list()
+            ref_Ktrans_per_group_list = [] #The list of reference values (raw data), extracted from ref_cal_Ktrans_groups
+            cal_Ktrans_per_group_list = [] #The list of calculated values (raw data), extracted from ref_cal_Ktrans_groups
+            ktrans_instances_counted_list = []
             
             for t in range(len(unique_Ktrans_ref_group)):
                 tpl = unique_Ktrans_ref_group[t]
@@ -2756,14 +2599,14 @@ class MainWindow_KV(MainWindow):
         subPlotV.clear()
         
         #Get calculated Ve values
-        unique_ref_Ve_values_list = list() #A list of each reference Ve value
-        all_cal_Ve_values_list = list()
+        unique_ref_Ve_values_list = [] #A list of each reference Ve value
+        all_cal_Ve_values_list = []
         
         for i in range(len(ref_cal_Ve_groups)):
             unique_Ve_ref_group = ref_cal_Ve_groups[i]
-            ref_Ve_per_group_list = list() #The list of reference values (raw data), extracted from ref_cal_Ve_groups
-            cal_Ve_per_group_list = list() #The list of calculated values (raw data), extracted from ref_cal_Ve_groups
-            ve_instances_counted_list = list()
+            ref_Ve_per_group_list = [] #The list of reference values (raw data), extracted from ref_cal_Ve_groups
+            cal_Ve_per_group_list = [] #The list of calculated values (raw data), extracted from ref_cal_Ve_groups
+            ve_instances_counted_list = []
             
             for t in range(len(unique_Ve_ref_group)):
                 tpl = unique_Ve_ref_group[t]
@@ -2847,23 +2690,10 @@ class MainWindow_KV(MainWindow):
 
     def DrawMaps(self):
         # draw the maps of the preview and error
-        #if self.type_of_data_loaded == "image":
-        #    if not isinstance(self.figureImagePreview, Figure):
-        #        self.figureImagePreview = Figure()
-        #self.figureImagePreview = Figure()
-        
-        ##self.figureImagePreview = Figure()
-        ##self.canvasImagePreview = FigureCanvas(self.pageImagePreview, -1, self.figureImagePreview)
-        ##sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ##sizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
-        ##self.pageImagePreview.SetSizer(sizer, deleteOld=True)
-
-        #New 8/29/16
         self.imagePreviewSizer.Show(self.canvasImagePreview, show=True)
         self.imagePreviewSizer.Show(self.tableViewer, show=False)
         self.tableViewer.SetPage("")
         self.pageImagePreview.Layout() #Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
-        #End new 8/29/16
 
         self.PlotPreview([[self.newModel.Ktrans_cal_inRow, self.newModel.Ktrans_error, self.newModel.Ktrans_error_normalized], \
             [self.newModel.Ve_cal_inRow, self.newModel.Ve_error, self.newModel.Ve_error_normalized]], \
@@ -2880,16 +2710,6 @@ class MainWindow_KV(MainWindow):
         Ktrans_table_in_html = QIBA_functions_for_table.putRawDataTableInHtml(self.data_table_K)
         Ve_table_in_html = QIBA_functions_for_table.putRawDataTableInHtml(self.data_table_V)
         
-        #Now defined in SetupRight
-        #self.imagePreviewViewer = wx.html.HtmlWindow(self.pageImagePreview, -1, style=wx.html.HW_SCROLLBAR_AUTO | wx.ALWAYS_SHOW_SB)
-        
-        #Changed: The sizer for the image preview window is now an instance variable.
-        #(original) sizer = wx.BoxSizer(wx.VERTICAL)
-        #(original) sizer.Add(self.imagePreviewViewer, 1, wx.EXPAND)
-        #(original) self.pageImagePreview.SetSizer(sizer, deleteOld=True)
-        #(original) self.pageImagePreview.SetAutoLayout(1)
-        #self.pageImagePreview.SetupScrolling()
-
         self.imagePreviewSizer.Show(self.canvasImagePreview, show=False)
         self.imagePreviewSizer.Show(self.tableViewer, show=True)
         self.figureImagePreview.clf() # Clears the Image Preview window
@@ -2911,10 +2731,6 @@ class MainWindow_KV(MainWindow):
         </html>
         """
         self.tableViewer.SetPage(htmlText)
-        #self.imagePreviewViewer.Bind(wx.EVT_ACTIVATE, self.ActivateTest)
-        #self.buttonSwitch.Bind(wx.EVT_BUTTON, self.OnSwitchViewing)
-        #wx.EVT_ACTIVATE(self.pageImagePreview, self.ActivateTest())
-        
         
     def DrawScatter(self):
         # draw the scatters
@@ -3064,7 +2880,6 @@ class MainWindow_KV(MainWindow):
         sheetRMSD = book.add_sheet('RMSD')
         sheetCCC = book.add_sheet('CCC')
         sheetTDI = book.add_sheet('TDI')
-        #sheetLOA = book.add_sheet('LOA')
         sheetSigmaMetric = book.add_sheet('Sigma Metric')
         sheetFit = book.add_sheet('Model fitting')
         sheetT = book.add_sheet('T-test results')
@@ -3086,7 +2901,6 @@ class MainWindow_KV(MainWindow):
         QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetRMSD, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_rmsd, self.newModel.Ve_rmsd], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetCCC, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_ccc, self.newModel.Ve_ccc], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetTDI, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_tdi, self.newModel.Ve_tdi], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
-        #QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetLOA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_loa, self.newModel.Ve_loa], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_GKM_statistics(sheetSigmaMetric, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.Ktrans_sigma_metric, self.newModel.Ve_sigma_metric], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
 
         QIBA_functions.WriteToExcelSheet_GKM_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_Ktrans, self.newModel.b_lin_Ktrans, self.newModel.r_squared_lin_K, self.newModel.a_log_Ktrans,self.newModel.b_log_Ktrans,self.newModel.a_lin_Ve, self.newModel.b_lin_Ve, self.newModel.r_squared_lin_V, self.newModel.a_log_Ve,self.newModel.b_log_Ve], 1, self.nrOfRow, self.nrOfColumn)
@@ -3240,7 +3054,6 @@ class MainWindow_T1(MainWindow):
         self.rmsdViewer.SetPage(self.newModel.RMSDResultInHTML)
         self.cccViewer.SetPage(self.newModel.CCCResultInHTML)
         self.tdiViewer.SetPage(self.newModel.TDIResultInHTML)
-        #self.loaViewer.SetPage(self.newModel.LOAResultInHTML)
         self.sigmaMetricViewer.SetPage(self.newModel.sigmaMetricResultInHTML)
         self.t_testViewer.SetPage(self.newModel.GetT_TestResultsInHTML())
         self.U_testViewer.SetPage(self.newModel.GetU_TestResultsInHTML())
@@ -3286,10 +3099,6 @@ class MainWindow_T1(MainWindow):
         # Remove ktrans and file extension from source ktrans table file name.
         # Build the default results table file name from this.
         t1_table_file = os.path.basename(self.path_qiba_table_T1)
-        #t1_table_file = t1_table_file.lower()
-        #t1_table_file = self.removeSubstring(t1_table_file, "_t1")
-        #t1_table_file = self.removeSubstring(t1_table_file, "t1")
-        #t1_table_file = self.removeSubstring(t1_table_file, "_t")
         t1_table_file = t1_table_file[0:t1_table_file.rfind(".")]
         
         if save_path is None:
@@ -3320,13 +3129,6 @@ class MainWindow_T1(MainWindow):
                 results_table += str(headers_list[i]) + "\t"
             else:
                 results_table += "Ref T1 = \t" + str(headers_list[i]) + "\t"
-        #for i in range(len(self.newModel.headers_T1)):
-        #    if i == len(self.newModel.headers_T1)-1:
-        #        results_table += str(self.newModel.headers_T1[i]) + "\n"
-        #    elif i > 0:
-        #        results_table += str(self.newModel.headers_T1[i]) + "\t"
-        #    else:
-        #        results_table += "Ref T1 = \t"+ str(self.newModel.headers_T1[i]) + "\t"
 
         T1_data_list = [self.newModel.T1_cal_patch_mean, self.newModel.T1_cal_patch_median, self.newModel.T1_cal_patch_deviation, 
         self.newModel.T1_cal_patch_1stQuartile, self.newModel.T1_cal_patch_3rdQuartile, self.newModel.T1_cal_patch_min,
@@ -3399,10 +3201,7 @@ class MainWindow_T1(MainWindow):
         """
 
         T1_values = R1_values
-        # print("nrOfRows="+str(nrOfRows)+", nrOfColumns="+str(nrOfColumns)+", k_dimension="+str(k_dimension)) #for testing
-        # print("Original R1 map:") #for testing
-        # print(R1_cal[0][0]) #for testing
-
+        
         for i in range(nrOfRows):
             for j in range(nrOfColumns):
                 R1 = R1_values[i][j]
@@ -3411,8 +3210,6 @@ class MainWindow_T1(MainWindow):
                     T1_values[i][j] = T1
                 except ValueError:
                     pass
-        # print("T1 map:") #for testing
-        # print(T1_cal) #for testing
         return T1_values
 
     def SetupStartPage(self):
@@ -3438,7 +3235,6 @@ class MainWindow_T1(MainWindow):
         sizerRef_T1_image.Add(self.canvasRefViewer_T1, 1, wx.EXPAND)
 
         sizerRef_T1.Add(sizerRef_T1_image, 1, wx.EXPAND)
-        # sizerRef_T1.Add(sizerRef_T1_path, 0, wx.EXPAND)
         panelRef_T1.SetSizer(sizerRef_T1)
         
         # the upper part of the page
@@ -3506,7 +3302,6 @@ class MainWindow_T1(MainWindow):
         editMenu.AppendSeparator()
         onVerboseMode = editMenu.AppendCheckItem(wx.ID_ANY, "Include Stat. Descriptions in Reports")
         
-        # self.menubar.Bind(wx.EVT_MENU, self.OnEditImageDimension, OnEditImageDimension)
         self.Bind(wx.EVT_MENU, self.OnLoadRef_T1, OnLoadRef_T1)
         self.Bind(wx.EVT_MENU, self.setAllowableTotalErrorMenu, set_allowable_total_error)
         self.Bind(wx.EVT_MENU, self.setVerboseMode, onVerboseMode)
@@ -3580,7 +3375,6 @@ class MainWindow_T1(MainWindow):
         sizer.Add(self.canvasLOA_description, proportions[1], wx.EXPAND)
         self.pageLOA.SetSizer(sizer)
         self.pageLOA.SetAutoLayout(1)
-        #self.pageLOA.SetupScrolling()
         
     def ClearPage_Histogram(self):
         # clear the histogram page
@@ -3646,7 +3440,6 @@ class MainWindow_T1(MainWindow):
             imageData, nrOfRow, nrOfColumn, fileType = QIBA_functions.ImportRawFile(self.path_ref_T1, self.patchLen)
             if fileType == 'BINARY':
                 self.OnImportBinaryDialog_T1()
-            #elif imageData == False:
             elif fileType == "":
                 self.SetStatusText('Please import a valid image!')
             else:
@@ -3766,7 +3559,6 @@ class MainWindow_T1(MainWindow):
                 subPlot_T1 = self.figureHist_T1.add_subplot(self.newModel.nrOfRows, self.newModel.nrOfColumns, i * self.newModel.nrOfColumns + j + 1)
                 # subPlot_K.clear()
 
-                #processedData_T1 = [n for n in self.newModel.T1_cal[i][j] if n is not numpy.nan] #Remove NaNs. Matplotlib's histogram seems to fail if there are NaNs
                 processedData_T1 = QIBA_functions.DealNaN(self.newModel.T1_cal[i][j])[0] # Original
                 subPlot_T1.hist(processedData_T1, nrOfBins) # normed=True if want the bars to be normalized
                 minPatch_T1 = numpy.min(processedData_T1)
@@ -3845,8 +3637,8 @@ class MainWindow_T1(MainWindow):
         #1. T1 histogram: Extract data from T1 group list
         for i in range(len(ref_cal_T1_groups)):
             unique_T1_ref_group = ref_cal_T1_groups[i]
-            ref_T1_data_list = list() #The list of reference values (raw data), extracted from ref_cal_group_list
-            cal_T1_data_list = list() #The list of calculated values (raw data), extracted from ref_cal_group_list
+            ref_T1_data_list = [] #The list of reference values (raw data), extracted from ref_cal_group_list
+            cal_T1_data_list = [] #The list of calculated values (raw data), extracted from ref_cal_group_list
             t1_instances_counted_list = list()
             for t in range(len(unique_T1_ref_group)):
                 tpl = unique_T1_ref_group[t]
@@ -3862,7 +3654,7 @@ class MainWindow_T1(MainWindow):
                 subPlot_T1.yaxis.set_ticks([])
             else:
                 #Calculate weighted average of cal_T1_data
-                weighted_cal_T1_data_list = list()
+                weighted_cal_T1_data_list = []
                 for m in range(len(cal_T1_data_list)):
                     cal_T1 = cal_T1_data_list[m]
                     weight = t1_instances_counted_list[m]
@@ -3936,9 +3728,6 @@ class MainWindow_T1(MainWindow):
         t1_diffs_list = []
         t1_percent_bias_list = []
 
-        #t_statistic = QIBA_functions.T_Test_Aggregate_Data(t1_calData_nbp, t1_refData_nbp, i_dimension, j_dimension, t1_mask_nbp)
-
-        #print("i_dimension="+str(i_dimension)+", j_dimension="+str(j_dimension)) #for testing
         for i in range(i_dimension):
             for j in range(j_dimension):
                 t1_refData_nbp_10x10 = t1_refData_nbp[i][j] #The 10x10 pixel patch of raw pixel data (no bad pixels)
@@ -3959,7 +3748,6 @@ class MainWindow_T1(MainWindow):
                     mean = numpy.mean([ref_mean, cal_mean])
                     difference = cal_mean - ref_mean
                     bias = ((cal_mean - ref_mean) / ref_mean) * 100.0
-                    #print("i="+str(i)+", j="+str(j)+": mean="+str(mean)+", difference="+str(difference)) #for testing
                     t1_means_list.append(mean)
                     t1_diffs_list.append(difference)
                     t1_percent_bias_list.append(bias)
@@ -4018,7 +3806,6 @@ class MainWindow_T1(MainWindow):
             self.figureLOA_description.text(0.2, 0.5, StatDescriptions.loa_text) #original: 0.2, 0.5
             #self.figureLOA_description.tight_layout()
             self.canvasLOA_description.draw()
-        #print(t1_means_list)
     
     def DrawBlandAltmanPlotFromTable(self):
         ref_cal_T1_groups = self.newModel.ref_cal_T1_groups
@@ -4028,26 +3815,17 @@ class MainWindow_T1(MainWindow):
         all_ref_T1_values_list = []
         all_cal_T1_values_list = []
 
-        #t_statistic = QIBA_functions_for_table.T_Test_Aggregate_Data(ref_cal_T1_groups)
-
         for i in range(len(ref_cal_T1_groups)):
             unique_T1_ref_group = ref_cal_T1_groups[i]
-            #temp_temp = list()
-            #ref_T1_per_group_list = list() #The list of reference values (raw data), extracted from ref_cal_T1_groups
-            #cal_T1_per_group_list = list() #The list of calculated values (raw data), extracted from ref_cal_T1_groups
-            t1_instances_counted_list = list()
+            t1_instances_counted_list = []
             
             for t in range(len(unique_T1_ref_group)):
                 tpl = unique_T1_ref_group[t]
-                #ref_Ktrans_per_group_list.append(tpl[0])
-                #cal_Ktrans_per_group_list.append(tpl[1])
                 t1_instances_counted_list.append(tpl[3])
                 if t == 0:
                     unique_ref_T1_values_list.append(tpl[0])
                 all_ref_T1_values_list.append(tpl[0])
                 all_cal_T1_values_list.append(tpl[1])
-            #all_ref_T1_values_list.append(ref_T1_per_group_list)
-            #all_cal_T1_values_list.append(cal_T1_per_group_list)
         
         #Calculate T1 mean and Ktrans diff
         t1_means_list = []
@@ -4098,8 +3876,6 @@ class MainWindow_T1(MainWindow):
         t1_mean_line = t1_subplot.axhline(self.t1_mean_difference, color="red", linestyle="--")
 
         t_statistic = scipy.stats.t.ppf(0.95, len(t1_diffs_list)-1)
-        #t_statistic = self.newModel.T1_cal_patch_ttest_t
-        #t_statistic = QIBA_functions.T_Test_Aggregate_Data(all_ref_T1_values_list, all_cal_T1_values_list)
         #self.t1_upper_sd_line_value = t1_mean_difference + (1.96*t1_sd_difference)
         #self.t1_lower_sd_line_value = t1_mean_difference - (1.96*t1_sd_difference)
         #self.t1_repeatability_coefficient = 1.96 * t1_sd_difference
@@ -4213,15 +3989,14 @@ class MainWindow_T1(MainWindow):
         subPlotT1.clear()
     
         #Get calculated T1 values
-        unique_ref_T1_values_list = list() #A list of each reference T1 value (i.e. [0.01, 0.02, 0.05, 0.1, 0.2, 0.35])
-        all_cal_T1_values_list = list()
+        unique_ref_T1_values_list = [] #A list of each reference T1 value (i.e. [0.01, 0.02, 0.05, 0.1, 0.2, 0.35])
+        all_cal_T1_values_list = []
         
         for i in range(len(ref_cal_T1_groups)):
             unique_T1_ref_group = ref_cal_T1_groups[i]
-            #temp_temp = list()
-            ref_T1_per_group_list = list() #The list of reference values (raw data), extracted from ref_cal_T1_groups
-            cal_T1_per_group_list = list() #The list of calculated values (raw data), extracted from ref_cal_T1_groups
-            t1_instances_counted_list = list()
+            ref_T1_per_group_list = [] #The list of reference values (raw data), extracted from ref_cal_T1_groups
+            cal_T1_per_group_list = [] #The list of calculated values (raw data), extracted from ref_cal_T1_groups
+            t1_instances_counted_list = []
             
             for t in range(len(unique_T1_ref_group)):
                 tpl = unique_T1_ref_group[t]
@@ -4250,10 +4025,6 @@ class MainWindow_T1(MainWindow):
         subPlotT1.xaxis.set_minor_formatter(ticker.IndexFormatter(unique_ref_T1_values_list))
         for i in range(len(ref_cal_T1_groups)):
             subPlotT1.axvline(x = i + 0.5, color = 'green', linestyle = 'dashed')
-
-        #self.figureBoxPlot.tight_layout()
-        #self.canvasBoxPlot.draw()
-        #self.rightPanel.Layout()
         
         # setup the toolbar
         self.toolbar_box = NavigationToolbar(self.canvasBoxPlot)
@@ -4298,13 +4069,6 @@ class MainWindow_T1(MainWindow):
     def DrawMaps(self):
         # draw the maps of the preview and error
 
-        #Original
-        #self.figureImagePreview = Figure()
-        #self.canvasImagePreview = FigureCanvas(self.pageImagePreview, -1, self.figureImagePreview)
-        #sizer = wx.BoxSizer(wx.HORIZONTAL)
-        #sizer.Add(self.canvasImagePreview, 1, wx.EXPAND)
-        #self.pageImagePreview.SetSizer(sizer, deleteOld=True)
-
         self.imagePreviewSizer.Show(self.canvasImagePreview, show=True)
         self.imagePreviewSizer.Show(self.tableViewer, show=False)
         self.tableViewer.SetPage("")
@@ -4323,16 +4087,6 @@ class MainWindow_T1(MainWindow):
         #Make HTML versions of the Ktrans and Ve table data
         T1_table_in_html = QIBA_functions_for_table.putRawDataTableInHtml(self.data_table_T1)
         
-        #self.imagePreviewViewer = wx.html.HtmlWindow(self.pageImagePreview, -1, style=wx.html.HW_SCROLLBAR_AUTO | wx.ALWAYS_SHOW_SB)
-        
-        #sizer = wx.BoxSizer(wx.VERTICAL)
-        #sizer.Add(self.imagePreviewViewer, 1, wx.EXPAND)
-        #self.pageImagePreview.SetSizer(sizer, deleteOld=True)
-        #self.pageImagePreview.SetAutoLayout(1)
-        ##self.pageImagePreview.SetupScrolling()
-        #self.pageImagePreview.Layout() #Resizes the tab's contents and ensures that its contents are displayed correctly. Required since tab is changed after it is initally drawn.
-        ##self.pageImagePreview.SetupScrolling()
-
         self.imagePreviewSizer.Show(self.canvasImagePreview, show=False)
         self.imagePreviewSizer.Show(self.tableViewer, show=True)
         self.figureImagePreview.clf()  # Clears the Image Preview window
@@ -4352,9 +4106,6 @@ class MainWindow_T1(MainWindow):
         </html>
         """
         self.tableViewer.SetPage(htmlText)
-        #self.imagePreviewViewer.Bind(wx.EVT_ACTIVATE, self.ActivateTest)
-        #self.buttonSwitch.Bind(wx.EVT_BUTTON, self.OnSwitchViewing)
-        #wx.EVT_ACTIVATE(self.pageImagePreview, self.ActivateTest())
         
     def DrawScatter(self):
         # draw the scatters
@@ -4468,7 +4219,6 @@ class MainWindow_T1(MainWindow):
         sheetRMSD = book.add_sheet('RMSD')
         sheetCCC = book.add_sheet('CCC')
         sheetTDI = book.add_sheet('TDI')
-        #sheetLOA = book.add_sheet('LOA')
         sheetSigmaMetric = book.add_sheet('Sigma Metric')
         sheetFit = book.add_sheet('Model fitting')
         sheetT = book.add_sheet('T-test results')
@@ -4490,7 +4240,6 @@ class MainWindow_T1(MainWindow):
         QIBA_functions.WriteToExcelSheet_T1_statistics(sheetRMSD, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_rmsd], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_T1_statistics(sheetCCC, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_ccc], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_T1_statistics(sheetTDI, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_tdi], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
-        #QIBA_functions.WriteToExcelSheet_T1_statistics(sheetLOA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_loa], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
         QIBA_functions.WriteToExcelSheet_T1_statistics(sheetSigmaMetric, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_sigma_metric], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn)
 
         QIBA_functions.WriteToExcelSheet_T1_fit(sheetFit, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.a_lin_T1, self.newModel.b_lin_T1, self.newModel.r_squared_lin_T1, self.newModel.a_log_T1,self.newModel.b_log_T1], 1, self.nrOfRow, self.nrOfColumn)
@@ -4499,7 +4248,6 @@ class MainWindow_T1(MainWindow):
 
         QIBA_functions.WriteToExcelSheet_T1_test(sheetChiq, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_chisquare_c, self.newModel.T1_cal_patch_chisquare_p], int(self.nrOfColumn/2), self.nrOfRow, self.nrOfColumn, 'Chiq')
 
-        # QIBA_functions.WriteToExcelSheet_T1_A(sheetA, self.newModel.headersHorizontal, self.newModel.headersVertical, [self.newModel.T1_cal_patch_ANOVA_f,self.newModel.T1_cal_patch_ANOVA_p], 1, self.nrOfRow, self.nrOfColumn)
         try:
             book.save(os.path.join(saveDir, 'results.xls'))
         except:
@@ -4666,7 +4414,6 @@ def ProcessWithoutGUI(mode, calFiles, refFiles, desDir, allowable_total_error_pa
     
     allowable_total_error_params : [allowable_total_error_set, allowable_total_error_eqn, allowable_total_error]
     '''
-    #self.type_of_data_loaded = ""
     patchLen = 10
     
     desDir = desDir[0]
@@ -4829,10 +4576,6 @@ def checkCmdLineArguments(args):
         error_message += "QIBA Evaluate Tool error: If reference image file(s) is/are provided, then calculated image file(s) must also be provided\n"
         valid_arguments = False
     
-    #elif len(args.ktransfile) != len(args.vefile) and len(args.ktransfile) != len(args.destination):
-    #    error_message += "QIBA Evaluate Tool error: The number of ktrans files, number of ve files, and number of destination files must all be the same\n"
-    #    valid_arguments = False
-    
     # Check allowable total error.
     # Allowable total error must be numeric.
     try:
@@ -4880,14 +4623,7 @@ def main(argv):
 
     # show the splash window
     DEBUG = False
-    if DEBUG:
-        pass
-    else:
-        QIBASplashWindow = MySplashScreen()
-        #QIBASplashWindow.Show()
-        #time.sleep(2)
-        #QIBASplashWindow.Hide()
-
+    
     # deal with command line
     calFiles = []
     refFiles = []
@@ -4895,7 +4631,8 @@ def main(argv):
     
     # New command-line argument handler
     if len(argv) == 0: # No command-line arguments provided. Run from GUI
-        pass
+        if not DEBUG:
+            QIBASplashWindow = MySplashScreen() # Display the splash screen. After the splash screen, the GKM/T1 selection window will appear.
         #QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['GKM', 'Flip Angle T1'])
         #if QIBASelectionDialog.ShowModal() == wx.ID_OK:
         #    if QIBASelectionDialog.GetSelections() == 'GKM':
@@ -4962,11 +4699,9 @@ def main(argv):
             if mode == "GKM":
                 calFiles = calFiles[0]+","+calFiles[1] # Convert the list of calFiles into a comma-separated string -- the program expects a comma-separated string
                 refFiles = refFiles[0]+","+refFiles[1] # Convert the list of refFiles into a comma-separated string -- the program expects a comma-separated string
-                #checkIfFilesExist([calFiles[0], calFiles[1], refFiles[0], refFiles[1]])
             elif mode == "T1":
                 calFiles = calFiles[0] # Convert the one item list to a string
                 refFiles = refFiles[0] # Convert the one item list to a string
-                #checkIfFilesExist([calFiles, refFiles])
             dataType = "image"
         
         if len(sys.argv) > 1 and valid_arguments:
@@ -4991,80 +4726,13 @@ def main(argv):
                         processT1TablesWithoutGUI(t1Files[i], desDir[i], allowable_total_error_params, verbose_mode)
                 exit(0)
 
-            except Exception as e: #For debugging. Originally just "except".
-                print(e) #For debugging
-                ex_type, ex, tb = sys.exc_info() #For debugging
-                traceback.print_tb(tb) #For debugging
-            #except:
-            #    print("An error occurred during processing")
-
-            
-            
-        #else: #GUI modepass
-            # initialize the main window
-            #try:
-            #    if mode == "GKM":
-            #        # window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
-            #        window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
-            #        window.Show()
-            #        window.Maximize(True)
-            #    elif mode == "T1":
-            #        window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir)
-            #        window.Show()
-            #        window.Maximize(True)
-            #except:
-            #    pass
-    """        
-    try:
-        opts, args = getopt.getopt(argv, "hb:m:c:r:d:", ["batch", "mode=", "cfile=", "rfile=", "destination="])
-        if not opts: # open GUI
-            QIBASelectionDialog = MySelectionDialog(None, 'Please select which branch to enter:', 'Branch selection...', choices=['GKM', 'Flip Angle T1'])
-            if QIBASelectionDialog.ShowModal() == wx.ID_OK:
-                if QIBASelectionDialog.GetSelections() == 'GKM':
-                    window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
-                    window.Show()
-                    window.Maximize(True)
-                elif QIBASelectionDialog.GetSelections() == 'Flip Angle T1':
-                    window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir)
-                    window.Show()
-                    window.Maximize(True)
-        else:
-            for opt, arg in opts:
-                if opt == '-m':
-                    mode = arg
-                elif opt == "-c":
-                    calFiles = arg
-                elif opt == "-r":
-                    refFiles = arg
-                elif opt == "-d":
-                    desDir = arg
-                elif opt == '-b':
-                    ISCOMMAND = True
-            if ISCOMMAND:
-                try:
-                    ProcessWithoutGUI(mode, calFiles, refFiles, desDir)
-                    return
-                except:
-                    print "Error occurs. Evaluation terminated."
-                    return
-
-            # initialize the main window
-            try:
-                if mode == "GKM":
-                    # window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
-                    window = MainWindow_KV("QIBA evaluate tool (GKM)", calFiles, refFiles, desDir)
-                    window.Show()
-                    window.Maximize(True)
-                elif mode == "T1":
-                    window = MainWindow_T1("QIBA evaluate tool (Flip Angle T1)", calFiles, refFiles, desDir)
-                    window.Show()
-                    window.Maximize(True)
+            #except Exception as e: #For debugging. Originally just "except".
+            #    print(e) #For debugging
+            #    ex_type, ex, tb = sys.exc_info() #For debugging
+            #    traceback.print_tb(tb) #For debugging
             except:
-                pass
-    except getopt.GetoptError:
-        pass
-    """
-    
+                print("An error occurred during processing")
+
     # main loop
     Application.MainLoop()
 
