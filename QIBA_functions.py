@@ -1268,8 +1268,6 @@ def CCC(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
     
     ### nbp is the abbreviation for no_bad_pixels
     
-    temp = [[]for i in range(nrR) ] #Original
-   
     ### Calculate variance of each 10x10 block
     ### Variance = (sum_csd - (total_combinations * avg_mean**2)) / (total_combinations - 1)
     ### sum_csd is the sum of elements in the combined standard deviation array
@@ -1344,34 +1342,7 @@ def CCC(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
     covariance = correlation * numpy.sqrt(variance_calData) * numpy.sqrt(variance_refData)
     ccc_all_regions = (2*covariance) / (variance_calData + variance_refData + (avg_mean_refData-avg_mean_calData)**2)
     
-    ### Calculates CCC for each 10x10 patch for masked pixels only
-    for i in range(nrR):
-        for j in range(nrC):
-            refData_nbp_10x10 = refData_nbp[i][j]
-            calData_nbp_10x10 = calData_nbp[i][j]
-            maskData_nbp_10x10 = mask_nbp[i][j]
-
-            # Apply the mask to refData_nbp_10x10: Filter the list
-            refData_nbp_10x10_masked = applyMask(refData_nbp_10x10, maskData_nbp_10x10)
-            
-            # Apply the mask to calData_nbp_10x10: Filter the list
-            calData_nbp_10x10_masked = applyMask(calData_nbp_10x10, maskData_nbp_10x10)
-            
-            number_of_pixels_in_patch = len(calData_nbp_10x10_masked)
-            
-            if number_of_pixels_in_patch > 0:
-                sx_q = numpy.var(calData_nbp_10x10_masked)
-                sy_q = numpy.var(refData_nbp_10x10_masked)
-                s_xy = numpy.cov(calData_nbp_10x10_masked, refData_nbp_10x10_masked)[0][1]
-                x_mean = numpy.mean(calData_nbp_10x10_masked)
-                y_mean = numpy.mean(refData_nbp_10x10_masked)
-                ccc = (2*s_xy) /(sx_q + sy_q + (y_mean - x_mean)**2)
-                temp[i].append(ccc)
-
-            else:
-                temp[i].append("")
-                
-    return temp, ccc_all_regions
+    return ccc_all_regions
 
 def TDI(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
     """Calculates Total Deviation Index (Non-parametric method"""

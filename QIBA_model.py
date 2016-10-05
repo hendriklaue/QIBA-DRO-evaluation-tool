@@ -618,20 +618,12 @@ class Model_KV():
 
         # Ktrans
         KtransCCCTable = \
-                        '<h2>The concordance correlation coefficients of each patch in calculated and reference Ktrans:</h2>'
-        
-        KtransCCCTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['ccc'], [self.Ktrans_ccc])
-
-        KtransCCCTable += \
                         '<h4>The concordance correlation coefficient of all patches combined in calculated and reference Ktrans='+str(self.Ktrans_ccc_all_regions)+'</h4>'
+        
         # Ve
-        VeCCCtTable = \
-                        '<h2>The concordance correlation coefficients of each patch in calculated and reference Ve:</h2>'
-
-        VeCCCtTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['ccc'], [self.Ve_ccc])
-
-        VeCCCtTable += \
+        VeCCCTable = \
                         '<h4>The concordance correlation coefficient of all patches combined in calculated and reference Ve='+str(self.Ve_ccc_all_regions)+'</h4>'
+        VeCCCTable += '(CCC cannot be calculated for an individual patch.)'
 
         if self.verbose_mode:
             description_text = StatDescriptions.ccc_text
@@ -639,7 +631,7 @@ class Model_KV():
             description_text = ""
 
         # put the text into html structure
-        self.CCCResultInHTML = self.packInHtml(KtransCCCTable + '<br>' + VeCCCtTable + '<br>' + description_text)
+        self.CCCResultInHTML = self.packInHtml(KtransCCCTable + '<br>' + VeCCCTable + '<br>' + description_text)
 
     def htmlTDIResults(self):
         # write the calcuated TDI results into HTML form
@@ -918,8 +910,8 @@ class Model_KV():
 
     def CalculateCCCForModel(self):
         # calculate the concordance correlation coefficients between the calculated parameters and the reference parameters
-        self.Ktrans_ccc, self.Ktrans_ccc_all_regions = QIBA_functions.CCC(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns, self.Ktrans_cal_no_bad_pixels, self.Ktrans_ref_no_bad_pixels, self.mask, self.Ktrans_mask_no_bad_pixels)
-        self.Ve_ccc, self.Ve_ccc_all_regions = QIBA_functions.CCC(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns, self.Ve_cal_no_bad_pixels, self.Ve_ref_no_bad_pixels, self.mask, self.Ve_mask_no_bad_pixels)
+        self.Ktrans_ccc_all_regions = QIBA_functions.CCC(self.Ktrans_cal, self.Ktrans_ref, self.nrOfRows, self.nrOfColumns, self.Ktrans_cal_no_bad_pixels, self.Ktrans_ref_no_bad_pixels, self.mask, self.Ktrans_mask_no_bad_pixels)
+        self.Ve_ccc_all_regions = QIBA_functions.CCC(self.Ve_cal, self.Ve_ref, self.nrOfRows, self.nrOfColumns, self.Ve_cal_no_bad_pixels, self.Ve_ref_no_bad_pixels, self.mask, self.Ve_mask_no_bad_pixels)
 
     def CalculateTDIForModel(self):
         # calculate the total deviation index between the calculated parameters and the reference parameters
@@ -1421,12 +1413,8 @@ class Model_T1():
 
         # T1
         T1CCCTable = \
-                        '<h2>The concordance correlation coefficients of each patch in calculated and reference T1:</h2>'
-
-        T1CCCTable += QIBA_functions.EditTable('', self.headersHorizontal, self.headersVertical, ['ccc'], [self.T1_ccc])
-
-        T1CCCTable += \
                         '<h4>The concordance correlation coefficient of each patch combined in calculated and reference T1='+str(self.T1_ccc_all_regions)+'</h4>'
+        T1CCCTable += '(CCC cannot be calculated for an individual patch.)'
 
         if self.verbose_mode:
             description_text = StatDescriptions.ccc_text
@@ -1625,7 +1613,7 @@ class Model_T1():
 
     def CalculateCCCForModel(self):
         # calculate the concordance correlation coefficients between the calculated parameters and the reference parameters
-        self.T1_ccc, self.T1_ccc_all_regions = QIBA_functions.CCC(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns, self.T1_cal_no_bad_pixels, self.T1_ref_no_bad_pixels, self.mask, self.T1_mask_no_bad_pixels)
+        self.T1_ccc_all_regions = QIBA_functions.CCC(self.T1_cal, self.T1_ref, self.nrOfRows, self.nrOfColumns, self.T1_cal_no_bad_pixels, self.T1_ref_no_bad_pixels, self.mask, self.T1_mask_no_bad_pixels)
 
     def CalculateTDIForModel(self):
         # calculate the total deviation index between the calculated parameters and the reference parameters
