@@ -5,6 +5,9 @@ import math
 import nibabel
 import numpy
 import os.path
+#import Image
+#import TiffImagePlugin
+#import ImageFile
 from PIL import Image
 from PIL import TiffImagePlugin
 from PIL import ImageFile
@@ -292,6 +295,12 @@ def FittingLinearModel(calculated, reference, dimensionIndex):
     cal_temp = list(calculated) # make a temporary different list equal to the original "calculated" list
 
     for i in range(dimensionIndex):
+        
+        #print("i="+str(i)) #for debugging
+        #print("Before removing NaNs:") #for debugging
+        #print(ref_temp[i]) #for debugging
+        #print(cal_temp[i]) #for debugging
+
         # Create new lists that remove NaN values.
         if isinstance(reference, tuple):
             tuple_as_list = list(ref_temp[i])
@@ -311,7 +320,11 @@ def FittingLinearModel(calculated, reference, dimensionIndex):
             list_no_nans = [n for n in cal_temp[i] if n is not numpy.nan]
             cal_temp[i] = list_no_nans
         
-        #original
+        #print("After removing NaNs:") #for debugging
+        #print(ref_temp[i]) #for debugging
+        #print(cal_temp[i]) #for debugging
+        
+        #original - keep!
         if len(ref_temp[i]) > 0 and len(cal_temp[i]) > 0:
             slope, intercept, r, p, stderr = stats.linregress(ref_temp[i], cal_temp[i])
             temp_slope.append(slope)
@@ -336,7 +349,15 @@ def FittingLogarithmicModel(calculated, reference, dimensionIndex):
     ref_temp = list(reference)  # make a temporary different list equal to the original "reference" list
     cal_temp = list(calculated)  # make a temporary different list equal to the original "calculated" list
 
+    #print(reference)
+    #print(calculated)
+
     for i in range(dimensionIndex):
+        #print("i="+str(i)) #for debugging
+        #print("Before removing NaNs:") #for debugging
+        #print(ref_temp[i]) #for debugging
+        #print(cal_temp[i]) #for debugging
+
         # Create new lists that remove NaN values.
         if isinstance(reference[i], tuple):
             tuple_as_list = list(ref_temp[i])
@@ -356,7 +377,11 @@ def FittingLogarithmicModel(calculated, reference, dimensionIndex):
             list_no_nans = [n for n in cal_temp[i] if n is not numpy.nan]
             cal_temp[i] = list_no_nans
 
-        #original
+        #print("After removing NaNs:") #for debugging
+        #print(ref_temp[i]) #for debugging
+        #print(cal_temp[i]) #for debugging
+
+        #original - keep!
         postCal = numpy.array(cal_temp[i])
         postCal = DealNaN(postCal)[0]
         postRef = numpy.array(ref_temp[i])
@@ -382,6 +407,10 @@ def CalCorrMatrix(calculatedPatchValue, referencePatchValue):
 
     ref_temp = list(referencePatchValue)  # make a temporary different list equal to the original "reference" list
     cal_temp = list(calculatedPatchValue)  # make a temporary different list equal to the original "calculated" list
+
+    #print("Before removing NaNs:") # for debugging
+    #print(str(calculatedPatchValue)) # for debugging
+    #print(str(referencePatchValue)) # for debugging
     
     #Create a new tuple that removes NaN values
     if isinstance(referencePatchValue, tuple):
@@ -390,6 +419,7 @@ def CalCorrMatrix(calculatedPatchValue, referencePatchValue):
         ref_temp = tuple(tuple_as_list_no_nans)
     elif isinstance(referencePatchValue, list):
         list_no_nans = [n for n in ref_temp if n is not numpy.nan]
+        #ref_temp = tuple(list_no_nans)
         ref_temp = list(list_no_nans)
         
     if isinstance(calculatedPatchValue, tuple):
@@ -398,9 +428,15 @@ def CalCorrMatrix(calculatedPatchValue, referencePatchValue):
         cal_temp = tuple(tuple_as_list_no_nans)
     elif isinstance(calculatedPatchValue, list):
         list_no_nans = [n for n in cal_temp if n is not numpy.nan]
+        #cal_temp = tuple(list_no_nans)
         cal_temp = list(list_no_nans)
-        
-    #original
+    
+    #print("After removing NaNs:") # for debugging
+    #print(str(cal_temp)) # for debugging
+    #print(str(ref_temp)) # for debugging
+    
+    #original - keep!
+    #return numpy.corrcoef(calculatedPatchValue, referencePatchValue)
     if len(cal_temp) > 1 and len(ref_temp) > 1:
         return numpy.corrcoef(cal_temp, ref_temp)
     return [["",""],["",""]]
@@ -411,6 +447,10 @@ def CalCovMatrix(calculatedPatchValue, referencePatchValue):
     ref_temp = list(referencePatchValue)  # make a temporary different list equal to the original "reference" list
     cal_temp = list(calculatedPatchValue)  # make a temporary different list equal to the original "calculated" list
 
+    #print("Before removing NaNs:") # for debugging
+    #print(str(calculatedPatchValue)) # for debugging
+    #print(str(referencePatchValue)) # for debugging
+
     # Create a new tuple that removes NaN values
     if isinstance(referencePatchValue, tuple):
         tuple_as_list = list(referencePatchValue)
@@ -418,6 +458,7 @@ def CalCovMatrix(calculatedPatchValue, referencePatchValue):
         ref_temp = tuple(tuple_as_list_no_nans)
     elif isinstance(referencePatchValue, list):
         list_no_nans = [n for n in ref_temp if n is not numpy.nan]
+        # ref_temp = tuple(list_no_nans)
         ref_temp = list(list_no_nans)
 
     if isinstance(calculatedPatchValue, tuple):
@@ -426,9 +467,15 @@ def CalCovMatrix(calculatedPatchValue, referencePatchValue):
         cal_temp = tuple(tuple_as_list_no_nans)
     elif isinstance(calculatedPatchValue, list):
         list_no_nans = [n for n in cal_temp if n is not numpy.nan]
+        # cal_temp = tuple(list_no_nans)
         cal_temp = list(list_no_nans)
 
-    # original
+    #print("After removing NaNs:") # for debugging
+    #print(str(cal_temp)) # for debugging
+    #print(str(ref_temp)) # for debugging
+
+    # original - keep!
+    #return  numpy.cov(calculatedPatchValue, referencePatchValue)
     if len(cal_temp) > 1 and len(ref_temp) > 1:
         return numpy.cov(cal_temp, ref_temp)
     return [["",""],["",""]]
@@ -444,6 +491,7 @@ def CalculateMean(inPatch, nrOfRows, nrOfColumns, mask):
 
             if len(inPatch_masked) > 0:
                 temp[i].append(numpy.mean(DealNaN(inPatch_masked)[0]))
+                #temp[i].append(numpy.mean(DealNaN(inPatch[i][j])[0]))
             else:
                 temp[i].append("")
     return temp
@@ -482,6 +530,8 @@ def CalculateAggregateMeanStdDev(ref_value_list, cal_value_list, nrOfRows, nrOfC
             # Aggregate mean
             if len(cal_value_list_masked) > 0:
                 temp[i].append(numpy.mean(DealNaN(cal_value_list_masked)[0]))
+            #else:
+            #    temp[i].append("")
 
     for sublist in temp:
         for mean_value in sublist:
@@ -573,6 +623,9 @@ def T_Test_OneSample(dataToBeTested, expectedMean, nrOfRows, nrOfColumns, mask):
                 if patch_masked[k] == 0.0:
                     number_of_0_values = number_of_0_values + 1
             if number_of_0_values < 100:
+                #print("T-Test: temp_t[i].append(stats.ttest_1samp(DealNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[0])") #for testing
+                #temp_t[i].append(stats.ttest_1samp(DealNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[0])
+
                 if len(patch_masked) > 0:
                     temp_t[i].append(stats.ttest_1samp(DealNaN(patch_masked)[0], expectedMean_masked[j])[0])
                     temp_p[i].append(stats.ttest_1samp(DealNaN(patch_masked)[0], expectedMean_masked[j])[1])
@@ -582,14 +635,19 @@ def T_Test_OneSample(dataToBeTested, expectedMean, nrOfRows, nrOfColumns, mask):
                     temp_p[i].append("")
 
                 # The "correct" code that doesn't apply the mask
+                # print("DealNaN(dataToBeTested[i][j])[0]:"+str(DealNaN(dataToBeTested[i][j])[0])) # for debugging
+                # print("expectedMean[i][j]:"+str(expectedMean[i][j])) # for debugging
                 # temp_t[i].append(stats.ttest_1samp(DealNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[0])
                 #temp_p[i].append(stats.ttest_1samp(DealNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[1])
                 # End "correct" code
 
+                #print("T-Test: temp_p[i].append(stats.ttest_1samp(DealNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[1])") #for testing
                 #temp_p[i].append(stats.ttest_1samp(DealNaN(dataToBeTested[i][j])[0], expectedMean[i][j])[1])
 
             else:
+                #print("T-Test: temp_t[i].append(999)")
                 temp_t[i].append(999)
+                #print("T-Test: temp_p[i].append(999)")
                 temp_p[i].append(999)
     return temp_t, temp_p
  
@@ -623,6 +681,8 @@ def T_Test_Aggregate_Data(calData, refData, nrOfRows, nrOfColumns, mask):
                 calData_mean_list.append(calData_mean)
                 refData_mean_list.append(refData_mean)
 
+    #flat_refData_mean_list = [n for sublist in refData_mean_list for n in sublist]
+    #flat_calData_mean_list = [n for sublist in calData_mean_list for n in sublist]
     expected_mean = numpy.mean(refData_mean_list)
 
     t_statistic = stats.ttest_1samp(calData_mean_list, expected_mean)[0]
@@ -686,15 +746,30 @@ def ANOVA_OneWay(inPatch, dimensionIndex1, dimensionIndex2, mask):
     temp_f = []
     temp_p = []
 
+    #print("inPatch dimensions:") #for debugging
+    #print(str(len(inPatch[0]))+"x"+str(len(inPatch[0][0])))# for debugging
+    #print(inPatch[0]) #for debuggig
+    #print("mask dimensions:") #for debugging
+    #print(str(len(mask[0])) + "x" + str(len(mask[0][0])))  # for debugging
+    #print(mask[0]) #for debugging
+    #print("dimensionIndex1="+str(dimensionIndex1))
     for i in range(dimensionIndex1):
+        # print("len(inPatch[" + str(i) + "])=" + str(len(inPatch[i]))) #for debugging
+        # print("i="+str(i)) #for debugging
         temp = []
         for j in range(len(inPatch[i])):
+            #print("j="+str(j)) #for debugging
             element_10x10 = inPatch[i][j]
             mask_10x10 = mask[i][j]
             element_dealnan = DealNaN(element_10x10)[0]
             element_dealnan_masked = applyMask(element_dealnan, mask_10x10)
+            #print("element_dealnan_masked:")
+            #print(element_dealnan_masked)
             temp.append(element_dealnan_masked)
-            
+            #print("temp before empty lists removed:")
+            #print(temp)
+
+        #if len(element_dealnan_masked) > 0:
         if len(temp) > 0:
             temp = [n for n in temp if len(n) > 0]
             temp_f.append(stats.f_oneway(*temp)[0])
@@ -1165,6 +1240,16 @@ def RMSD(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
     i_dimension = len(calData_nbp)
     j_dimension = len(calData_nbp[0])
     
+    #Begin for testing (3/17/16)#
+    #print("calData_nbp:")
+    #print("------------")
+    #for i in range(i_dimension):
+    #    for j in range(j_dimension):
+    #        print("i="+str(i)+",j="+str(j)+", length="+str(len(calData_nbp[i][j])))
+    #        print(calData_nbp[i][j])
+    #print("i_dimension="+str(i_dimension)+", j_dimension="+str(j_dimension))
+    #End for testing#
+    
     for i in range(i_dimension):
         for j in range(j_dimension):
             calData_nbp_10x10 = calData_nbp[i][j] #The 10x10 pixel patch of raw pixel data (no bad pixels)
@@ -1177,11 +1262,42 @@ def RMSD(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
             # Apply the mask to calData_nbp_10x10: Filter the list
             calData_nbp_10x10_masked = applyMask(calData_nbp_10x10, maskData_nbp_10x10)
             
+            #print("[i][j]:["+str(i)+"]["+str(j)+"]") #debugging
+            #print(refData_nbp_10x10_masked)
+            #print(calData_nbp_10x10_masked)
+            
+            #print(refData_nbp[i][j])
+            #Remove nans from the calculated data. Nans cause the calculations to fail -- they return nan.
+            ##calData_10x10_temp = []
+            ##refData_10x10_temp = []
+            ##for k in range(0, len(calData_10x10)):
+            ##    if not math.isnan(calData_10x10[k]):
+            ##        calData_10x10_temp.append(calData_10x10[k])
+            ##        refData_10x10_temp.append(refData_10x10[k])
+            ##calData_10x10 = list(calData_10x10_temp)
+            ##refData_10x10 = list(refData_10x10_temp)
+            #calData_10x10 = [v for v in calData_10x10 if not math.isnan(v)]
+            
+            # TEMPORARY TEST - This produces an RMSD value that is very close to the one calculated in R
+            #temp_rmsd_list = []
+            #for k in range(0, len(calData_10x10_temp)):
+            #    difference = calData_10x10_temp[k] - refData_10x10_temp[k]
+            #    difference_squared = difference**2
+            #    temp_rmsd_list.append(difference_squared)
+            #temp_sum = sum(temp_rmsd_list)
+            #temp_msd = temp_sum / len(temp_rmsd_list)
+            #temp_rmsd = numpy.sqrt(temp_msd)
+            #print("temp_rmsd="+str(temp_rmsd))
+            # END TEMPORARY TEST
+            
             ref_pixels_counted_10x10 = len(refData_nbp_10x10_masked)
             cal_pixels_counted_10x10 = len(calData_nbp_10x10_masked)
+            #print("ref_pixels_counted:"+str(ref_pixels_counted_10x10))
+            #print("cal_pixels_counted:"+str(cal_pixels_counted_10x10))
             ref_total_pixels_counted += ref_pixels_counted_10x10
             cal_total_pixels_counted += cal_pixels_counted_10x10
             
+            #print(calData_10x10)
             #Reference (nominal) data
             if cal_pixels_counted_10x10 > 0:
                 
@@ -1190,6 +1306,7 @@ def RMSD(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
                 stddev_refData = numpy.std(refData_nbp_10x10_masked)
                 stddev_refData_list.append(stddev_refData) #Standard deviation of reference data for each 10x10 patch
                 csd_refData = (ref_pixels_counted_10x10 * mean_refData**2) #This formula is correct. The mean_bias of the reference data is 0, so (ref_pixels_counted-1)*mean_bias**2 = 0)
+                #csd_refData = ((ref_pixels_counted_10x10-1) * stddev_refData**2) + (ref_pixels_counted_10x10 * mean_refData**2)
                 csd_refData_list.append(csd_refData)
                 
                 #Calculated (software) data
@@ -1199,6 +1316,7 @@ def RMSD(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
                 stddev_calData_list.append(stddev_calData) #Standard deviation of calculated data for each 10x10 patch
                 mean_bias_cal = (mean_calData - mean_refData) / mean_refData
                 csd_calData = ((cal_pixels_counted_10x10-1) * mean_bias_cal**2) + (cal_pixels_counted_10x10 * mean_calData**2)
+                #csd_calData = ((cal_pixels_counted_10x10-1) * stddev_calData**2) + (cal_pixels_counted_10x10 * mean_calData**2)
                 csd_calData_list.append(csd_calData)
     sum_csd_calData = numpy.sum(csd_calData_list) # Will need to disable this line
     avg_mean_calData = numpy.mean(mean_calData_list)
@@ -1208,20 +1326,30 @@ def RMSD(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
     sd_calData = numpy.std(mean_calData_list)
 
     mean_bias_cal = (avg_mean_calData - avg_mean_refData) / avg_mean_refData
+    #csd_refData = (ref_total_pixels_counted * avg_mean_refData** 2)  # This formula is correct. The mean bias of the reference data is 0, so (ref_instances_counted-1)*mean_bias**2 = 0
+    #csd_calData = ((cal_total_pixels_counted - 1) * mean_bias_cal ** 2) + (cal_total_pixels_counted * avg_mean_calData ** 2)
     csd_refData = ((ref_total_pixels_counted - 1) * sd_refData ** 2) + (ref_total_pixels_counted * avg_mean_refData ** 2)
     csd_calData = ((cal_total_pixels_counted - 1) * sd_calData ** 2) + (cal_total_pixels_counted * avg_mean_calData ** 2)
 
     #To do: Don't do these calculations if total pixels counted <= 1
+    variance_calData = (sum_csd_calData - (cal_total_pixels_counted * avg_mean_calData**2)) / (cal_total_pixels_counted - 1) # Will need to disable this line
     variance_calData = (csd_calData - (cal_total_pixels_counted * avg_mean_calData ** 2)) / (cal_total_pixels_counted - 1)
     sum_csd_refData = numpy.sum(csd_refData_list) # Will need to disable this line
 
+    variance_refData = (sum_csd_refData - (ref_total_pixels_counted * avg_mean_refData**2)) / (ref_total_pixels_counted - 1) # Will need to disable this line
     variance_refData = (csd_refData - (ref_total_pixels_counted * avg_mean_refData**2)) / (ref_total_pixels_counted - 1)
+    #print("mean_refData_list:") #debugging
+    #print(mean_refData_list) #debugging
+    #print("mean_calData_list:") #debugging
+    #print(mean_calData_list)
     correlation = numpy.corrcoef(mean_refData_list, mean_calData_list, rowvar=1)[1][0]
     covariance = correlation * numpy.sqrt(variance_calData) * numpy.sqrt(variance_refData)
     
     msd_all_regions = (avg_mean_calData-avg_mean_refData)**2 + variance_calData + variance_refData - (2*covariance)
     rmsd_all_regions = numpy.sqrt(msd_all_regions)
     
+    
+    ### New 7/8/16: Replaces 3/21/16 section below
     ### Calcuates RMSD for each 10x10 patch for masked pixels only
     temp = [[] for i in range(nrR)]
     for i in range(nrR):
@@ -1238,6 +1366,21 @@ def RMSD(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
             
             number_of_pixels_in_patch = len(calData_nbp_10x10_masked)
             if number_of_pixels_in_patch > 0:
+                # 7/28/16: Variance and covariance formulas changed. They are now the ones used above.
+                # *** This won't work! Every value in each 10x10 patch is the same, so the correlation is 0 for each patch! ***
+                # cal_mean_masked = numpy.mean(calData_nbp_10x10_masked)
+                # ref_mean_masked = numpy.mean(refData_nbp_10x10_masked)
+                # mean_bias = (cal_mean_masked - ref_mean_masked) / ref_mean_masked
+                # csd_refData = (len(refData_nbp_10x10_masked) * ref_mean_masked**2)
+                # csd_calData = ((len(calData_nbp_10x10_masked)-1) * mean_bias**2) + (len(calData_nbp_10x10_masked) * cal_mean_masked)
+                # sx_q = (numpy.sum(csd_calData) - (len(calData_nbp_10x10_masked) * cal_mean_masked**2)) / \
+                #         (len(calData_nbp_10x10_masked) - 1) # total variance of calculated data
+                # sy_q = (numpy.sum(csd_refData) - (len(refData_nbp_10x10_masked) * ref_mean_masked**2)) / \
+                #         (len(refData_nbp_10x10_masked) - 1) # total variance of reference data
+                # correlation = numpy.corrcoef(refData_nbp_10x10_masked, calData_nbp_10x10_masked, rowvar=1)[1][0]
+                # covariance = correlation * numpy.sqrt(sx_q) * numpy.sqrt(sy_q)
+                # msd = (cal_mean_masked-ref_mean_masked)**2 + sx_q + sy_q - (2*covariance)
+
                 sx_q = numpy.var(calData_nbp_10x10_masked) # variance of calculated data
                 sy_q = numpy.var(refData_nbp_10x10_masked) # variance of reference data
                 s_xy = numpy.cov(calData_nbp_10x10_masked, refData_nbp_10x10_masked)[0][1] # covariance of calculated and reference data
@@ -1248,7 +1391,40 @@ def RMSD(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
                 temp[i].append(rmsd)
             else:
                 temp[i].append(0)
-
+                
+    ### New 3/21/16: Replaces Original below
+    ### Calculates RMSD for each 10x10 patch
+    ###temp = [[] for i in range(nrR)]
+    ###for i in range(nrR):
+    ###    for j in range(nrC):
+    ###        number_of_pixels_in_patch = len(calData_nbp[i][j])
+    ###        if number_of_pixels_in_patch > 0:
+    ###            sx_q = numpy.var(calData_nbp[i][j]) # variance of calculated data
+    ###            sy_q = numpy.var(refData_nbp[i][j]) # variance of reference data
+    ###            s_xy = numpy.cov(calData_nbp[i][j], refData_nbp[i][j])[0][1] # covariance of calculated and reference data
+    ###            x_mean = numpy.mean(calData_nbp[i][j])
+    ###            y_mean = numpy.mean(refData_nbp[i][j])
+    ###            msd = (x_mean - y_mean)**2 + sx_q + sy_q - (2*s_xy)
+    ###            rmsd = numpy.sqrt(msd)
+    ###            temp[i].append(rmsd)
+    ###        else:
+    ###            temp[i].append(0)
+                #print("No pixels in patch at ("+str(i)+","+str(j)+")") #for testing
+    
+    ### Original: If a 10x10 patch has at least one NaN, then RMSD for entire patch is NaN
+    ###temp = [[] for i in range(nrR)]
+    ###for i in range(nrR):
+    ###    for j in range(nrC):
+    ###        sx_q = numpy.var(calData[i][j]) # variance of calculated data
+    ###        sy_q = numpy.var(calData[i][j]) # variance of reference data
+    ###        s_xy = numpy.cov(calData[i][j], refData[i][j])[0][1] # covariance of calculated and reference data
+    ###        x_mean = numpy.mean(calData[i][j])
+    ###        y_mean = numpy.mean(refData[i][j])
+    ###        msd = (x_mean - y_mean)**2 + sx_q + sy_q - (2*s_xy)
+    ###        rmsd = numpy.sqrt(msd)
+    ###        temp[i].append(rmsd)
+    ### End original
+    #print("rmsd_all_regions="+str(rmsd_all_regions)) #for testing
     return temp, rmsd_all_regions
 
 def CCC(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
@@ -1268,6 +1444,8 @@ def CCC(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
     
     ### nbp is the abbreviation for no_bad_pixels
     
+    temp = [[]for i in range(nrR) ] #Original
+   
     ### Calculate variance of each 10x10 block
     ### Variance = (sum_csd - (total_combinations * avg_mean**2)) / (total_combinations - 1)
     ### sum_csd is the sum of elements in the combined standard deviation array
@@ -1302,11 +1480,15 @@ def CCC(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
             # Apply the mask to calData_nbp_10x10: Filter the list
             calData_nbp_10x10_masked = applyMask(calData_nbp_10x10, maskData_nbp_10x10)
             
+            #Remove nans from the calculated data. Nans cause the calculations to fail -- they return nan.
+            #calData_10x10 = [v for v in calData_10x10 if not math.isnan(v)]
+            
             ref_pixels_counted_10x10 = len(refData_nbp_10x10_masked)
             cal_pixels_counted_10x10 = len(calData_nbp_10x10_masked)
             ref_total_pixels_counted += ref_pixels_counted_10x10
             cal_total_pixels_counted += cal_pixels_counted_10x10
             
+            #print(calData_10x10)
             #Reference (nominal) data
             if cal_pixels_counted_10x10 > 0:
                 mean_refData = numpy.mean(refData_nbp_10x10_masked)
@@ -1322,6 +1504,8 @@ def CCC(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
                 csd_calData_list.append(csd_calData)
             else:
                 pass
+                #temp[i].append("")
+                #print("No pixels in patch at ("+str(i)+","+str(j)+")") #for testing
 
     sum_csd_calData = numpy.sum(csd_calData_list) # Will need to disable this line
     avg_mean_refData = numpy.mean(mean_refData_list)
@@ -1331,17 +1515,81 @@ def CCC(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
     sd_calData = numpy.std(mean_calData_list)
 
     mean_bias_cal = (avg_mean_calData - avg_mean_refData) / avg_mean_refData
+    #csd_refData = ref_pixels_counted_10x10 * avg_mean_refData**2
+    #csd_calData = ((cal_pixels_counted_10x10-1) * mean_bias_cal**2) + (cal_pixels_counted_10x10 * avg_mean_calData**2)
     csd_refData = ((ref_total_pixels_counted-1)*sd_refData**2)+(ref_total_pixels_counted*avg_mean_refData**2)
     csd_calData = ((cal_total_pixels_counted-1)*sd_calData**2)+(cal_total_pixels_counted*avg_mean_calData**2)
 
+    #variance_calData = (sum_csd_calData - (cal_total_pixels_counted * avg_mean_calData**2)) / (cal_total_pixels_counted - 1) # Will need to disable this line
     variance_calData = (csd_calData - (cal_total_pixels_counted * avg_mean_calData**2)) / (cal_total_pixels_counted - 1)
     sum_csd_refData = numpy.sum(csd_refData_list) # Will need to disable this line
 
+    #variance_refData = (sum_csd_refData - (ref_total_pixels_counted * avg_mean_refData**2)) / (ref_total_pixels_counted - 1) # Will need to disable this line
     variance_refData = (csd_refData - (ref_total_pixels_counted * avg_mean_refData**2)) / (ref_total_pixels_counted - 1)
     correlation = numpy.corrcoef(mean_refData_list, mean_calData_list, rowvar=1)[1][0]
     covariance = correlation * numpy.sqrt(variance_calData) * numpy.sqrt(variance_refData)
     ccc_all_regions = (2*covariance) / (variance_calData + variance_refData + (avg_mean_refData-avg_mean_calData)**2)
-    
+    #print("correlation="+str(correlation))
+    #print("covariance="+str(covariance))
+    #print("ccc="+str(ccc))
+    #print("mean_calData:")
+    #print(mean_calData_list)
+    #print("csd_calData:")
+    #print(csd_calData_list)
+    #print("mean_refData:")
+    #print(mean_refData_list)
+    #print("csd_refData:")
+    #print(csd_refData_list)
+
+    ### New 7/8/16: Replaces original section below
+    ### Calculates CCC for each 10x10 patch for masked pixels only
+    """
+    for i in range(nrR):
+        for j in range(nrC):
+            refData_nbp_10x10 = refData_nbp[i][j]
+            calData_nbp_10x10 = calData_nbp[i][j]
+            maskData_nbp_10x10 = mask_nbp[i][j]
+
+            # Apply the mask to refData_nbp_10x10: Filter the list
+            refData_nbp_10x10_masked = applyMask(refData_nbp_10x10, maskData_nbp_10x10)
+            
+            # Apply the mask to calData_nbp_10x10: Filter the list
+            calData_nbp_10x10_masked = applyMask(calData_nbp_10x10, maskData_nbp_10x10)
+            
+            number_of_pixels_in_patch = len(calData_nbp_10x10_masked)
+            
+            if number_of_pixels_in_patch > 0:
+                # x - reference data nbp 10x10 masked
+                # y - calculated data nbp 10x10 masked
+                x_mean = numpy.mean(refData_nbp_10x10_masked)
+                x_sd = numpy.std(refData_nbp_10x10_masked)
+                csd_refData_patch = ((number_of_pixels_in_patch - 1) * x_sd ** 2) + (number_of_pixels_in_patch * x_mean ** 2)
+
+                y_mean = numpy.mean(calData_nbp_10x10_masked)
+                y_sd = numpy.std(calData_nbp_10x10_masked)
+                csd_calData_patch = ((number_of_pixels_in_patch - 1) * y_sd ** 2) + (number_of_pixels_in_patch * y_mean ** 2)
+
+                variance_refData_patch = (csd_refData_patch - (number_of_pixels_in_patch * x_mean ** 2)) / (number_of_pixels_in_patch - 1)
+                variance_calData_patch = (csd_calData_patch - (number_of_pixels_in_patch * y_mean ** 2)) / (number_of_pixels_in_patch - 1)
+
+                correlation = numpy.corrcoef(refData_nbp_10x10_masked, calData_nbp_10x10_masked, rowvar=1)[1][0]
+                covariance = correlation * numpy.sqrt(variance_calData_patch) * numpy.sqrt(variance_refData_patch)
+                ccc = (2 * covariance) / (variance_calData_patch + variance_refData_patch + (x_mean - y_mean) ** 2)
+
+                #sx_q = numpy.var(calData_nbp_10x10_masked)
+                #sy_q = numpy.var(refData_nbp_10x10_masked)
+                #s_xy = numpy.cov(calData_nbp_10x10_masked, refData_nbp_10x10_masked)[0][1]
+                #x_mean = numpy.mean(calData_nbp_10x10_masked)
+                #y_mean = numpy.mean(refData_nbp_10x10_masked)
+                #ccc = (2*s_xy) /(sx_q + sy_q + (y_mean - x_mean)**2)
+                temp[i].append(ccc)
+
+            else:
+                temp[i].append("")
+    """
+    #print(temp)
+    #print(str(ccc_all_regions))
+    #return temp, ccc_all_regions
     return ccc_all_regions
 
 def TDI(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
@@ -1368,6 +1616,9 @@ def TDI(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
             # Apply the mask to calData_nbp_10x10: Filter the list
             calData_nbp_10x10_masked = applyMask(calData_nbp_10x10, maskData_nbp_10x10)
 
+            # Remove nans from the calculated data. Nans cause the calculations to fail -- they return nan.
+            # calData_10x10 = [v for v in calData_10x10 if not math.isnan(v)]
+
             ref_pixels_counted_10x10 = len(refData_nbp_10x10_masked)
             cal_pixels_counted_10x10 = len(calData_nbp_10x10_masked)
             ref_total_pixels_counted += ref_pixels_counted_10x10
@@ -1376,8 +1627,14 @@ def TDI(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
             if cal_pixels_counted_10x10 > 0:
                 ref_mean = numpy.mean(refData_nbp_10x10_masked)
                 cal_mean = numpy.mean(calData_nbp_10x10_masked)
+                #mean_difference = abs(cal_mean) - abs(ref_mean)
                 mean_difference = abs(cal_mean - ref_mean)
                 differences_list.append(mean_difference)
+
+                #ref_cal_pairs = zip(refData_nbp_10x10_masked, calData_nbp_10x10_masked)
+
+                #for pair in ref_cal_pairs:
+                #    differences_list.append(abs(pair[1]) - abs(pair[0]))
 
     # Calculate TDI. This method is used by the R package MethComp.
     # It calculates an approximate TDI by assuming a normal distribution.
@@ -1393,6 +1650,7 @@ def TDI(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
     # End new method
 
     ### Calculates TDI for each 10x10 patch for masked pixels only
+
     for i in range(nrR):
         for j in range(nrC):
             refData_nbp_10x10 = refData_nbp[i][j]
@@ -1412,6 +1670,7 @@ def TDI(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
                 differences_list = []
 
                 for pair in ref_cal_pairs:
+                    #differences_list.append(pair[1] - pair[0])
                     differences_list.append(abs(pair[1]) - abs(pair[0]))
 
 
@@ -1424,7 +1683,33 @@ def TDI(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
             else:
                 temp[i].append("")
 
+
+
     return temp, tdi_all_regions, tdi_all_regions_method_2
+
+#def TDI(rmsd_list, aggregate_rmsd, nrR, nrC):
+#    '''
+#    Calculates Total Deviation Index
+#
+#    The mask was applied to the data when RMSD was calculated, so it does
+#    not need to be applied in this function.
+#
+#    Arguments:
+#        rmsd_list: a list of rmsds for each 10x10 patch
+#        aggregate_rmsd - the RMSD from all regions combined
+#    '''
+#    temp = [[]for i in range(nrR) ]
+#
+#    for i in range(nrR):
+#        for j in range(nrC):
+#            if isinstance(rmsd_list[i][j], float):
+#                tdi_patch = 1.96 * rmsd_list[i][j]
+#                temp[i].append(tdi_patch)
+#            else:
+#                #print("TDI Cannot calculate TDI for this patch since there is non-float data") #for testing
+#                temp[i].append(rmsd_list[i][j])
+#    tdi = 1.96 * numpy.absolute(aggregate_rmsd)
+#    return temp, tdi
 
 def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_total_error, mask, mask_nbp):
     '''
@@ -1448,6 +1733,10 @@ def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_
     '''
     
     ### nbp is the abbreviation for no_bad_pixels
+
+    if allowable_total_error == "0.0": # User did not set a value for allowable_total_error. Do not calculate sigma metric.
+        return [], 0
+
     temp = [[]for i in range(nrR) ] #Original 
     
     mean_calData_list = []
@@ -1457,6 +1746,8 @@ def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_
     stddev_refData_list = []
     cv_calData_list = [] #cv = coefficient of variation
     allowable_total_error_list = []
+    #cv_refData_list = [] #cv = coefficient of variation
+    
     
     ref_total_pixels_counted = 0 #will be 3000 if no nans
     ref_pixels_counted_10x10 = 0 #will be 100 if no nans
@@ -1473,6 +1764,20 @@ def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_
             refData_nbp_10x10 = refData_nbp[i][j] #The 10x10 pixel patch or raw pixel data (no bad pixels)
             maskData_nbp_10x10 = mask_nbp[i][j] #The 10x10 pixel patch of raw pixel data (no bad pixels)
             
+            #Remove nans from the calculated data. Nans cause the calculations to fail -- they return nan.
+            #calData_10x10 = [v for v in calData_10x10 if not math.isnan(v)]
+            #print("   j="+str(j))
+
+            #start debugging
+            #print(refData_nbp_10x10)
+            #print("refData length="+str(len(refData_nbp_10x10)))
+            #print(maskData_nbp_10x10)
+            #print(calData_nbp_10x10)
+            #print("calData length="+str(len(calData_nbp_10x10)))
+            #print("mask length="+str(len(maskData_nbp_10x10)))
+            #print("----------------------------------------------")
+            #end debugging
+
             # Apply the mask to refData_nbp_10x10: Filter the list
             refData_nbp_10x10_masked = applyMask(refData_nbp_10x10, maskData_nbp_10x10)
             
@@ -1484,11 +1789,17 @@ def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_
             ref_total_pixels_counted += ref_pixels_counted_10x10
             cal_total_pixels_counted += cal_pixels_counted_10x10
             
+            #print(calData_10x10)
+            #Reference (nominal) data
             if cal_pixels_counted_10x10 > 0:
                 mean_refData = numpy.mean(refData_nbp_10x10_masked)
                 mean_refData_list.append(mean_refData) #Mean of reference data for each 10x10 patch
                 stddev_refData = numpy.std(refData_nbp_10x10_masked)
                 stddev_refData_list.append(stddev_refData) #Standard deviation of reference data for each 10x10 patch
+                #csd_refData = (ref_pixels_counted_10x10 * mean_refData**2) #This formula is correct. The mean_bias of the reference data is 0, so (ref_pixels_counted-1)*mean_bias**2 = 0)
+                #csd_refData_list.append(csd_refData)
+                #cv_refData = (stddev_refData / mean_refData) * 100.0 #cv = coefficient of variation
+                #cv_refData_list.append(cv_refData)
                 
                 #Calculated (software) data
                 mean_calData = numpy.mean(calData_nbp_10x10_masked)
@@ -1497,13 +1808,17 @@ def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_
                 stddev_calData_list.append(stddev_calData) #Standard deviation of calculated data for each 10x10 patch
                 mean_bias = mean_calData - mean_refData
                 mean_bias_list.append(mean_bias)
+                #csd_calData = ((cal_pixels_counted_10x10-1) * mean_bias_cal**2) + (cal_pixels_counted_10x10 * mean_calData**2)
+                #csd_calData_list.append(csd_calData)
                 cv_calData = (stddev_calData / mean_calData) * 100.0 #cv = coefficient of variation
                 cv_calData_list.append(cv_calData)
                 allowable_total_error_list.append(allowable_total_error)
                 
+    #sum_csd_calData = numpy.sum(csd_calData_list)
     agg_mean_calData = numpy.mean(mean_calData_list)
     agg_stddev_calData = numpy.std(mean_calData_list)
     agg_mean_bias = numpy.mean(mean_bias_list)
+    #avg_cv_calData = numpy.mean(cv_calData_list)
     agg_cv_calData = (agg_stddev_calData / agg_mean_calData) * 100.0 #cv = coefficient of variation
     agg_ate_calData = numpy.mean(allowable_total_error_list)
     sigma_metric_all_regions = (agg_ate_calData - agg_mean_bias) / agg_cv_calData
@@ -1531,6 +1846,7 @@ def SigmaMetric(calData, refData, nrR, nrC, calData_nbp, refData_nbp, allowable_
                 coefficient_of_variation = (stddev_calData / mean_calData) * 100.0
                 sigma_metric = (allowable_total_error - mean_bias) / coefficient_of_variation
                 temp[i].append(sigma_metric)
+
             else:
                 temp[i].append("")
     
@@ -1550,7 +1866,7 @@ def applyMask(list_to_mask, mask):
         masked_list = []
     else:
         masked_list = [list_to_mask[n] for n in range(len(list_to_mask)) if mask[n] == 255] #Use a binary mask
-        #masked_list = [list_to_mask[n]*(mask[n]/255.0) for n in range(len(list_to_mask)) if mask[n] > 0] #Use a weighted mask
+    #masked_list = [list_to_mask[n]*(mask[n]/255.0) for n in range(len(list_to_mask)) if mask[n] > 0] #Use a weighted mask
     return masked_list
 
 def DefineNaN(inMap, mode, threshold, replaceVal):
