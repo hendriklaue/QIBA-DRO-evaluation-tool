@@ -54,8 +54,6 @@ def fittingLinearModel(ref_cal_group_list):
         slope_list.append(slope)
         intercept_list.append(intercept)
         rSquared_list.append(r**2)
-    #slope, intercept, r, p, stderr = stats.linregress(ref_list, cal_list)
-    #return slope, intercept, r**2
     return slope_list, intercept_list, rSquared_list
 
 def func_for_log_calculation(x, a, b):
@@ -83,14 +81,6 @@ def fittingLogarithmicModel(ref_cal_group_list):
             popt, pcov = optimize.curve_fit(func_for_log_calculation, postRef, postCal)
         a_list.append(popt[0])
         b_list.append(popt[1])
-
-    #postCal = numpy.array(cal_list)
-    #postRef = numpy.array(ref_list)
-    #if len(postRef) in (0,1):
-    #	popt = [numpy.nan, numpy.nan]
-    #else:
-    #	popt, pcov = optimize.curve_fit(func_for_log_calculation, postRef, postCal)
-    #return popt[0], popt[1]
     return a_list, b_list
 
 def calCorrMatrix(ref_cal_Ktrans_groups, ref_cal_Ve_groups):
@@ -140,8 +130,6 @@ def calCorrMatrixT1(ref_cal_T1_groups):
         corr_tt_list.append(corr_tt)
     return corr_tt_list
 
-#def calCovMatrix(calculated_patch_value, reference_patch_value):
-#	return numpy.cov(calculated_patch_value, reference_patch_value)
 def calCovMatrix(ref_cal_Ktrans_groups, ref_cal_Ve_groups):
     """Calculate covariance matrix for kk, vk, kv, and vv for each reference value.
     Returns cov_kk, cov_vk, cov_kv, cov_vv
@@ -219,14 +207,12 @@ def RMSD(ref_cal_group_list):
     #Reference data mean, stddev, csd
     mean_refData = numpy.mean(ref_data_list)
     sd_refData = numpy.std(ref_data_list)
-    #csd_refData = (total_instances_counted * mean_refData**2) #This formula is correct. The mean bias of the reference data is 0, so (ref_instances_counted-1)*mean_bias**2 = 0
     csd_refData = ((total_instances_counted-1)*sd_refData**2)+(total_instances_counted*mean_refData**2)
 
     #Calculated data mean, stddev, mean_bias, csd
     mean_calData = numpy.mean(cal_data_list)
     sd_calData = numpy.std(cal_data_list)
     mean_bias_cal = (mean_calData - mean_refData) / mean_refData
-    #csd_calData = ((total_instances_counted-1) * mean_bias_cal**2) + (total_instances_counted * mean_calData**2)
     csd_calData = ((total_instances_counted-1)*sd_calData**2)+(total_instances_counted*mean_calData**2)
 
     #Variance, correlation, covariance
@@ -301,14 +287,12 @@ def CCC(ref_cal_group_list):
     #2. Calculate CCC for all reference values combined
     #Reference data mean and csd
     mean_refData = numpy.mean(ref_data_list)
-    #csd_refData = (total_instances_counted * mean_refData**2) #This formula is correct. The mean bias of the reference data is 0, so (ref_instances_counted-1)*mean_bias**2 = 0
     sd_refData = numpy.std(ref_data_list)
     csd_refData = ((total_instances_counted-1)*sd_refData**2)+(total_instances_counted*mean_refData**2)
 
     #Calculated data mean, mean_bias, csd
     mean_calData = numpy.mean(cal_data_list)
     mean_bias_cal = (mean_calData - mean_refData) / mean_refData
-    #csd_calData = ((total_instances_counted-1) * mean_bias_cal**2) + (total_instances_counted * mean_calData**2)
     sd_calData = numpy.std(cal_data_list)
     csd_calData = ((total_instances_counted-1)*sd_calData**2)+(total_instances_counted*mean_calData**2)
 
@@ -400,12 +384,10 @@ def TDI(ref_cal_group_list):
     total_instances_counted = numpy.sum(instances_counted_list)
 
     ref_cal_pairs = zip(ref_data_list, cal_data_list)
-    #ref_cal_pairs_sorted = sorted(ref_cal_pairs, key=getKey, reverse=True) #Sort by calculated value in descending order
 
     # 2. Calculate TDI for all reference values combined
     differences_list = []
     for pair in ref_cal_pairs:
-        #differences_list.append(abs(pair[1]) - abs(pair[0])) #original
         differences_list.append(abs(pair[1]-pair[0]))
 
     # 3. 2nd new method to estimate TDI.
@@ -453,22 +435,6 @@ def TDI(ref_cal_group_list):
 
     return tdi_list, tdi_all_regions, tdi_all_regions_method_2
 
-#def TDI(rmsd_list, aggregate_rmsd):
-#    """Calculates Total Deviation Index (Parametric Method)
-#    Arguments:
-#        rmsd_list: A list of RMSDs for each reference value
-#        aggregate rmsd: The RMSD for all reference values combined
-#    """
-#    tdi_list = []
-#    for value in rmsd_list:
-#        if isinstance(value, float):
-#            tdi_region = 1.96 * numpy.absolute(value)
-#            tdi_list.append(tdi_region)
-#        else:
-#            tdi_list.append(numpy.nan)
-#    tdi_all_regions = 1.96 * numpy.absolute(aggregate_rmsd)
-#
-#    return tdi_list, tdi_all_regions
 
 def SigmaMetric(ref_cal_group_list, allowable_total_error):
     """Sigma metric
@@ -549,13 +515,7 @@ def SigmaMetric(ref_cal_group_list, allowable_total_error):
         sigma_metric = (allowable_total_error - mean_bias) / cv_calData
         sigma_metric_list.append(sigma_metric)
 
-    #sum_csd_calData = numpy.sum(cal_csd_list)
-    #sum_csd_calData = numpy.sum(csd_calData_list)
     avg_mean_calData = numpy.mean(cal_mean_list)
-    #avg_mean_bias = numpy.mean(mean_bias_list)
-    #avg_cv_calData = numpy.mean(cal_cv_list)
-    #avg_ate_calData = numpy.mean(allowable_total_error_list)
-    #s0igma_metric_all_regions = (avg_ate_calData - avg_mean_bias) / avg_cv_calData
 
     return sigma_metric_list, sigma_metric_all_regions
 
@@ -653,15 +613,13 @@ def tTestOneSample(ref_cal_group_list):
     for unique_ref_group in ref_cal_group_list:
         tuple_ref_list = []
         tuple_cal_list = []
-        #number_of_0_values = 0
+
         for tpl in unique_ref_group:
             ref_value = tpl[0]
             cal_value = tpl[1]
             tuple_ref_list.append(ref_value)
             tuple_cal_list.append(cal_value)
-        #for cal in tuple_cal_list:
-        #	if cal == 0.0:
-        #		number_of_0_values = number_of_0_values + 1
+
         expected_mean = numpy.mean(tuple_ref_list)
         t_test_results = stats.ttest_1samp(tuple_cal_list, expected_mean)
         t_list.append(t_test_results[0])
@@ -672,8 +630,6 @@ def T_Test_Aggregate_Data(ref_cal_group_list):
     tuple_ref_list = []
     tuple_cal_list = []
     for unique_ref_group in ref_cal_group_list:
-        #tuple_ref_list = []
-        #tuple_cal_list = []
 
         for tpl in unique_ref_group:
             ref_value = tpl[0]
@@ -733,17 +689,6 @@ def editTable(caption, headers_list, entryName_list, entryData_list):
     """Edits table data in HTML. Returns a table of values."""
     tableText = "<table border=\"1\" cellspacing=\"10\">"
 
-    #if isinstance(entryData_list[0], OrderedDict) or isinstance(entryData_list[0], dict):
-    #	print("entryData_list")
-    #	print(entryData_list)
-    #	tableText += "<tr>"
-    #	reference_value_list = entryData_list[0].keys()
-    #	for i in range(len(reference_value_list)):
-    #		if i > 0:
-    #			tableText += "<th>" + str(reference_value_list[i]) + "</th>"
-    #		else:
-    #			tableText += "<th>Ref " + caption + " = " + str(reference_value_list[i]) + "</th>"
-    #	tableText += "</tr>"
     tableText += "<tr>"
     for i in range(len(headers_list)):
         if i > 0:
@@ -751,7 +696,6 @@ def editTable(caption, headers_list, entryName_list, entryData_list):
         else:
             tableText += "<th>Ref " + caption + " = " + str(headers_list[i]) + "</th>"
     tableText += "</tr>"
-
 
     for i in range(len(entryData_list)):
         tableText += "<tr>"
@@ -778,7 +722,6 @@ def editTablePercent(caption, headers_list, entryName, entryData):
     given as percents.
     """
 
-    #tableText = "<h3>"+caption+"</h3>"
     tableText = "<table border=\"1\" cellspacing=\"10\">"
 
     if isinstance(entryData, OrderedDict) or isinstance(entryData, dict):
@@ -801,6 +744,7 @@ def editTablePercent(caption, headers_list, entryName, entryData):
     #First line: header labels
     #Second line: table data
     else: #Revise this
+        reference_value_list = entryData
         tableText += "<tr>"
         for i in range(len(headers_list)):
             if i > 0:

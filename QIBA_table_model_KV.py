@@ -86,7 +86,6 @@ class QIBA_table_model_KV(object):
         calculated values of [8,9,8,3,6,1,0,2,3,6] will produce a list that looks like
         [ [(1,8), (1,2), (1,3)], [(2,9), (2,1)], [(4,0)], [(5,6)], [(7,8), (7,6)], [(9,3)]
         """
-        #all_unique_ref_values = [s for s in set(ref_value_list)]
         all_unique_ref_values = list(set(ref_value_list)) #Remove duplicate elements from ref_value_list
         all_unique_ref_values.sort()
         full_list = list()
@@ -134,13 +133,7 @@ class QIBA_table_model_KV(object):
             reference_value = reference_values_list[i]
             proportion_nan = (float(total_instances_list[i]) - float(usable_instances_list[i])) / float(total_instances_list[i])
             nan_proportion_dict[reference_value] = proportion_nan
-        
-            #proportion_nan = (number_instances_total_list[i] - number_usable_instances_list[i]) / number_instances_total_list[i]
-        #nan_proportion_list = list()
-        #for i in range(len(number_usable_instances_list)):
-        #    nan_proportion = float(number_usable_instances_list[i]) / float(number_instances_total_list[i])
-        #    nan_proportion_list.append(nan_proportion)
-        #return nan_proportion_list
+
         nan_proportion_dict = OrderedDict(sorted(nan_proportion_dict.items()))
         return nan_proportion_dict
     
@@ -148,7 +141,6 @@ class QIBA_table_model_KV(object):
         """Handler for calculating statistics"""
         
         self.calculateErrorForModel()
-        #self.estimatePatchForModel("MEAN") #Is this needed for tables?
         self.prepareHeaders()
         
         #Evaluation functions
@@ -208,8 +200,6 @@ class QIBA_table_model_KV(object):
             self.headers_Ktrans.append(QIBA_functions_for_table.formatFloatTo2DigitsString(k))
         for v in all_unique_ref_ve_values:
             self.headers_Ve.append(QIBA_functions_for_table.formatFloatTo2DigitsString(v))
-        #Should this look like the ktrans, ve table of image-based model,
-        #or should it have a different layout?
         
     def htmlStatistics(self):
         """Displays the statistics in HTML form
@@ -347,12 +337,7 @@ class QIBA_table_model_KV(object):
     def htmlCovCorrResults(self):
         """Displays the correlation and covariance results in HTML form
         """
-        #print("self.headers_Ktrans")
-        #print(self.headers_Ktrans)
-        #print("self.cov_kk")
-        #print(self.cov_kk)
-        #print("self.corr_kk")
-        #print(self.corr_kk)
+
         #Relation between calculated Ktrans and reference Ktrans
         kk_table = "<h2>The correlation and covariance of each column in calculated Ktrans map with reference Ktrans map:</h2>" \
             "<table border=\"1\" cellspacing=\"10\">" \
@@ -684,15 +669,7 @@ class QIBA_table_model_KV(object):
     def GetModelFittingInHTML(self):
         """getter for the result in HTML"""
         return self.ModelFittingInHtml
-    ##def getStatisticsInHTML(self):
-    ##    return self.statisticsInHTML
-        
-    ###def getCovarianceCorrelationInHTML(self):
-    ###    return self.covCorrResultsInHtml
-        
-    ###def getModelFittingInHtml(self):
-    ###    return self.modelFittingInHtml
-    
+
     def GetT_TestResultsInHTML(self):
         return self.T_testResultInHTML
         
