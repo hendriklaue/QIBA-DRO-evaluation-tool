@@ -1263,7 +1263,7 @@ def RMSD(calData, refData, nrR, nrC, calData_nbp, refData_nbp, mask, mask_nbp):
                 rmsd = numpy.sqrt(msd)
                 temp[i].append(rmsd)
             else:
-                temp[i].append(0)
+                temp[i].append("")
 
     return temp, rmsd_all_regions
 
