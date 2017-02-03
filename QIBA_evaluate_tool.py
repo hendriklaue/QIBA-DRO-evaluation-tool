@@ -4820,7 +4820,7 @@ def checkIfFilesExist(list_of_files):
 def main(argv):
     # generate the application object
     if len(argv) == 0:
-        Application = wx.App() #For GUI mode, direct all output to a wxpython window
+        Application = wx.App(True) #For GUI mode, direct all output to a wxpython window
     else:
         Application = wx.App(redirect=False) #For command-line mode, direct all output to the terminal/console window
 

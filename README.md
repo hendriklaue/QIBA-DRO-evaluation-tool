@@ -65,3 +65,29 @@ How to Build the installer (for Windows)
 to build.Two new folders are created: */built* and */dist*;
 
 * The Windows installer shall be found under the folder */dist*, named as **QIBA evaluate tool-0.1-win32.msi**.
+
+Set up a development environment with mac os using mac ports
+-----------
+
+* install python 2.7: sudo port install python27
+* install pip for python 2.7: sudo port install pip-27
+* install wxpython: sudo port install py27-wxpython-3.0
+* install matplotlib: sudo pip-2.7 install matplotlib
+* install scipy: sudo pip-2.7 install scipy
+* install pydicom: sudo pip-2.7 install pydicom
+* install nibabel: sudo pip-2.7 install nibabel
+* install xlwt: sudo pip-2.7 install xlwt
+
+
+=====
+Set up using xcode version
+
+Install pip
+
+* sudo easy_install pip
+* sudo pip install --upgrade matplotlib
+* sudo pip install xlwt
+* sudo pip install pillow
+* sudo pip install pydicom
+* sudo pip install nibabel
+
