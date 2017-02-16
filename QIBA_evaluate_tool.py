@@ -41,6 +41,7 @@ import os.path
 from sys import argv, exit
 import getopt
 import wx
+import wx.adv
 import wx.html
 import numpy
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
@@ -984,8 +985,8 @@ class MainWindow_KV(MainWindow):
 
         OnLoadCal_K = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, 'Load as calculated Ktrans')
         OnLoadCal_V = wx.MenuItem(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, 'Load as calculated Ve')
-        self.popupMenu.AppendItem(OnLoadCal_K)
-        self.popupMenu.AppendItem(OnLoadCal_V)
+        self.popupMenu.Append(OnLoadCal_K)
+        self.popupMenu.Append(OnLoadCal_V)
         wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_K, self.OnLoadCal_K)
         wx.EVT_MENU(self.popupMenu, self.ID_POPUP_LOAD_CAL_V, self.OnLoadCal_V)
 
@@ -2411,7 +2412,7 @@ class MySelectionDialog(wx.Dialog):
     def GetSelections(self):
         return self.branchChoices.GetStringSelection()
 
-class MySplashScreen(wx.SplashScreen):
+class MySplashScreen(wx.adv.SplashScreen):
     '''
     show the splash screen when the application is launched.
     '''

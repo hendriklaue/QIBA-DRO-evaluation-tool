@@ -4,9 +4,12 @@ import struct
 import dicom
 import numpy
 import os.path
-import Image
-import TiffImagePlugin
-import ImageFile
+#import Image
+#import TiffImagePlugin
+#import ImageFile
+from PIL import Image
+from PIL import TiffImagePlugin
+from PIL import ImageFile
 import random
 
 
