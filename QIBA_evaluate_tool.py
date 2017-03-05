@@ -1144,8 +1144,8 @@ class MainWindow_KV(MainWindow):
         if refFiles:
             self.path_ref_K, self.path_ref_V = refFiles.split(',')
         else:
-            self.path_ref_K = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.tif')
-            self.path_ref_V = os.path.join(os.getcwd(), 'reference_data', 'Ve.tif')
+            self.path_ref_K = os.path.join(os.getcwd(), 'reference_data', 'Ktrans.dcm')
+            self.path_ref_V = os.path.join(os.getcwd(), 'reference_data', 'Ve.dcm')
 
         if calFiles:
             self.path_cal_K, self.path_cal_V = calFiles.split(',')
@@ -3156,7 +3156,7 @@ class MainWindow_T1(MainWindow):
         if refFiles:
             self.path_ref_T1 = refFiles
         else:
-            self.path_ref_T1 = os.path.join(os.getcwd(), 'reference_data', 'T1.tif')
+            self.path_ref_T1 = os.path.join(os.getcwd(), 'reference_data', 'T1.dcm')
 
         if calFiles:
             self.path_cal_T1 = calFiles
